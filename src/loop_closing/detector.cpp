@@ -77,7 +77,7 @@ std::shared_ptr<KeyFrame> LoopDetector::Detect(std::shared_ptr<KeyFrame> current
             continue;
         if (kf->Id() == current_kf->Id())
             continue;
-        if (recent_ids.count(kf->Id()))
+        if (recent_ids.contains(kf->Id()))
             continue;
 
         auto it = bow_vectors_.find(kf->Id());
@@ -134,7 +134,7 @@ std::shared_ptr<KeyFrame> LoopDetector::DetectWithFallback(std::shared_ptr<KeyFr
             continue;
         if (kf->Id() == current_kf->Id())
             continue;
-        if (recent_ids.count(kf->Id()))
+        if (recent_ids.contains(kf->Id()))
             continue;
 
         double score =

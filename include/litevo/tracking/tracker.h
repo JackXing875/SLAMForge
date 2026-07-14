@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -32,7 +33,7 @@ namespace tracking {
 class FeatureMatcher;
 
 /// Tracking state machine.
-enum class TrackingState {
+enum class TrackingState : std::uint8_t {
     NOT_INITIALIZED,  ///< Waiting for successful initialization
     INITIALIZING,     ///< Attempting two-view initialization
     OK,               ///< Tracking normally

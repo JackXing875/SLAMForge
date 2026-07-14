@@ -164,7 +164,7 @@ std::vector<std::pair<int, MapPointId>> FeatureMatcher::SearchByProjection(
 
         for (int kp_idx : candidates) {
             // Skip already matched keypoints
-            if (matched_kp_indices.count(kp_idx))
+            if (matched_kp_indices.contains(kp_idx))
                 continue;
 
             int dist = DescriptorDistance(mp->Descriptor(), desc_frame.row(kp_idx));

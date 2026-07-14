@@ -133,7 +133,7 @@ private:
     cv::Mat descriptors_;
 
     std::vector<MapPointId> map_point_ids_;
-    FeatureGrid grid_{};
+    FeatureGrid grid_;
 
     bool is_keyframe_ = false;
 

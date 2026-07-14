@@ -43,7 +43,7 @@ void LoopCorrector::CorrectLoop(std::shared_ptr<KeyFrame> current_kf,
     for (auto* cov_kf : covisibles) {
         if (!cov_kf || cov_kf->IsBad())
             continue;
-        if (corrected_kfs.count(cov_kf))
+        if (corrected_kfs.contains(cov_kf))
             continue;
 
         // Relative transform from current to covisible
@@ -69,7 +69,7 @@ void LoopCorrector::CorrectLoop(std::shared_ptr<KeyFrame> current_kf,
     for (auto& kf : all_kfs) {
         if (!kf || kf->IsBad())
             continue;
-        if (corrected_kfs.count(kf.get())) {
+        if (corrected_kfs.contains(kf.get())) {
             loop_kfs.push_back(kf);
         }
     }

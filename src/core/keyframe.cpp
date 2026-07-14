@@ -133,7 +133,7 @@ void KeyFrame::EraseChild(KeyFrame* child) {
 
 bool KeyFrame::HasChild(KeyFrame* kf) const {
     std::lock_guard<std::mutex> lock(global_mutex_);
-    return children_.count(kf) > 0;
+    return children_.contains(kf);
 }
 
 // ── Status ───────────────────────────────────────────────────────────────────

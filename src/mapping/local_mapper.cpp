@@ -219,7 +219,7 @@ void LocalMapper::LocalBundleAdjustment() {
     for (auto& kf : all_kfs) {
         if (!kf || kf->IsBad())
             continue;
-        if (local_set.count(kf.get()))
+        if (local_set.contains(kf.get()))
             continue;
 
         // Check if this KF observes any of our map points
@@ -229,7 +229,7 @@ void LocalMapper::LocalBundleAdjustment() {
             if (mp_id.id == 0)
                 continue;
             auto mp = map_.GetMapPoint(mp_id);
-            if (mp && mp_set.count(mp.get())) {
+            if (mp && mp_set.contains(mp.get())) {
                 observes_any = true;
             }
         }

@@ -20,8 +20,7 @@ LoopClosing::LoopClosing(Map& map, const Camera& camera, const LoopClosingConfig
       config_(config),
       detector_(LoopDetectorConfig{}),
       verifier_(LoopVerifierConfig{}, &camera),
-      pose_graph_(PoseGraphConfig{}),
-      global_ba_() {}
+      pose_graph_(PoseGraphConfig{}) {}
 
 LoopClosing::~LoopClosing() {
     Stop();
@@ -117,7 +116,7 @@ void LoopClosing::Run() {
             std::cout << "[LoopClosing] Loop detected! "
                       << "Current KF #" << kf->Id().id << " matches KF #" << candidate->Id().id
                       << " with " << verification.num_inliers << " inliers"
-                      << " (scale=" << verification.S_cw.s << ")" << std::endl;
+                      << " (scale=" << verification.S_cw.s << ")\n";
 
             // ── Step 4: Correct the loop ──────────────────────────────────
             corrector_.CorrectLoop(kf, candidate, verification.S_cw, verification.matches,
@@ -151,7 +150,7 @@ void LoopClosing::Run() {
             num_loops_closed_++;
 
         } catch (const std::exception& e) {
-            std::cerr << "[LoopClosing] Exception: " << e.what() << std::endl;
+            std::cerr << "[LoopClosing] Exception: " << e.what() << '\n';
         }
     }
 

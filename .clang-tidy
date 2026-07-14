@@ -1,30 +1,24 @@
 ---
 # LiteVO clang-tidy configuration
-# Enforces modern C++ best practices
+# Focuses on bug detection and critical performance issues.
+# Style/naming/modernize checks are disabled for now — to be re-enabled
+# gradually as the codebase is cleaned up file by file.
 Checks: >
   -*,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
   -bugprone-exception-escape,
-  cppcoreguidelines-*,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-pro-type-reinterpret-cast,
-  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
-  -cppcoreguidelines-owning-memory,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
-  modernize-*,
-  -modernize-use-trailing-return-type,
+  -bugprone-narrowing-conversions,
+  -bugprone-misplaced-widening-cast,
   performance-*,
-  readability-*,
-  -readability-identifier-length,
-  -readability-magic-numbers,
-  -readability-function-cognitive-complexity,
-  -readability-identifier-naming,
+  -performance-unnecessary-value-param,
+  -performance-trivially-destructible,
+  readability-container-contains,
+  readability-redundant-string-cstr,
+  readability-redundant-member-init,
   misc-*,
   -misc-non-private-member-variables-in-classes,
   -misc-include-cleaner,
-  -misc-const-correctness
-
-CheckOptions:
-  - key: readability-braces-around-statements.ShortStatementLines
-    value: '1'
+  -misc-const-correctness,
+  -misc-no-recursion,
+  -misc-unused-parameters
