@@ -196,12 +196,7 @@ void PoseGraphOptimizer::Optimize(Map& map, std::shared_ptr<KeyFrame> loop_kf,
             continue;
 
         g2o::VertexSE3* vertex = it->second;
-        const g2o::SE3Quat& est = vertex->estimate();
-
-        SE3 Tcw_new = SE3::Identity();
-        Tcw_new.linear() = est.rotation().toRotationMatrix();
-        Tcw_new.translation() = est.translation();
-        kf->SetPose(Tcw_new);
+        kf->SetPose(SE3(vertex->estimate().matrix()));
     }
 }
 
