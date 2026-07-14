@@ -2,8 +2,9 @@
 // Benchmark: ORB feature extraction throughput
 // =============================================================================
 
-#include <benchmark/benchmark.h>
 #include <opencv2/imgproc.hpp>
+
+#include <benchmark/benchmark.h>
 
 #include "litevo/features/orb_extractor.h"
 

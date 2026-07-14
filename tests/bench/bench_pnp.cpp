@@ -2,9 +2,10 @@
 // Benchmark: PnP pose estimation performance
 // =============================================================================
 
-#include <benchmark/benchmark.h>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/eigen.hpp>
+
+#include <benchmark/benchmark.h>
 
 #include <random>
 
@@ -63,8 +64,8 @@ void BM_PnP_RANSAC(benchmark::State& state) {
     for (auto _ : state) {
         cv::Mat rvec, tvec;
         cv::Mat inliers;
-        bool ok = cv::solvePnPRansac(data.pts_3d, data.pts_2d, K, cv::Mat(),
-                                      rvec, tvec, false, 100, 4.0, 0.99, inliers);
+        bool ok = cv::solvePnPRansac(data.pts_3d, data.pts_2d, K, cv::Mat(), rvec, tvec, false, 100,
+                                     4.0, 0.99, inliers);
         benchmark::DoNotOptimize(ok);
     }
     state.SetItemsProcessed(state.iterations() * num_points);
@@ -81,8 +82,8 @@ void BM_PnP_EPnP(benchmark::State& state) {
 
     for (auto _ : state) {
         cv::Mat rvec, tvec;
-        bool ok = cv::solvePnP(data.pts_3d, data.pts_2d, K, cv::Mat(),
-                                rvec, tvec, false, cv::SOLVEPNP_EPNP);
+        bool ok = cv::solvePnP(data.pts_3d, data.pts_2d, K, cv::Mat(), rvec, tvec, false,
+                               cv::SOLVEPNP_EPNP);
         benchmark::DoNotOptimize(ok);
     }
     state.SetItemsProcessed(state.iterations() * num_points);

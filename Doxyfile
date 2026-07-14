@@ -75,7 +75,7 @@ WARN_NO_PARAMDOC       = NO
 # Output
 GENERATE_TREEVIEW      = YES
 DISABLE_INDEX          = NO
-FULL_SIDEBAR           = NO
+# FULL_SIDEBAR removed — not supported by Doxygen 1.9.1 (Ubuntu 22.04)
 
 # Preprocessor
 ENABLE_PREPROCESSING   = YES

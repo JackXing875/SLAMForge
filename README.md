@@ -1,7 +1,5 @@
 # LiteVO — Industrial-Grade Monocular Visual SLAM
 
-[![Build](https://github.com/yourname/LiteVO/actions/workflows/build.yml/badge.svg)](https://github.com/yourname/LiteVO/actions/workflows/build.yml)
-[![Docs](https://github.com/yourname/LiteVO/actions/workflows/docs.yml/badge.svg)](https://yourname.github.io/LiteVO/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue?logo=c%2B%2B)](https://isocpp.org/)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python)](https://www.python.org/)
@@ -63,51 +61,51 @@ python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
 
 ## Features
 
-| Category | Status | Description |
-|----------|--------|-------------|
-| Tracking | ✅ | Two-view init, motion model, local map tracking, relocalization |
-| Local Mapping | ✅ | Triangulation, local BA (Ceres), point/KF culling |
-| Loop Closing | ✅ | FBOW vocabulary, Sim(3) verification, pose graph (g2o), global BA |
-| ORB Features | ✅ | Multi-scale pyramid, quadtree distribution, adaptive threshold |
-| Configuration | ✅ | YAML-based with schema validation (camera, algorithm parameters) |
-| CLI | ✅ | `run`, `eval`, `benchmark` subcommands |
-| ROS2 Node | ✅ | Real-time SLAM with PoseStamped, PointCloud2, TF |
-| Python API | ✅ | pybind11 bindings with numpy interop |
-| Evaluation | ✅ | ATE, RPE, trajectory plotting, batch benchmarking |
-| Docker | ✅ | One-command build + run |
-| Documentation | ✅ | Doxygen API docs, architecture, quick start, tuning guide |
-| Unit Tests | ✅ | 12 test suites with GoogleTest |
-| CI/CD | ✅ | GitHub Actions: build, test, lint, docs, Docker |
-| Benchmarks | ✅ | Google Benchmark: ORB, PnP, triangulation |
+| Category      | Status | Description                                                       |
+| ------------- | ------ | ----------------------------------------------------------------- |
+| Tracking      | ✅      | Two-view init, motion model, local map tracking, relocalization   |
+| Local Mapping | ✅      | Triangulation, local BA (Ceres), point/KF culling                 |
+| Loop Closing  | ✅      | FBOW vocabulary, Sim(3) verification, pose graph (g2o), global BA |
+| ORB Features  | ✅      | Multi-scale pyramid, quadtree distribution, adaptive threshold    |
+| Configuration | ✅      | YAML-based with schema validation (camera, algorithm parameters)  |
+| CLI           | ✅      | `run`, `eval`, `benchmark` subcommands                            |
+| ROS2 Node     | ✅      | Real-time SLAM with PoseStamped, PointCloud2, TF                  |
+| Python API    | ✅      | pybind11 bindings with numpy interop                              |
+| Evaluation    | ✅      | ATE, RPE, trajectory plotting, batch benchmarking                 |
+| Docker        | ✅      | One-command build + run                                           |
+| Documentation | ✅      | Doxygen API docs, architecture, quick start, tuning guide         |
+| Unit Tests    | ✅      | 12 test suites with GoogleTest                                    |
+| CI/CD         | ✅      | GitHub Actions: build, test, lint, docs, Docker                   |
+| Benchmarks    | ✅      | Google Benchmark: ORB, PnP, triangulation                         |
 
 ## Performance Benchmarks
 
 *Results on KITTI odometry benchmark (placeholder — actual results pending dataset run):*
 
 | Sequence | ATE RMSE (m) | RPE trans (m) | RPE rot (°/m) | KFs | MPs |
-|----------|-------------|---------------|---------------|-----|-----|
-| KITTI 00 | — | — | — | — | — |
-| KITTI 01 | — | — | — | — | — |
-| KITTI 02 | — | — | — | — | — |
+| -------- | ------------ | ------------- | ------------- | --- | --- |
+| KITTI 00 | —            | —             | —             | —   | —   |
+| KITTI 01 | —            | —             | —             | —   | —   |
+| KITTI 02 | —            | —             | —             | —   | —   |
 
 ## Technology Stack
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| Language | C++20 | Core engine |
-| Build | CMake 3.20+ | Build system, FetchContent deps |
-| Linear Algebra | Eigen 3.3+ + Sophus | Matrix ops + SE(3) Lie groups |
-| Vision | OpenCV 4.x | ORB, PnP, essential matrix, image I/O |
-| Local Opt | Ceres Solver | Local bundle adjustment |
-| Pose Graph | g2o | Loop closure pose graph optimization |
-| Vocabulary | FBOW | DBoW2-compatible visual place recognition |
-| Logging | spdlog | Structured async logging |
-| Config | yaml-cpp | YAML runtime configuration |
-| CLI | CLI11 | Subcommand-based argument parsing |
-| Bindings | pybind11 | C++ → Python bridge |
-| Testing | GoogleTest, Google Benchmark | Unit tests + micro-benchmarks |
-| Container | Docker | Reproducible build environment |
-| CI/CD | GitHub Actions | Automated build, test, lint, deploy |
+| Layer          | Technology                   | Purpose                                   |
+| -------------- | ---------------------------- | ----------------------------------------- |
+| Language       | C++20                        | Core engine                               |
+| Build          | CMake 3.20+                  | Build system, FetchContent deps           |
+| Linear Algebra | Eigen 3.3+ + Sophus          | Matrix ops + SE(3) Lie groups             |
+| Vision         | OpenCV 4.x                   | ORB, PnP, essential matrix, image I/O     |
+| Local Opt      | Ceres Solver                 | Local bundle adjustment                   |
+| Pose Graph     | g2o                          | Loop closure pose graph optimization      |
+| Vocabulary     | FBOW                         | DBoW2-compatible visual place recognition |
+| Logging        | spdlog                       | Structured async logging                  |
+| Config         | yaml-cpp                     | YAML runtime configuration                |
+| CLI            | CLI11                        | Subcommand-based argument parsing         |
+| Bindings       | pybind11                     | C++ → Python bridge                       |
+| Testing        | GoogleTest, Google Benchmark | Unit tests + micro-benchmarks             |
+| Container      | Docker                       | Reproducible build environment            |
+| CI/CD          | GitHub Actions               | Automated build, test, lint, deploy       |
 
 ## Project Structure
 

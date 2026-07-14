@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Sophus (from source) ─────────────────────────────────────────────────────
-RUN git clone --depth 1 --branch v1.22.10 \
+RUN git clone --depth 1 --branch 1.22.10 \
         https://github.com/strasdat/Sophus.git /tmp/Sophus \
     && cd /tmp/Sophus \
     && mkdir build && cd build \

@@ -15,14 +15,15 @@
 #ifdef LITEVO_HAS_ROS2
 
 #include <cv_bridge/cv_bridge.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
-#include <visualization_msgs/msg/marker.hpp>
-#include <tf2_ros/transform_broadcaster.h>
-#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <sensor_msgs/point_cloud2_iterator.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+
+#include <tf2_ros/transform_broadcaster.h>
 
 #include <chrono>
 #include <memory>
@@ -37,9 +38,7 @@ using namespace std::chrono_literals;
 /// @brief ROS2 node wrapping the LiteVO monocular SLAM tracker.
 class LiteVONode : public rclcpp::Node {
 public:
-    LiteVONode()
-        : Node("litevo_slam")
-    {
+    LiteVONode() : Node("litevo_slam") {
         // ── Parameters ──────────────────────────────────────────────────
         this->declare_parameter("config_path", "config/default.yaml");
         this->declare_parameter("output_trajectory", "/tmp/litevo_traj.txt");
@@ -67,11 +66,10 @@ public:
         auto cfg = *cfg_opt;
 
         // ── Build camera model ──────────────────────────────────────────
-        litevo::Camera::CameraParams cam_params{
-            cfg.camera.fx, cfg.camera.fy, cfg.camera.cx, cfg.camera.cy,
-            cfg.camera.k1, cfg.camera.k2, cfg.camera.p1, cfg.camera.p2, cfg.camera.k3,
-            cfg.camera.width, cfg.camera.height
-        };
+        litevo::Camera::CameraParams cam_params{cfg.camera.fx,    cfg.camera.fy,    cfg.camera.cx,
+                                                cfg.camera.cy,    cfg.camera.k1,    cfg.camera.k2,
+                                                cfg.camera.p1,    cfg.camera.p2,    cfg.camera.k3,
+                                                cfg.camera.width, cfg.camera.height};
         camera_ = litevo::Camera::FromParams(cam_params);
 
         // ── Create tracker ──────────────────────────────────────────────
@@ -103,7 +101,8 @@ public:
             cloud_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("~/map_cloud", 10);
         }
         if (publish_markers_) {
-            kf_marker_pub_ = this->create_publisher<visualization_msgs::msg::Marker>("~/keyframes", 10);
+            kf_marker_pub_ =
+                this->create_publisher<visualization_msgs::msg::Marker>("~/keyframes", 10);
         }
 
         // ── TF broadcaster ──────────────────────────────────────────────
@@ -112,18 +111,18 @@ public:
         }
 
         // ── Status timer ────────────────────────────────────────────────
-        status_timer_ = this->create_wall_timer(
-            5s, std::bind(&LiteVONode::PublishStatus, this));
+        status_timer_ = this->create_wall_timer(5s, std::bind(&LiteVONode::PublishStatus, this));
 
         // Open output trajectory file
         traj_file_.open(output_trajectory_);
         if (traj_file_.is_open()) {
-            RCLCPP_INFO(this->get_logger(), "Writing trajectory to: %s", output_trajectory_.c_str());
+            RCLCPP_INFO(this->get_logger(), "Writing trajectory to: %s",
+                        output_trajectory_.c_str());
         }
 
         RCLCPP_INFO(this->get_logger(), "LiteVO ROS2 node started");
-        RCLCPP_INFO(this->get_logger(), "  Camera: %dx%d fx=%.2f",
-                    cfg.camera.width, cfg.camera.height, cfg.camera.fx);
+        RCLCPP_INFO(this->get_logger(), "  Camera: %dx%d fx=%.2f", cfg.camera.width,
+                    cfg.camera.height, cfg.camera.fx);
     }
 
     ~LiteVONode() override {
@@ -179,7 +178,8 @@ private:
     }
 
     /// @brief Publish camera pose as PoseStamped.
-    void PublishPose(const litevo::SE3& Tcw, const rclcpp::Time& stamp, const std::string& frame_id) {
+    void PublishPose(const litevo::SE3& Tcw, const rclcpp::Time& stamp,
+                     const std::string& frame_id) {
         auto msg = geometry_msgs::msg::PoseStamped();
         msg.header.stamp = stamp;
         msg.header.frame_id = odom_frame_;
@@ -232,10 +232,9 @@ private:
         msg.is_dense = false;
 
         sensor_msgs::PointCloud2Modifier modifier(msg);
-        modifier.setPointCloud2Fields(3,
-            "x", 1, sensor_msgs::msg::PointField::FLOAT32,
-            "y", 1, sensor_msgs::msg::PointField::FLOAT32,
-            "z", 1, sensor_msgs::msg::PointField::FLOAT32);
+        modifier.setPointCloud2Fields(3, "x", 1, sensor_msgs::msg::PointField::FLOAT32, "y", 1,
+                                      sensor_msgs::msg::PointField::FLOAT32, "z", 1,
+                                      sensor_msgs::msg::PointField::FLOAT32);
         modifier.resize(points.size());
 
         sensor_msgs::PointCloud2Iterator<float> iter_x(msg, "x");
@@ -247,7 +246,9 @@ private:
             *iter_x = static_cast<float>(pos.x());
             *iter_y = static_cast<float>(pos.y());
             *iter_z = static_cast<float>(pos.z());
-            ++iter_x; ++iter_y; ++iter_z;
+            ++iter_x;
+            ++iter_y;
+            ++iter_z;
         }
 
         cloud_pub_->publish(msg);
@@ -290,7 +291,9 @@ private:
             for (int i = 0; i < 4; i++) {
                 auto add_point = [&](const litevo::Vec3& p) {
                     geometry_msgs::msg::Point pt;
-                    pt.x = p.x(); pt.y = p.y(); pt.z = p.z();
+                    pt.x = p.x();
+                    pt.y = p.y();
+                    pt.z = p.z();
                     msg.points.push_back(pt);
                 };
                 add_point(center);
@@ -305,19 +308,15 @@ private:
 
     /// @brief Write a pose to the TUM trajectory file.
     void WriteTrajectory(const litevo::SE3& Tcw, double timestamp) {
-        if (!traj_file_.is_open()) return;
+        if (!traj_file_.is_open())
+            return;
 
         litevo::SE3 Twc = Tcw.inverse();
         litevo::Pose p = litevo::Pose::FromSE3(Twc);
 
-        traj_file_ << std::fixed << std::setprecision(9)
-                   << timestamp << " "
-                   << p.position.x() << " "
-                   << p.position.y() << " "
-                   << p.position.z() << " "
-                   << p.orientation.x() << " "
-                   << p.orientation.y() << " "
-                   << p.orientation.z() << " "
+        traj_file_ << std::fixed << std::setprecision(9) << timestamp << " " << p.position.x()
+                   << " " << p.position.y() << " " << p.position.z() << " " << p.orientation.x()
+                   << " " << p.orientation.y() << " " << p.orientation.z() << " "
                    << p.orientation.w() << "\n";
     }
 
@@ -326,18 +325,24 @@ private:
         auto state = tracker_->State();
         std::string state_str;
         switch (state) {
-            case litevo::tracking::TrackingState::NOT_INITIALIZED: state_str = "NOT_INIT"; break;
-            case litevo::tracking::TrackingState::INITIALIZING: state_str = "INITIALIZING"; break;
-            case litevo::tracking::TrackingState::OK: state_str = "OK"; break;
-            case litevo::tracking::TrackingState::LOST: state_str = "LOST"; break;
+            case litevo::tracking::TrackingState::NOT_INITIALIZED:
+                state_str = "NOT_INIT";
+                break;
+            case litevo::tracking::TrackingState::INITIALIZING:
+                state_str = "INITIALIZING";
+                break;
+            case litevo::tracking::TrackingState::OK:
+                state_str = "OK";
+                break;
+            case litevo::tracking::TrackingState::LOST:
+                state_str = "LOST";
+                break;
         }
 
         RCLCPP_INFO(this->get_logger(),
-            "State=%s | Frames=%d | Lost=%d | Tracked=%d | KFs=%zu | MPs=%zu",
-            state_str.c_str(), frame_count_, lost_count_,
-            tracker_->NumTrackedPoints(),
-            tracker_->GetMap().KeyFrameCount(),
-            tracker_->GetMap().MapPointCount());
+                    "State=%s | Frames=%d | Lost=%d | Tracked=%d | KFs=%zu | MPs=%zu",
+                    state_str.c_str(), frame_count_, lost_count_, tracker_->NumTrackedPoints(),
+                    tracker_->GetMap().KeyFrameCount(), tracker_->GetMap().MapPointCount());
     }
 
     // ── LiteVO components ───────────────────────────────────────────────

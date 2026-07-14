@@ -135,7 +135,7 @@ TEST(Sim3Test, ExpSim3SmallAngle) {
 
 TEST(Sim3Test, UmeyamaIdentity) {
     std::vector<Vec3> pts1 = {{0, 0, 0}, {1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-    std::vector<Vec3> pts2 = pts1;  // Same points
+    const std::vector<Vec3>& pts2 = pts1;  // Same points
 
     Sim3 S = UmeyamaSim3(pts1, pts2);
     EXPECT_NEAR(S.s, 1.0, 1e-10);
@@ -160,12 +160,14 @@ TEST(Sim3Test, UmeyamaRotationAndTranslation) {
     Scalar s = 1.5;
 
     std::vector<Vec3> pts1;
+    pts1.reserve(10);
     for (int i = 0; i < 10; ++i) {
         pts1.push_back(Vec3::Random());
     }
 
     // Apply the known transform
     std::vector<Vec3> pts2;
+    pts2.reserve(pts1.size());
     for (const auto& p : pts1) {
         pts2.push_back(s * (R * p) + t);
     }

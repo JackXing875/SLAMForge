@@ -37,7 +37,7 @@ IncludeCategories:
     Priority: 4
 
 # Spacing
-SpaceBeforeParens: ControlStatementsExceptControlMacros
+SpaceBeforeParens: ControlStatements
 SpacesInAngles: false
 SpacesInContainerLiterals: false
 

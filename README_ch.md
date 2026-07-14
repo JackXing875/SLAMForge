@@ -1,7 +1,6 @@
 # LiteVO — 工业级单目视觉 SLAM 系统
 
-[![Build](https://github.com/yourname/LiteVO/actions/workflows/build.yml/badge.svg)](https://github.com/yourname/LiteVO/actions/workflows/build.yml)
-[![Docs](https://github.com/yourname/LiteVO/actions/workflows/docs.yml/badge.svg)](https://yourname.github.io/LiteVO/)
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue?logo=c%2B%2B)](https://isocpp.org/)
 [![Docker](https://img.shields.io/badge/Docker-latest-2496ED?logo=docker)](https://github.com/yourname/LiteVO/pkgs/container/litevo)
@@ -62,49 +61,49 @@ python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
 
 ## 功能特性
 
-| 类别 | 状态 | 描述 |
-|------|------|------|
-| 跟踪前端 | ✅ | 双视图初始化、运动模型、局部地图跟踪、重定位 |
-| 局部建图 | ✅ | 三角化、局部 BA (Ceres)、地图点/关键帧剔除 |
-| 回环闭合 | ✅ | FBOW 词袋、Sim(3) 验证、位姿图 (g2o)、全局 BA |
-| ORB 特征 | ✅ | 多尺度金字塔、四叉树均匀分布、自适应阈值 |
-| 配置系统 | ✅ | YAML 配置 + 模式校验 |
-| CLI 工具 | ✅ | `run`、`eval`、`benchmark` 子命令 |
-| ROS2 节点 | ✅ | 实时 SLAM，发布 PoseStamped、PointCloud2、TF |
-| Python API | ✅ | pybind11 绑定，numpy 互操作 |
-| 评估工具 | ✅ | ATE、RPE、轨迹可视化、批量基准测试 |
-| Docker | ✅ | 一键构建运行 |
-| 文档 | ✅ | Doxygen API 文档、架构说明、快速开始、调优指南 |
-| 单元测试 | ✅ | 12 个 GoogleTest 测试套件 |
-| CI/CD | ✅ | GitHub Actions: 构建、测试、lint、文档、Docker |
-| 基准测试 | ✅ | Google Benchmark: ORB、PnP、三角化 |
+| 类别       | 状态 | 描述                                           |
+| ---------- | ---- | ---------------------------------------------- |
+| 跟踪前端   | ✅    | 双视图初始化、运动模型、局部地图跟踪、重定位   |
+| 局部建图   | ✅    | 三角化、局部 BA (Ceres)、地图点/关键帧剔除     |
+| 回环闭合   | ✅    | FBOW 词袋、Sim(3) 验证、位姿图 (g2o)、全局 BA  |
+| ORB 特征   | ✅    | 多尺度金字塔、四叉树均匀分布、自适应阈值       |
+| 配置系统   | ✅    | YAML 配置 + 模式校验                           |
+| CLI 工具   | ✅    | `run`、`eval`、`benchmark` 子命令              |
+| ROS2 节点  | ✅    | 实时 SLAM，发布 PoseStamped、PointCloud2、TF   |
+| Python API | ✅    | pybind11 绑定，numpy 互操作                    |
+| 评估工具   | ✅    | ATE、RPE、轨迹可视化、批量基准测试             |
+| Docker     | ✅    | 一键构建运行                                   |
+| 文档       | ✅    | Doxygen API 文档、架构说明、快速开始、调优指南 |
+| 单元测试   | ✅    | 12 个 GoogleTest 测试套件                      |
+| CI/CD      | ✅    | GitHub Actions: 构建、测试、lint、文档、Docker |
+| 基准测试   | ✅    | Google Benchmark: ORB、PnP、三角化             |
 
 ## 性能基准
 
 *以下为 KITTI 里程计数据集上的预期结果（实际数据待运行后填入）：*
 
-| 序列 | ATE RMSE (m) | RPE trans (m) | RPE rot (°/m) | 关键帧数 | 地图点数 |
-|------|-------------|---------------|---------------|---------|---------|
-| KITTI 00 | — | — | — | — | — |
-| KITTI 01 | — | — | — | — | — |
+| 序列     | ATE RMSE (m) | RPE trans (m) | RPE rot (°/m) | 关键帧数 | 地图点数 |
+| -------- | ------------ | ------------- | ------------- | -------- | -------- |
+| KITTI 00 | —            | —             | —             | —        | —        |
+| KITTI 01 | —            | —             | —             | —        | —        |
 
 ## 技术栈
 
-| 层次 | 技术 | 用途 |
-|------|------|------|
-| 语言 | C++20 | 核心引擎 |
-| 构建 | CMake 3.20+ | 构建系统 |
-| 线性代数 | Eigen 3.3+ + Sophus | 矩阵运算 + 李群李代数 |
-| 视觉 | OpenCV 4.x | ORB、PnP、对极几何 |
-| 局部优化 | Ceres Solver | 局部光束法平差 |
-| 位姿图 | g2o | 回环闭合位姿图优化 |
-| 词袋 | FBOW | DBoW2 兼容的视觉位置识别 |
-| 日志 | spdlog | 结构化异步日志 |
-| 配置 | yaml-cpp | 运行时参数 |
-| CLI | CLI11 | 命令行参数解析 |
-| 绑定 | pybind11 | C++ → Python 桥接 |
-| 测试 | GoogleTest, Google Benchmark | 单元测试 + 微基准 |
-| 容器 | Docker | 可复现环境 |
+| 层次     | 技术                         | 用途                     |
+| -------- | ---------------------------- | ------------------------ |
+| 语言     | C++20                        | 核心引擎                 |
+| 构建     | CMake 3.20+                  | 构建系统                 |
+| 线性代数 | Eigen 3.3+ + Sophus          | 矩阵运算 + 李群李代数    |
+| 视觉     | OpenCV 4.x                   | ORB、PnP、对极几何       |
+| 局部优化 | Ceres Solver                 | 局部光束法平差           |
+| 位姿图   | g2o                          | 回环闭合位姿图优化       |
+| 词袋     | FBOW                         | DBoW2 兼容的视觉位置识别 |
+| 日志     | spdlog                       | 结构化异步日志           |
+| 配置     | yaml-cpp                     | 运行时参数               |
+| CLI      | CLI11                        | 命令行参数解析           |
+| 绑定     | pybind11                     | C++ → Python 桥接        |
+| 测试     | GoogleTest, Google Benchmark | 单元测试 + 微基准        |
+| 容器     | Docker                       | 可复现环境               |
 
 ## CLI 使用
 

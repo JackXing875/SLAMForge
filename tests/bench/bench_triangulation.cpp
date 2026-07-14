@@ -2,9 +2,10 @@
 // Benchmark: Triangulation performance
 // =============================================================================
 
-#include <benchmark/benchmark.h>
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/eigen.hpp>
+
+#include <benchmark/benchmark.h>
 
 #include <random>
 
@@ -42,12 +43,10 @@ TriangulationTestData GenerateTestData(int num_points, const litevo::Camera& cam
         litevo::Vec2 p1 = camera.Project(data.T1 * p_w);
         litevo::Vec2 p2 = camera.Project(data.T2 * p_w);
 
-        data.pts1.emplace_back(
-            static_cast<float>(p1.x() + noise(rng)),
-            static_cast<float>(p1.y() + noise(rng)));
-        data.pts2.emplace_back(
-            static_cast<float>(p2.x() + noise(rng)),
-            static_cast<float>(p2.y() + noise(rng)));
+        data.pts1.emplace_back(static_cast<float>(p1.x() + noise(rng)),
+                               static_cast<float>(p1.y() + noise(rng)));
+        data.pts2.emplace_back(static_cast<float>(p2.x() + noise(rng)),
+                               static_cast<float>(p2.y() + noise(rng)));
     }
 
     return data;
