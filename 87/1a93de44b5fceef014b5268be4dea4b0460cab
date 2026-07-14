@@ -1,0 +1,19 @@
+src/loop_closing/pose_graph.cpp
+  s_11759769ed8155::t_43ed3c45981722 199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "871a93de44b5fceef014b5268be4dea4b0460cab",
+  "prompts": {},
+  "sessions": {
+    "s_11759769ed8155": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1ea1b632-3948-422c-b519-3ff8e92df407",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
