@@ -55,16 +55,14 @@ void Vocabulary::Transform(const cv::Mat& descriptors, std::vector<float>& bow,
     if (!g_fbow_vocab || !g_fbow_vocab->isValid())
         return;
 
-    fbow::fBow fbow_vec;
-    fbow::fBow2 fbow_vec2;
-    g_fbow_vocab->transform(descriptors, fbow_vec, fbow_vec2);
+    fbow::fBow fbow_vec = g_fbow_vocab->transform(descriptors);
 
     int n_words = static_cast<int>(g_fbow_vocab->size());
     bow.resize(static_cast<size_t>(n_words), 0.0f);
 
-    for (size_t i = 0; i < fbow_vec2.size(); ++i) {
-        int word_id = static_cast<int>(fbow_vec2[i].id);
-        float weight = fbow_vec2[i].weight;
+    for (const auto& kv : fbow_vec) {
+        int word_id = static_cast<int>(kv.first);
+        float weight = static_cast<float>(kv.second);
         if (word_id >= 0 && word_id < n_words) {
             bow[static_cast<size_t>(word_id)] = weight;
             word_weights.emplace_back(word_id, weight);
