@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <Eigen/Core>
+
 #include <opencv2/core/types.hpp>
 
 #include <memory>

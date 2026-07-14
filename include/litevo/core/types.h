@@ -6,6 +6,7 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+
 #include <cstdint>
 #include <memory>
 #include <vector>

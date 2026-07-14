@@ -76,13 +76,13 @@ RUN git clone --depth 1 --branch 20230223_git \
     && rm -rf /tmp/g2o
 
 # ── FBOW (Fast Bag-of-Words, from source) ─────────────────────────────────────
-RUN git clone --depth 1 --branch v0.1 \
-        https://github.com/fbachraty/FBOW.git /tmp/FBOW \
-    && cd /tmp/FBOW \
+RUN git clone --depth 1 --branch master \
+        https://github.com/rmsalinas/fbow.git /tmp/fbow \
+    && cd /tmp/fbow \
     && mkdir build && cd build \
     && cmake .. -DCMAKE_BUILD_TYPE=Release \
     && make -j$(nproc) && make install \
-    && rm -rf /tmp/FBOW
+    && rm -rf /tmp/fbow
 
 # ── Update library cache ──────────────────────────────────────────────────────
 RUN ldconfig

@@ -5,6 +5,7 @@
 #include "litevo/geometry/triangulation.h"
 
 #include <Eigen/SVD>
+
 #include <cmath>
 #include <limits>
 

@@ -7,12 +7,13 @@
 //   litevo bench   — Batch-run SLAM on dataset sequences
 // =============================================================================
 
+#include <Eigen/SVD>
+
 #include <CLI/CLI.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 
-#include <Eigen/SVD>
 #include <algorithm>
 #include <cstdio>
 #include <filesystem>

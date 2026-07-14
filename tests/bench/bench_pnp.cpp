@@ -2,6 +2,8 @@
 // Benchmark: PnP pose estimation performance
 // =============================================================================
 
+#include <Eigen/Core>
+
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/eigen.hpp>
 
