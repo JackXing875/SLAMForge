@@ -1,0 +1,91 @@
+CHANGELOG.md
+  s_11759769ed8155::t_6ed35cc1abe2e7 1-45
+tests/bench/bench_orb.cpp
+  s_11759769ed8155::t_90c20dfc3ee790 1-86
+README_ch.md
+  s_11759769ed8155::t_3c91d105bd7c85 1,3-7,11,13,15,17-30,34-61,63-109,111-113,115-116,118-119,121-123,125,127-129,131-133,135-138,140-142,144,147-152,155,157-160,162,164,166,168,172
+Doxyfile
+  s_11759769ed8155::t_4c5c57ced398ab 1-84
+CONTRIBUTING.md
+  s_11759769ed8155::t_217789ef3e35bf 1-74
+pybind/__init__.py
+  s_11759769ed8155::t_385961b6070214 1-34
+tools/plot_trajectory.py
+  s_11759769ed8155::t_79d778764b2a78 10,17-19,24
+docker/docker-compose.yaml
+  s_11759769ed8155::t_2d2fba498d01ce 1-32
+docs/quick_start.md
+  s_11759769ed8155::t_c6658305f8aa32 1-86
+CMakeLists.txt
+  s_11759769ed8155::t_68ede7c3fac82c 186-193
+  s_11759769ed8155::t_d438594be5de3f 28-30
+  s_11759769ed8155::t_69793334bb78d5 141-175
+  s_11759769ed8155::t_f59d9247b231cb 41
+  s_11759769ed8155::t_c99baf00f762e5 213-219
+  s_11759769ed8155::t_90774fb147df45 234-236
+pybind/litevo_bindings.cpp
+  s_11759769ed8155::t_500cf9763173ec 1-409,415-423,428-661,665-666,669-733,737-740,745-764
+  s_11759769ed8155::t_b7699c4e6af2b5 662-664,667-668
+  s_11759769ed8155::t_1af0446843006f 424-427
+  s_11759769ed8155::t_abb66d55abefaf 734-736,741-744
+  s_11759769ed8155::t_a89eb92d17a3ee 410-414
+docker/Dockerfile
+  s_11759769ed8155::t_1592e2a213eead 87-89,91,93-94,96-108,110-116
+conanfile.py
+  s_11759769ed8155::t_8c13003dedefd4 1-81
+requirements.txt
+  s_11759769ed8155::t_e90244f748498d 1-2,4-8,10-11
+docs/tuning_guide.md
+  s_11759769ed8155::t_dd8cf15f44436f 1-127
+apps/litevo_cli.cpp
+  s_11759769ed8155::t_4baab441838831 4-8,13-15,18,22,30-32,34,36-41,43-165,167-251,259-264,267,270,274,277,280-281,284-285,287-294,296-301,303-308,311,313-322,329,331,333-337,339-340,342-350,360-368,373-374,376,380,382,384,386-388,395,398,400-406,408,413-414,416-428,430-696
+tools/evaluate_ate.py
+  s_11759769ed8155::t_5a427f15ad8de6 5,8,14-19,30,38-39
+tools/benchmark.py
+  s_11759769ed8155::t_0490e907b3f5e6 1-272
+tests/bench/bench_triangulation.cpp
+  s_11759769ed8155::t_ff8f22fa290d74 1-90
+.github/workflows/docs.yml
+  s_11759769ed8155::t_96313a05574526 1-59
+docs/architecture.md
+  s_11759769ed8155::t_f874b5e5db2661 108-174,177-182,184-187
+docker/devcontainer.json
+  s_11759769ed8155::t_8525df3300bdb9 1-26
+tools/evaluate_rpe.py
+  s_11759769ed8155::t_7c1ab3b97d5c5d 1-87
+README.md
+  s_11759769ed8155::t_c86f4492e20246 1,3-8,12,14,16,18-31,33,35-62,64-110,112,114-134,136,138-140,142-143,145-146,148-149,152,154-156,158-159,161-176,179-184,187-191,193,196-198,200-201,203-205,207-211,213-214,217,219-226,230-234
+tests/bench/bench_pnp.cpp
+  s_11759769ed8155::t_464c48ff7476ea 1-94
+apps/CMakeLists.txt
+  s_11759769ed8155::t_edde5e90829490 24-50
+tools/trajectory_io.py
+  s_11759769ed8155::t_de5d873946da97 1-256
+apps/litevo_ros_node.cpp
+  s_11759769ed8155::t_62e91c9064988b 1-393
+.github/workflows/docker.yml
+  s_11759769ed8155::t_b87bb54d8d51ea 1-65
+tests/bench/CMakeLists.txt
+  s_11759769ed8155::t_87ed2197c362a7 1-13
+pybind/CMakeLists.txt
+  s_11759769ed8155::t_7eea2fd6385b26 1-4,9,12-21,25-38,43-59
+  s_11759769ed8155::t_dc48e8b70f4761 5-8,10-11,22-24,39-42
+pybind/pyproject.toml
+  s_11759769ed8155::t_a0f3dbf544b943 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "d26e5deb72a7ad096b583dcb6fc9eb212b42b607",
+  "prompts": {},
+  "sessions": {
+    "s_11759769ed8155": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1ea1b632-3948-422c-b519-3ff8e92df407",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
