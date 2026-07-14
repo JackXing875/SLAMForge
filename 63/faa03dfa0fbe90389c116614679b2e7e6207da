@@ -1,0 +1,245 @@
+tests/unit/test_local_mapper.cpp
+  s_8fc37222a2ccc4::t_0094876c4f67fc 10-11,17
+  s_8fc37222a2ccc4::t_5255e50c8f7a9d 1-9,12-16,18-127
+config/default.yaml
+  s_8fc37222a2ccc4::t_3e1932e0dba9d8 1-58
+include/litevo/tracking/initializer.h
+  s_8fc37222a2ccc4::t_a3415851c6f9b5 1-6,9,12-63,65-126
+  s_8fc37222a2ccc4::t_fdda8ff524e84a 7-8,10-11
+  s_8fc37222a2ccc4::t_497900b8a1f539 64
+.clang-tidy
+  s_8fc37222a2ccc4::t_6d3c48b75d0034 1-52
+src/geometry/epipolar.cpp
+  s_8fc37222a2ccc4::t_d3131ae553a5a7 8
+  s_8fc37222a2ccc4::t_eb49d91f33f45b 1-7,9-26,29-30,32-35,40-57,60-85,88
+tests/unit/test_frame.cpp
+  s_8fc37222a2ccc4::t_f4825e875e8fd7 1-156
+tests/unit/test_map.cpp
+  s_8fc37222a2ccc4::t_ba10087c29c0ac 1-6,8,11-94
+  s_8fc37222a2ccc4::t_53da528b2ec4e7 7,9-10
+include/litevo/geometry/epipolar.h
+  s_8fc37222a2ccc4::t_70f0b6e7d7bae7 1-71
+include/litevo/litevo.h
+  s_8fc37222a2ccc4::t_b035d7a3c4dd17 19,25-33
+  s_8fc37222a2ccc4::t_de5582f4ea696c 1-18
+  s_8fc37222a2ccc4::t_bdf10773a8295d 20-21,23-24,34-38
+  s_8fc37222a2ccc4::t_06b04a9d243f79 22,39-44
+include/litevo/geometry/triangulation.h
+  s_8fc37222a2ccc4::t_5e75dc51f15b8f 1-83
+tests/unit/test_se3.cpp
+  s_8fc37222a2ccc4::t_76444505a25db8 1-108
+tools/plot_trajectory.py
+  s_8fc37222a2ccc4::t_d01e99db40b833 1-68
+include/litevo/core/map_point.h
+  s_8fc37222a2ccc4::t_8662bd48fc25a1 132-136
+  s_8fc37222a2ccc4::t_b08a41331e6740 35-45
+  s_8fc37222a2ccc4::t_f0d438898178cb 1-8,10-34,46-88,105-131,137-145
+  s_8fc37222a2ccc4::t_755b90440bdd51 89-104
+  s_8fc37222a2ccc4::t_811ac5a61641da 9
+include/litevo/optimization/ba.h
+  s_8fc37222a2ccc4::t_f54cfb088ed7bf 1-18,26-32,35-37,39-46,48-51
+  s_8fc37222a2ccc4::t_e115722a034972 19-25,33-34,38,47
+include/litevo/mapping/local_mapper.h
+  s_8fc37222a2ccc4::t_6dc529bbec2199 1-139
+include/litevo/core/config.h
+  s_8fc37222a2ccc4::t_f151de8857aac5 1-99
+.gitignore
+  s_8fc37222a2ccc4::t_869f2046741540 1-9,11,23-28,30,32,35-48,51-53
+  h_a1ee18d6ec0670 55
+include/litevo/tracking/matcher.h
+  s_8fc37222a2ccc4::t_9a44fb8b5a39b0 1-91
+src/tracking/matcher.cpp
+  s_8fc37222a2ccc4::t_caddf616e56cf4 1-248
+include/litevo/geometry/pnp.h
+  s_8fc37222a2ccc4::t_05bc6bb38f9c55 1-67
+src/geometry/se3.cpp
+  s_8fc37222a2ccc4::t_d929466616bfc3 1-131
+tests/unit/test_ba.cpp
+  s_8fc37222a2ccc4::t_0159ce9c14ab4c 7-8
+  s_8fc37222a2ccc4::t_43eabf6d8799f7 1-6,9-83
+src/geometry/pnp.cpp
+  s_8fc37222a2ccc4::t_d1befeae0bcbf2 9
+  s_8fc37222a2ccc4::t_d66fa9ac67971f 1-5,7-8,10-112
+  s_8fc37222a2ccc4::t_4abe1b882a567e 6
+build.sh
+  s_8fc37222a2ccc4::t_9e360cfb526bb1 1-6
+tests/CMakeLists.txt
+  s_8fc37222a2ccc4::t_50f1e23167d843 1-3
+tests/unit/test_config.cpp
+  s_8fc37222a2ccc4::t_cc26e021b11fc1 26
+  s_8fc37222a2ccc4::t_515d1fa447770b 1-25,27-54
+include/litevo/base/exception.h
+  s_8fc37222a2ccc4::t_8b2bdeb3009a67 1-91
+apps/CMakeLists.txt
+  s_8fc37222a2ccc4::t_27418aca216c19 11-16
+  s_8fc37222a2ccc4::t_a8bb944e57ecd2 1-10,17-23
+config/kitti.yaml
+  s_8fc37222a2ccc4::t_a8f8c433deedd6 1-45
+.clang-format
+  s_8fc37222a2ccc4::t_77ab2cf8cd87f2 1-47
+include/litevo/geometry/se3.h
+  s_8fc37222a2ccc4::t_242a481e6a642c 1-108,120-121
+  s_8fc37222a2ccc4::t_dfabdcbb683cb0 109-119
+src/core/map_point.cpp
+  s_8fc37222a2ccc4::t_0701448763007b 1-46,71-89
+  s_8fc37222a2ccc4::t_b208b50a982813 47-70
+cmake/FindSophus.cmake
+  s_8fc37222a2ccc4::t_157c20a479ea5e 1-27
+.github/workflows/lint.yml
+  s_8fc37222a2ccc4::t_8b172fda0b8bc8 1-56
+cmake/FindFBOW.cmake
+  s_8fc37222a2ccc4::t_dd9d77eea1c7b2 1-32
+src/core/feature_grid.cpp
+  s_8fc37222a2ccc4::t_47caeee22a5a60 1-52,54-80
+  s_8fc37222a2ccc4::t_f37627b79ee28a 53
+docs/architecture.md
+  s_8fc37222a2ccc4::t_a74689e4c0cb79 1-144
+src/tracking/tracker.cpp
+  s_8fc37222a2ccc4::t_bd3e4154ae4199 163-171
+  s_8fc37222a2ccc4::t_1862e0f663cf5b 11,16
+  s_8fc37222a2ccc4::t_af05ca41d0f22f 506,511-513
+  s_8fc37222a2ccc4::t_bb599879ac9a99 493,499-500,504,516,519,523-526,529-530,533
+  s_8fc37222a2ccc4::t_0c1fab8d2da33b 593
+  s_8fc37222a2ccc4::t_b2e88136375462 1-10,12-15,17-130,132-162,172-492,494-498,501-503,505,507-510,514-515,517-518,520-522,527-528,531-532,534-592,594-599
+  s_8fc37222a2ccc4::t_9d2e91c7740a32 131
+src/core/keyframe.cpp
+  s_8fc37222a2ccc4::t_515c8c01f58abc 153-154
+  s_8fc37222a2ccc4::t_cdaaf173fd73b2 1-52,55-57,60-152,155-173
+  s_8fc37222a2ccc4::t_0d1240d9119e4d 53-54,58-59
+tests/unit/test_keyframe.cpp
+  s_8fc37222a2ccc4::t_1ee313003f1b35 1-6,9-12,14-130
+  s_8fc37222a2ccc4::t_b741c27c3361d2 7-8,13
+docker/Dockerfile
+  s_8fc37222a2ccc4::t_b3f0f73e138f6f 1-100
+include/litevo/core/types.h
+  s_8fc37222a2ccc4::t_eb339b72dec004 1-36,38-97,99-106,108-123
+  s_8fc37222a2ccc4::t_20d781410543b9 37
+  s_8fc37222a2ccc4::t_7d6e89d0d85a09 98,107
+tests/unit/CMakeLists.txt
+  s_8fc37222a2ccc4::t_173e1cd4c51a0c 12-14
+  s_8fc37222a2ccc4::t_8c4034e8a1799f 9-11
+  s_8fc37222a2ccc4::t_6825dbb2fc1b1b 22-23
+  s_8fc37222a2ccc4::t_58a69c519c8d00 3,5-8,17-21,24
+  s_8fc37222a2ccc4::t_ad32940c6138a8 1-2,4,15-16
+tests/unit/test_feature_grid.cpp
+  s_8fc37222a2ccc4::t_45dea332750eff 1-21,23-34,39-67,69-94,98-103
+  s_8fc37222a2ccc4::t_fef5bcd5c909ae 22,35-38,68,95-97
+apps/litevo_cli.cpp
+  s_8fc37222a2ccc4::t_fe168db5c3f28b 56-69
+  s_8fc37222a2ccc4::t_0db7adb6375ccb 106-109
+  s_8fc37222a2ccc4::t_900257408b69dd 1,3-4,10,13,17,177-179
+  s_8fc37222a2ccc4::t_d00d2279f36d4c 164-167
+  s_8fc37222a2ccc4::t_1159a1e82145e5 7,12,31-33,40,70-73,78-83,85-86,88-89,93-104,110,115-122,125,127,130-131,134,142-150,152-155,157-159,169-176
+  s_8fc37222a2ccc4::t_d555ab74c0aed2 15
+  s_8fc37222a2ccc4::t_3e4d5e2dc546c9 2,5-6,8-9,11,14,16,18-30,34-39,41-55,74-77,84,87,90-92,105,111-114,123-124,126,128-129,132-133,135-141,151,156,160-163,168
+src/version.cpp
+  s_8fc37222a2ccc4::t_b6c862bc41266a 1-13
+src/mapping/local_mapper.cpp
+  s_8fc37222a2ccc4::t_a3ca47918cc572 376-377,379
+  s_8fc37222a2ccc4::t_f46e3eb02bc49e 1-236,238-375,378,380-411
+  s_8fc37222a2ccc4::t_763639b9ff7e1d 237
+include/litevo/version.h.in
+  s_8fc37222a2ccc4::t_b4707e5ddd96f2 1-26
+tests/unit/test_triangulation.cpp
+  s_8fc37222a2ccc4::t_816e80cb42979c 1-58,61,64,66,68-69,71-73,75-93,112-141
+  s_8fc37222a2ccc4::t_f987c7c2bd2ed5 59-60,62-63,65,67,70,74
+  s_8fc37222a2ccc4::t_c6abea9b6b8f3f 94-111
+include/litevo/tracking/tracker.h
+  s_8fc37222a2ccc4::t_d6547526a770db 87-93
+  s_8fc37222a2ccc4::t_b842aace7e18ca 20,24-27
+  s_8fc37222a2ccc4::t_90c1c74992642b 114
+  s_8fc37222a2ccc4::t_9c4fcda04d5710 125-126
+  s_8fc37222a2ccc4::t_56651b8bc7d824 1-19,21-23,28-86,94-113,115-124,127-164
+src/optimization/ba.cpp
+  s_8fc37222a2ccc4::t_471d81196e55da 102
+  s_8fc37222a2ccc4::t_a7addc03f7f6e4 201
+  s_8fc37222a2ccc4::t_e7a023480b4b8c 23-57,77-78,113,125-126,145,180-181,198,209,225,230,242,248-251,255-256
+  s_8fc37222a2ccc4::t_8977ac2d3b09b6 1-22,58-76,79,82-91,104-105,108-112,114,116-124,127-144,146-163,172-178,184,189-197,199-200,202-208,210-214,218-219,222-224,226-229,231-234,236-241,243-247,252-254,257-261
+  s_8fc37222a2ccc4::t_70f6cf813df124 80-81,92-101,103,106-107,115,164-171,179,182-183,185-188,215-217,220-221,235
+tools/evaluate_ate.py
+  s_8fc37222a2ccc4::t_c2d6756eeba772 1-167
+include/litevo/core/feature_grid.h
+  s_8fc37222a2ccc4::t_0245c46245d06d 20-22
+  s_8fc37222a2ccc4::t_ece733490e89eb 1-19,23-67
+.github/workflows/build.yml
+  s_8fc37222a2ccc4::t_fdcf215d949214 1-83
+src/geometry/triangulation.cpp
+  s_8fc37222a2ccc4::t_e548ae84191f29 1-119
+tests/unit/test_camera.cpp
+  s_8fc37222a2ccc4::t_4f9b9ee289e28b 1-119
+config/euroc.yaml
+  s_8fc37222a2ccc4::t_9a5fa8063f4a7b 1-46
+CMakeLists.txt
+  s_8fc37222a2ccc4::t_971e207d46841b 1-4,6-14,16-33,35-43,46-77,79-143,146-147,150-154,156-170
+src/core/camera.cpp
+  s_8fc37222a2ccc4::t_531e6759f5cc4a 1-136
+include/litevo/features/orb_extractor.h
+  s_8fc37222a2ccc4::t_10ed3bae4e193f 1-30,33-92
+  s_8fc37222a2ccc4::t_27ae9bc65d838d 31-32
+cmake/CompilerWarnings.cmake
+  s_8fc37222a2ccc4::t_67c9215a4bc747 1-65
+include/litevo/core/keyframe.h
+  s_8fc37222a2ccc4::t_f08285db764d0c 1-101
+include/litevo/core/frame.h
+  s_8fc37222a2ccc4::t_9731ad41697b66 41
+  s_8fc37222a2ccc4::t_8ff3893d7494bf 95-97
+  s_8fc37222a2ccc4::t_d7a0727d3e7ab2 138
+  s_8fc37222a2ccc4::t_33f26cd2d58b21 17,19-21
+  s_8fc37222a2ccc4::t_76a431cb83bd80 1-16,18,22-40,42-94,98-122,124-137,139-145
+  s_8fc37222a2ccc4::t_6ec2c37fa83699 123
+include/litevo/core/map.h
+  s_8fc37222a2ccc4::t_413821340e389b 34-37
+  s_8fc37222a2ccc4::t_42fc78a9574f77 1,3-7,9-16,18-19,21,25-33,38-44,46-51,54-55,57-58,60-61,63-64,66-67,70-76,79,82-84
+  s_8fc37222a2ccc4::t_fd049a780a323e 2,8,17,20,22-24,45,52-53,56,59,62,65,68-69,77-78,80-81
+src/core/map.cpp
+  s_8fc37222a2ccc4::t_70648b24b9ebe1 21-26
+  s_8fc37222a2ccc4::t_7f0fb2275b0452 1-8,12-14,16-20,27,29-32,34-40,46,48-55,58-62,65-70,81-82,86-92,95-97,100-103,105-110
+  s_8fc37222a2ccc4::t_25975fd28fd2c1 9,15,28,33,41-45,47,56-57,63-64,71-80,83-85,93-94,98-99,104
+  s_8fc37222a2ccc4::t_09e52ebccbcff8 10-11
+include/litevo/core/camera.h
+  s_8fc37222a2ccc4::t_7d00c5502c1b9e 1-101
+src/core/config.cpp
+  s_8fc37222a2ccc4::t_000fb3315626b7 1-144
+src/core/frame.cpp
+  s_8fc37222a2ccc4::t_66ae11793e3703 1-107,119-124
+  s_8fc37222a2ccc4::t_1d9c822695e345 108-118
+src/tracking/initializer.cpp
+  s_8fc37222a2ccc4::t_4b7f24da89b275 1-457
+src/CMakeLists.txt
+  s_8fc37222a2ccc4::t_32f735c51bbe58 9-10,12,14-15,21-29,47,54-58,78-79
+  s_8fc37222a2ccc4::t_9a3685fc70ed0b 1-8,11,41-43,64-77,80-118
+  s_8fc37222a2ccc4::t_0c96a7ca81548b 13
+  s_8fc37222a2ccc4::t_2b97a1317072d7 48-49,51-52,59-61
+  s_8fc37222a2ccc4::t_fc7172bccefcbc 50,62-63
+  s_8fc37222a2ccc4::t_0b0e9fc124ce0b 16-17,19-20,30-34
+  s_8fc37222a2ccc4::t_fee7af0db81a8b 44-46,53
+  s_8fc37222a2ccc4::t_25f66bb93caf98 18,35-40
+src/features/orb_extractor.cpp
+  s_8fc37222a2ccc4::t_ecff39bb9592cd 1-13,28-201
+  s_8fc37222a2ccc4::t_3b7c2bd0568e64 14-27
+tests/unit/test_core_types.cpp
+  s_8fc37222a2ccc4::t_230bdba244c469 1-135
+legacy/CMakeLists.txt
+  s_8fc37222a2ccc4::t_0bbe1767a9bd49 1-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "63faa03dfa0fbe90389c116614679b2e7e6207da",
+  "prompts": {},
+  "humans": {
+    "h_a1ee18d6ec0670": {
+      "author": "Schrieffer <xjack875@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_8fc37222a2ccc4": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "873c2c19-7b1e-470d-87ef-f60309aeaabb",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
