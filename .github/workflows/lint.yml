@@ -1,0 +1,56 @@
+name: Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  clang-format:
+    name: "clang-format"
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Check formatting
+        run: |
+          find include/ src/ apps/ tests/ \
+            -name '*.h' -o -name '*.hpp' -o -name '*.cpp' -o -name '*.cxx' \
+          | xargs clang-format --dry-run --Werror --style=file
+
+  clang-tidy:
+    name: "clang-tidy"
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake clang-tidy \
+            libopencv-dev libeigen3-dev libspdlog-dev libyaml-cpp-dev
+
+      - name: Generate compile_commands.json
+        run: |
+          cmake -B build \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DLITEVO_BUILD_TESTS=ON \
+            -DLITEVO_BUILD_APPS=ON \
+            -DLITEVO_ENABLE_SOPHUS=OFF \
+            -DLITEVO_ENABLE_CERES=OFF \
+            -DLITEVO_ENABLE_G2O=OFF
+
+      - name: Run clang-tidy
+        run: |
+          find include/ src/ apps/ tests/ \
+            -name '*.h' -o -name '*.hpp' -o -name '*.cpp' \
+          | xargs clang-tidy -p build --quiet --warnings-as-errors='*'

@@ -1,0 +1,46 @@
+# =============================================================================
+# LiteVO — EuRoC MAV dataset configuration
+# =============================================================================
+# EuRoC Micro Aerial Vehicle datasets: monocular grayscale at 20 Hz.
+# Image resolution: 752x480 (Machine Hall), 752x480 (Vicon Room).
+#
+# Camera: MT9V034 global shutter, Aptina MT9V034 lens.
+
+camera:
+  width: 752
+  height: 480
+  fx: 458.654
+  fy: 457.296
+  cx: 367.215
+  cy: 248.375
+  # Distortion coefficients (radial-tangential model)
+  k1: -0.28340811
+  k2:  0.07395907
+  p1:  0.00019359
+  p2:  1.76187114e-05
+  k3:  0.0
+
+orb:
+  num_features: 1000
+  scale_factor: 1.2
+  num_levels: 8
+  ini_threshold: 20
+  min_threshold: 7
+  patch_size: 31
+
+tracking:
+  min_features_for_tracking: 40
+  max_frames_between_kf: 30  # 20 Hz → keyframe every 1.5s max
+  min_frames_between_kf: 4
+  max_reprojection_error: 4.0
+  min_parallax_deg: 1.0
+
+mapping:
+  sliding_window_size: 20
+  min_observations: 3
+  max_reprojection_error: 4.0
+
+loop_closing:
+  enabled: false  # EuRoC rooms are small; loops are common in full sequences
+
+output_format: "euroc"

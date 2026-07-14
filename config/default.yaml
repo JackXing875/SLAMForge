@@ -1,0 +1,58 @@
+# =============================================================================
+# LiteVO — Default configuration
+# =============================================================================
+# This is the default configuration file for LiteVO.
+# Copy it and modify for your specific camera/dataset.
+
+# ── Camera intrinsic parameters ───────────────────────────────────────────────
+camera:
+  width: 1241
+  height: 376
+  fx: 718.856
+  fy: 718.856
+  cx: 607.193
+  cy: 185.216
+  k1: 0.0
+  k2: 0.0
+  p1: 0.0
+  p2: 0.0
+  k3: 0.0
+
+# ── ORB feature extraction ────────────────────────────────────────────────────
+orb:
+  num_features: 1200
+  scale_factor: 1.2
+  num_levels: 8
+  ini_threshold: 20
+  min_threshold: 7
+  patch_size: 31
+
+# ── Tracking thread ───────────────────────────────────────────────────────────
+tracking:
+  min_features_for_tracking: 50
+  max_frames_between_kf: 40
+  min_frames_between_kf: 5
+  max_reprojection_error: 4.0
+  min_parallax_deg: 1.0
+
+# ── Local mapping thread ──────────────────────────────────────────────────────
+mapping:
+  sliding_window_size: 20
+  min_observations: 3
+  max_reprojection_error: 4.0
+
+# ── Loop closing thread ───────────────────────────────────────────────────────
+loop_closing:
+  enabled: false
+  min_similarity_score: 0.3
+  min_consecutive_loops: 3
+
+# ── I/O ───────────────────────────────────────────────────────────────────────
+input_video: ""
+output_trajectory: "trajectory.txt"
+output_format: "tum"  # tum | kitti | euroc
+
+# ── Performance / Logging ─────────────────────────────────────────────────────
+enable_viewer: true
+enable_logging: true
+log_level: 2  # 0=trace, 1=debug, 2=info, 3=warn, 4=error

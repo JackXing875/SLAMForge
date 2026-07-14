@@ -1,51 +1,55 @@
-# Prerequisites
-*.d
+# LiteVO build artifacts
+build/
 
-# Compiled Object files
-*.slo
-*.lo
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Compiled output
 *.o
 *.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
 *.a
 *.lib
-
-# Executables
 *.exe
 *.out
 *.app
 
-# debug information files
-*.dwo
+# Precompiled headers
+*.gch
+*.pch
 
+# Debug symbols
+*.pdb
+*.dwo
+*.ilk
+
+# Python
 venv/
-build/
-*.pyc
 __pycache__/
+*.pyc
+*.egg-info/
+dist/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+Makefile
+!cmake/
+
+# Data and output
 data/
 
-.vscode/
+# Misc
+.DS_Store
+*.log
 
-.codex
+memory.md
