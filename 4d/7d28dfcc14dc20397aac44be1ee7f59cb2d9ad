@@ -1,0 +1,47 @@
+include/litevo/geometry/pnp.h
+  s_11759769ed8155::t_b229407f057bc7 7-8
+include/litevo/core/frame.h
+  s_11759769ed8155::t_b229407f057bc7 7-8
+.github/workflows/docs.yml
+  s_11759769ed8155::t_7cce81c3bbe685 17
+docker/Dockerfile
+  s_11759769ed8155::t_e701931d2544d8 79-81,85
+include/litevo/core/map_point.h
+  s_11759769ed8155::t_b229407f057bc7 7-8
+include/litevo/tracking/initializer.h
+  s_11759769ed8155::t_b229407f057bc7 7-8
+.github/workflows/lint.yml
+  s_11759769ed8155::t_3681139be54683 55-56
+apps/litevo_cli.cpp
+  s_11759769ed8155::t_b229407f057bc7 10-11
+tests/bench/bench_pnp.cpp
+  s_11759769ed8155::t_b229407f057bc7 5-6
+tests/bench/bench_triangulation.cpp
+  s_11759769ed8155::t_b229407f057bc7 5-6
+include/litevo/tracking/matcher.h
+  s_11759769ed8155::t_b229407f057bc7 7-8
+.clang-format
+  s_11759769ed8155::t_f1682b2451678b 30,32,34,36,38-39
+include/litevo/core/types.h
+  s_11759769ed8155::t_b229407f057bc7 9
+include/litevo/geometry/epipolar.h
+  s_11759769ed8155::t_b229407f057bc7 7-8
+src/geometry/triangulation.cpp
+  s_11759769ed8155::t_b229407f057bc7 8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "4d7d28dfcc14dc20397aac44be1ee7f59cb2d9ad",
+  "prompts": {},
+  "sessions": {
+    "s_11759769ed8155": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1ea1b632-3948-422c-b519-3ff8e92df407",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
