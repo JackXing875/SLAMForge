@@ -1,9 +1,11 @@
-# ---------------------------------------------------------
-# Python dependencies for DeepVO 3D Visualization Frontend
-# ---------------------------------------------------------
+# Python dependencies for LiteVO evaluation and visualization tools
+# -----------------------------------------------------------------
 
-# Core data manipulation and CSV reading
-pandas>=2.0.0
+# Numerical computing
+numpy>=1.24.0
 
-# 3D plotting and real-time animation
+# 3D plotting and visualization
 matplotlib>=3.7.0
+
+# Data manipulation (CSV/DataFrame support for benchmark tool)
+pandas>=2.0.0

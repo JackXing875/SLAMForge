@@ -84,17 +84,33 @@ RUN git clone --depth 1 --branch v0.1 \
     && make -j$(nproc) && make install \
     && rm -rf /tmp/FBOW
 
+# ── Update library cache ──────────────────────────────────────────────────────
+RUN ldconfig
+
 # ── Python tools dependencies ─────────────────────────────────────────────────
-COPY requirements.txt /tmp/requirements.txt
-RUN pip3 install --no-cache-dir -r /tmp/requirements.txt
+RUN pip3 install --no-cache-dir numpy matplotlib pandas
 
-# ── Create non-root user ──────────────────────────────────────────────────────
-RUN useradd -m -s /bin/bash litevo
-USER litevo
+# ── Copy LiteVO source ────────────────────────────────────────────────────────
+COPY . /opt/litevo
+
+# ── Build LiteVO ──────────────────────────────────────────────────────────────
+WORKDIR /opt/litevo/build
+RUN cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DLITEVO_BUILD_TESTS=OFF \
+    -DLITEVO_BUILD_APPS=ON \
+    -DLITEVO_ENABLE_SOPHUS=ON \
+    -DLITEVO_ENABLE_CERES=ON \
+    -DLITEVO_ENABLE_G2O=ON \
+    -DLITEVO_ENABLE_FBOW=ON \
+    -DLITEVO_ENABLE_SPDLOG=ON \
+    -DLITEVO_ENABLE_YAML=ON \
+    && make -j$(nproc)
+
+# ── Install ───────────────────────────────────────────────────────────────────
+RUN make install
+
+# ── Entry point ───────────────────────────────────────────────────────────────
 WORKDIR /workspace
-
-# Update library cache
-RUN sudo ldconfig || true
-
-# ── Default command ───────────────────────────────────────────────────────────
-CMD ["/bin/bash"]
+ENTRYPOINT ["/usr/local/bin/litevo_cli"]
+CMD ["--help"]

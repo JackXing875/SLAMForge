@@ -6,36 +6,22 @@ Usage:
 """
 
 import argparse
-from pathlib import Path
 
-import numpy as np
-
-
-def load_trajectory(path: str, format: str = "tum") -> np.ndarray:
-    """Load trajectory from file."""
-    data = np.loadtxt(path)
-    if data.ndim == 1:
-        data = data.reshape(1, -1)
-
-    if format == "tum":
-        # timestamp tx ty tz qx qy qz qw
-        return data[:, 1:4]
-    elif format == "kitti":
-        # 3x4 matrix per row → extract translation cols 3, 7, 11
-        return data[:, [3, 7, 11]]
-    else:
-        raise ValueError(f"Unknown format: {format}")
+from trajectory_io import FORMAT_REGISTRY, load_trajectory
 
 
 def main():
     parser = argparse.ArgumentParser(description="Plot 3D trajectory")
     parser.add_argument("trajectory", help="Path to trajectory file")
     parser.add_argument("--groundtruth", "-g", help="Optional ground truth trajectory")
-    parser.add_argument("--format", choices=["tum", "kitti"], default="tum")
+    parser.add_argument(
+        "--format", choices=list(FORMAT_REGISTRY.keys()), default="tum"
+    )
     parser.add_argument("--save", "-s", help="Save plot to file instead of showing")
     args = parser.parse_args()
 
     import matplotlib.pyplot as plt
+    import numpy as np
 
     traj = load_trajectory(args.trajectory, args.format)
 

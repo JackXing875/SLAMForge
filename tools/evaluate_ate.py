@@ -2,85 +2,21 @@
 """Absolute Trajectory Error (ATE) evaluation tool.
 
 Computes the RMSE of absolute trajectory error after SE(3) alignment
-(Horn's method) between estimated and ground-truth trajectories.
+(Umeyama's method) between estimated and ground-truth trajectories.
 
 Usage:
-    python tools/evaluate_ate.py estimated.txt groundtruth.txt [--plot]
+    python tools/evaluate_ate.py estimated.txt groundtruth.txt [--format tum] [--plot]
 """
 
 import argparse
 import sys
-from pathlib import Path
 
-import numpy as np
-
-
-def load_tum_trajectory(path: str) -> np.ndarray:
-    """Load a TUM-format trajectory: timestamp tx ty tz qx qy qz qw."""
-    data = np.loadtxt(path)
-    if data.ndim == 1:
-        data = data.reshape(1, -1)
-    # Return [x, y, z] columns
-    return data[:, 1:4]
-
-
-def load_kitti_trajectory(path: str) -> np.ndarray:
-    """Load a KITTI-format trajectory: 3x4 pose matrices per row."""
-    data = np.loadtxt(path)
-    if data.ndim == 1:
-        data = data.reshape(1, -1)
-    # Each row is 12 values (3x4 pose matrix), extract translation (cols 3, 7, 11)
-    translations = data[:, [3, 7, 11]]
-    return translations
-
-
-def align_trajectory(est: np.ndarray, gt: np.ndarray) -> np.ndarray:
-    """Align estimated trajectory to ground truth using Umeyama (similarity)."""
-    assert est.shape == gt.shape, f"Shape mismatch: {est.shape} vs {gt.shape}"
-
-    # Compute centroids
-    est_centroid = est.mean(axis=0)
-    gt_centroid = gt.mean(axis=0)
-
-    est_centered = est - est_centroid
-    gt_centered = gt - gt_centroid
-
-    # Cross-covariance
-    H = est_centered.T @ gt_centered
-    U, _, Vt = np.linalg.svd(H)
-    R = Vt.T @ U.T
-
-    # Ensure proper rotation (det = +1)
-    if np.linalg.det(R) < 0:
-        Vt[-1, :] *= -1
-        R = Vt.T @ U.T
-
-    # Scale
-    scale = np.trace(gt_centered.T @ est_centered @ R) / np.trace(
-        est_centered.T @ est_centered
-    )
-    scale = max(scale, 1e-10)
-
-    t = gt_centroid - scale * R @ est_centroid
-
-    aligned = (scale * R @ est.T).T + t
-    return aligned
-
-
-def compute_ate(est: np.ndarray, gt: np.ndarray) -> dict:
-    """Compute ATE statistics."""
-    diff = est - gt
-    squared_errors = np.sum(diff**2, axis=1)
-    rmse = np.sqrt(np.mean(squared_errors))
-
-    return {
-        "rmse": rmse,
-        "mean": np.mean(np.sqrt(squared_errors)),
-        "median": np.median(np.sqrt(squared_errors)),
-        "std": np.std(np.sqrt(squared_errors)),
-        "min": np.min(np.sqrt(squared_errors)),
-        "max": np.max(np.sqrt(squared_errors)),
-    }
+from trajectory_io import (
+    FORMAT_REGISTRY,
+    align_trajectory,
+    compute_ate,
+    load_trajectory,
+)
 
 
 def main():
@@ -91,7 +27,7 @@ def main():
     parser.add_argument("groundtruth", help="Path to ground truth trajectory file")
     parser.add_argument(
         "--format",
-        choices=["tum", "kitti"],
+        choices=list(FORMAT_REGISTRY.keys()),
         default="tum",
         help="Trajectory file format",
     )
@@ -99,9 +35,8 @@ def main():
     args = parser.parse_args()
 
     # Load
-    loader = load_tum_trajectory if args.format == "tum" else load_kitti_trajectory
-    est = loader(args.estimated)
-    gt = loader(args.groundtruth)
+    est = load_trajectory(args.estimated, args.format)
+    gt = load_trajectory(args.groundtruth, args.format)
 
     # Align temporal dimension by truncating to min length
     min_len = min(len(est), len(gt))

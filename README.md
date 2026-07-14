@@ -1,111 +1,234 @@
-# LiteVO: Asynchronous Monocular Visual Odometry
+# LiteVO — Industrial-Grade Monocular Visual SLAM
 
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![C++14](https://img.shields.io/badge/C++-14%2B-00599C?logo=c%2B%2B&logoColor=white)](https://isocpp.org/)
-[![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![CMake](https://img.shields.io/badge/CMake-Build-064F8C?logo=cmake&logoColor=white)](https://cmake.org/)
-[![Ubuntu](https://img.shields.io/badge/Platform-Ubuntu%20%7C%20WSL2-E95420?logo=ubuntu&logoColor=white)](https://ubuntu.com/)
-[![OpenCV](https://img.shields.io/badge/Library-OpenCV_4.0%2B-5C3EE8?logo=opencv&logoColor=white)](https://opencv.org/)
-[![Eigen3](https://img.shields.io/badge/Math-Eigen3-8B0000.svg)](https://eigen.tuxfamily.org/)
+[![Build](https://github.com/yourname/LiteVO/actions/workflows/build.yml/badge.svg)](https://github.com/yourname/LiteVO/actions/workflows/build.yml)
+[![Docs](https://github.com/yourname/LiteVO/actions/workflows/docs.yml/badge.svg)](https://yourname.github.io/LiteVO/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue?logo=c%2B%2B)](https://isocpp.org/)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/Docker-latest-2496ED?logo=docker)](https://github.com/yourname/LiteVO/pkgs/container/litevo)
 
 [中文版本 (Chinese Version)](README_ch.md)
 
-**LiteVO** is a lightweight, industrial-grade Monocular Visual Odometry (VO) system built from scratch in C++. It features a strictly decoupled multithreaded architecture, separating high-speed frontend tracking from heavy backend non-linear optimization (Bundle Adjustment).
-
-
-## Key Features
-
-* **Multithreaded Architecture:** Frontend and Backend run in isolated `std::thread` environments with strictly managed `std::mutex` and `std::condition_variable` synchronization, ensuring zero-blocking video processing.
-* **Robust Frontend:** Fast and reliable feature tracking using OpenCV's KLT (Kanade-Lucas-Tomasi) optical flow.
-* **Industrial Backend Optimization:** Local Bundle Adjustment (LBA) powered by **Ceres Solver** over a sliding window, minimizing reprojection errors to maintain trajectory consistency.
-* **Dynamic Map Point Culling:** Intelligent depth filtering to eliminate "small baseline" artifacts and infinity points.
-* **Real-Time 3D Visualization:** A decoupled Python viewer using Matplotlib/Open3D for real-time camera trajectory plotting and automated high-resolution static PNG exports.
+**LiteVO** is an industrial-grade **monocular visual SLAM** system built from scratch in C++20. It estimates 6-DoF camera motion and builds a sparse 3D map from a single video stream in real time — with an architecture modeled after **ORB-SLAM3**.
 
 ---
 
-## System Architecture
-
-The pipeline is divided into three completely decoupled modules:
-
-1. **Frontend (Tracking Thread):** Ingests video frames, extracts keypoints, computes optical flow, and estimates the initial $SE(3)$ transformation.
-2. **Backend (Mapping Thread):** Wakes up asynchronously when the sliding window queue is filled. Triangulates 3D points and optimizes both camera poses and map points using Ceres.
-3. **Visualization (Python Inter-process):** Reads the aggressively flushed CSV and PLY data to render 3D trajectories and point clouds in real-time.
-
----
-
-## Dependencies
-
-Ensure you have the following libraries installed on your Linux system (Ubuntu/WSL2 recommended):
-
-### C++ Core
-
-* **OpenCV (4.0+)**: Image processing and feature extraction.
-* **Eigen3**: Fast linear algebra and matrix operations.
-* **Ceres Solver**: Non-linear least squares optimization.
-
-### Python Visualization
+## Quick Start
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+# Build with Docker (zero host dependencies)
+docker build -t litevo -f docker/Dockerfile .
+docker run --rm -v /path/to/images:/images -v $PWD/output:/output \
+    litevo run --config config/kitti.yaml --input /images --output /output/traj.txt
+
+# Or build natively (Ubuntu 22.04)
+sudo apt-get install -y libopencv-dev libeigen3-dev libspdlog-dev libyaml-cpp-dev
+cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j$(nproc)
+./build/apps/litevo_cli run --config config/kitti.yaml --input /path/to/images
+
+# Evaluate results
+python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
 ```
 
----
+## Architecture
 
-## Build & Run
-
-### 1. Build the C++ Engine
-
-Clone the repository and build the project using CMake:
-
-```bash
-mkdir build && cd build
-cmake ..
-make -j4
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Input: Monocular Video                  │
+└──────────────────────┬──────────────────────────────────┘
+                       │
+         ┌─────────────▼─────────────┐
+         │   TRACKING (real-time)    │
+         │   • ORB feature extraction│
+         │   • Frame-to-frame motion │
+         │   • Local map tracking    │
+         │   • Keyframe decision     │
+         └─────────────┬─────────────┘
+                       │ new KeyFrame
+         ┌─────────────▼─────────────┐
+         │   LOCAL MAPPING (async)   │
+         │   • Map point triangulation│
+         │   • Local BA (Ceres)      │
+         │   • Point/KF culling      │
+         └─────────────┬─────────────┘
+                       │
+         ┌─────────────▼─────────────┐
+         │   LOOP CLOSING (async)    │
+         │   • BoW loop detection    │
+         │   • Sim(3) verification   │
+         │   • Pose graph opt (g2o)  │
+         │   • Global BA             │
+         └───────────────────────────┘
 ```
 
-### 2. Run the Pipeline
+## Features
 
-We provide a unified shell script to launch both the C++ engine and the Python visualization tool:
+| Category | Status | Description |
+|----------|--------|-------------|
+| Tracking | ✅ | Two-view init, motion model, local map tracking, relocalization |
+| Local Mapping | ✅ | Triangulation, local BA (Ceres), point/KF culling |
+| Loop Closing | ✅ | FBOW vocabulary, Sim(3) verification, pose graph (g2o), global BA |
+| ORB Features | ✅ | Multi-scale pyramid, quadtree distribution, adaptive threshold |
+| Configuration | ✅ | YAML-based with schema validation (camera, algorithm parameters) |
+| CLI | ✅ | `run`, `eval`, `benchmark` subcommands |
+| ROS2 Node | ✅ | Real-time SLAM with PoseStamped, PointCloud2, TF |
+| Python API | ✅ | pybind11 bindings with numpy interop |
+| Evaluation | ✅ | ATE, RPE, trajectory plotting, batch benchmarking |
+| Docker | ✅ | One-command build + run |
+| Documentation | ✅ | Doxygen API docs, architecture, quick start, tuning guide |
+| Unit Tests | ✅ | 12 test suites with GoogleTest |
+| CI/CD | ✅ | GitHub Actions: build, test, lint, docs, Docker |
+| Benchmarks | ✅ | Google Benchmark: ORB, PnP, triangulation |
 
-```bash
-# Execute from the project root directory
-./scripts/run.sh <path_to_your_video.mp4>
-```
+## Performance Benchmarks
 
-*(Note: The system will automatically output `trajectory.csv` and `sparse_map.ply` to the `data/poses/` directory, along with an auto-generated high-resolution trajectory PNG).*
+*Results on KITTI odometry benchmark (placeholder — actual results pending dataset run):*
 
----
+| Sequence | ATE RMSE (m) | RPE trans (m) | RPE rot (°/m) | KFs | MPs |
+|----------|-------------|---------------|---------------|-----|-----|
+| KITTI 00 | — | — | — | — | — |
+| KITTI 01 | — | — | — | — | — |
+| KITTI 02 | — | — | — | — | — |
+
+## Technology Stack
+
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Language | C++20 | Core engine |
+| Build | CMake 3.20+ | Build system, FetchContent deps |
+| Linear Algebra | Eigen 3.3+ + Sophus | Matrix ops + SE(3) Lie groups |
+| Vision | OpenCV 4.x | ORB, PnP, essential matrix, image I/O |
+| Local Opt | Ceres Solver | Local bundle adjustment |
+| Pose Graph | g2o | Loop closure pose graph optimization |
+| Vocabulary | FBOW | DBoW2-compatible visual place recognition |
+| Logging | spdlog | Structured async logging |
+| Config | yaml-cpp | YAML runtime configuration |
+| CLI | CLI11 | Subcommand-based argument parsing |
+| Bindings | pybind11 | C++ → Python bridge |
+| Testing | GoogleTest, Google Benchmark | Unit tests + micro-benchmarks |
+| Container | Docker | Reproducible build environment |
+| CI/CD | GitHub Actions | Automated build, test, lint, deploy |
 
 ## Project Structure
 
-```text
+```
 LiteVO/
-├── app/
-│   └── main.cpp                  # C++ Engine entry point
-├── include/deepvo/
-│   ├── tracker.h                 # Frontend KLT tracker
-│   ├── backend.h                 # Asynchronous Ceres optimizer
-│   ├── map.h                     # Global 3D point cloud map
-│   └── visualizer.h              # 2D OpenCV UI wrapper
-├── src/
-│   ├── tracker.cpp
-│   ├── backend.cpp
-│   ├── map.cpp
-│   └── visualizer.cpp
-├── scripts/
-│   ├── run_vo.sh                 # Unified launch script
-│   └── view_map.py               # Real-time Matplotlib/Open3D visualizer
-├── data/
-│   └── poses/                    # Auto-generated CSV, PLY, and PNG outputs
-├── CMakeLists.txt                # Build configuration
-└── README.md
+├── include/litevo/         # Public headers
+│   ├── core/               # Types, Camera, Map, Frame, Config
+│   ├── tracking/           # Tracker, Initializer, FeatureMatcher
+│   ├── mapping/            # LocalMapper
+│   ├── loop_closing/       # Vocabulary, Detector, Verifier, PoseGraph, GlobalBA
+│   ├── geometry/           # SE3, Sim3, Epipolar, PnP, Triangulation
+│   ├── features/           # ORB extractor
+│   └── optimization/       # Bundle Adjustment
+├── src/                    # Implementation files
+├── apps/                   # CLI and ROS2 applications
+├── tests/
+│   ├── unit/               # GoogleTest unit tests (12 suites)
+│   └── bench/              # Google Benchmark micro-benchmarks
+├── tools/                  # Python evaluation scripts
+├── pybind/                 # Python bindings
+├── config/                 # YAML configs (KITTI, EuRoC, TUM)
+├── docker/                 # Dockerfile + compose + devcontainer
+└── docs/                   # Architecture, quick start, tuning guide
 ```
 
+## CLI Usage
 
----
+```bash
+# Run SLAM on a directory of images
+litevo_cli run --config config/kitti.yaml --input /data/images --output traj.txt
+
+# Run SLAM on a video file
+litevo_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30
+
+# Evaluate trajectory against ground truth
+litevo_cli eval --estimated traj.txt --groundtruth gt.txt --format kitti
+
+# Batch benchmark across dataset sequences
+litevo_cli benchmark --dataset-dir /data/kitti --config config/kitti.yaml
+```
+
+## Python API
+
+```python
+import numpy as np
+import litevo
+
+# Load configuration
+cfg = litevo.load_config("config/kitti.yaml")
+
+# Create camera and tracker
+camera = litevo.Camera(cfg.camera)
+tracker = litevo.Tracker(camera, cfg.tracking, cfg.orb)
+
+# Track frames
+for frame in frames:
+    pose = tracker.track(frame, timestamp)
+    if pose is not None:
+        print(f"Position: {pose.position}")
+
+# Access map
+map_ = tracker.get_map()
+print(f"Keyframes: {map_.keyframe_count}, Map points: {map_.map_point_count}")
+```
+
+## ROS2 Node
+
+```bash
+# Build with ROS2 support
+cmake -B build -DLITEVO_BUILD_ROS2=ON
+cmake --build build
+
+# Run
+ros2 run litevo litevo_ros_node --ros-args -p config_path:=config/euroc.yaml
+```
+
+**Published topics:**
+- `~/pose` — `geometry_msgs/PoseStamped`
+- `~/map_cloud` — `sensor_msgs/PointCloud2`
+- `~/keyframes` — `visualization_msgs/Marker`
+- TF: `odom` → `camera_link`
+
+## Building from Source
+
+```bash
+# Prerequisites
+sudo apt-get install -y build-essential cmake libopencv-dev libeigen3-dev \
+    libspdlog-dev libyaml-cpp-dev
+
+# Optional: Ceres for bundle adjustment
+sudo apt-get install -y libceres-dev libgoogle-glog-dev libgflags-dev
+
+# Optional: Sophus for Lie algebra
+git clone https://github.com/strasdat/Sophus.git && cd Sophus
+cmake -B build && cmake --build build && sudo cmake --install build
+
+# Build LiteVO
+cmake -B build -DCMAKE_BUILD_TYPE=Release \
+    -DLITEVO_BUILD_TESTS=ON \
+    -DLITEVO_ENABLE_CERES=ON
+cmake --build build -j$(nproc)
+
+# Run tests
+cd build && ctest --output-on-failure
+```
+
+## Documentation
+
+- [Quick Start Guide](docs/quick_start.md) — Get running in 5 minutes
+- [Architecture Overview](docs/architecture.md) — System design and data flow
+- [Tuning Guide](docs/tuning_guide.md) — Parameter optimization for your scene
+- [API Documentation](https://yourname.github.io/LiteVO/) — Doxygen-generated class reference
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and PR process.
 
 ## License
 
-This project is licensed under the **GNU General Public License v3.0**. See the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+*Built with C++20 • Eigen • Sophus • OpenCV • Ceres • g2o • FBOW*

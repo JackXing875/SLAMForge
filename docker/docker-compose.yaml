@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  litevo:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: litevo:latest
+    container_name: litevo_slam
+    volumes:
+      # Mount your dataset directory
+      - ${DATASET_DIR:-./datasets}:/datasets:ro
+      # Mount output directory for trajectories and maps
+      - ${OUTPUT_DIR:-./output}:/output
+      # Mount custom configs
+      - ${CONFIG_DIR:-./config}:/config:ro
+    working_dir: /workspace
+    # Default: run LiteVO on a KITTI sequence
+    command: >
+      litevo_cli run
+      --config /config/kitti.yaml
+      --input /datasets/kitti/00/image_0
+      --output /output/trajectory.txt
+      --verbose
+    # For GPU support, uncomment:
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]

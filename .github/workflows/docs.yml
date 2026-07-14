@@ -1,0 +1,59 @@
+name: Documentation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'include/litevo/**'
+      - 'docs/**'
+      - 'Doxyfile'
+      - 'README.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install doxygen
+        run: sudo apt-get install -y --no-install-recommends doxygen graphviz
+
+      - name: Build Doxygen
+        run: doxygen Doxyfile 2>&1 | tee doxygen.log
+
+      - name: Check for Doxygen warnings
+        run: |
+          if grep -q "warning:" doxygen.log; then
+            echo "::warning::Doxygen generated warnings — check doxygen.log"
+            grep "warning:" doxygen.log | head -20
+          fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs/html'
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

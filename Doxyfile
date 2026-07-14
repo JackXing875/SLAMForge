@@ -1,0 +1,84 @@
+# Doxyfile 1.9.1 — LiteVO API Documentation
+
+PROJECT_NAME           = "LiteVO"
+PROJECT_BRIEF          = "Industrial-Grade Monocular Visual SLAM System"
+PROJECT_NUMBER         = 2.0.0
+
+OUTPUT_DIRECTORY       = docs/html
+CREATE_SUBDIRS         = NO
+
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = NO
+MULTILINE_CPP_IS_BRIEF = NO
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = NO
+EXTRACT_LOCAL_METHODS  = NO
+
+INPUT                  = include/litevo
+FILE_PATTERNS          = *.h *.hpp
+RECURSIVE              = YES
+
+EXCLUDE                = include/litevo/version.h.in
+EXCLUDE_PATTERNS       = */test/* */bench/* */legacy/*
+
+EXAMPLE_PATH           =
+EXAMPLE_PATTERNS       =
+
+HTML_OUTPUT            = .
+HTML_FILE_EXTENSION    = .html
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_XML           = NO
+
+USE_MATHJAX            = YES
+MATHJAX_RELPATH        = https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+HAVE_DOT               = NO
+
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+# Source browsing
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+STRIP_CODE_COMMENTS    = NO
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+# Alphabetical index
+ALPHABETICAL_INDEX     = YES
+
+# Search
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+
+# Display
+SHOW_NAMESPACES        = YES
+SHOW_INCLUDE_FILES     = YES
+SHOW_GROUPED_MEMB_INC  = YES
+
+# Sorting
+SORT_MEMBER_DOCS       = YES
+SORT_BRIEF_DOCS        = YES
+SORT_GROUP_NAMES       = YES
+SORT_BY_SCOPE_NAME     = YES
+
+# Warnings
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = NO
+
+# Output
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+
+# Preprocessor
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = NO
+PREDEFINED             = "LITEVO_HAS_SOPHUS" "LITEVO_HAS_CERES" "LITEVO_HAS_G2O" "LITEVO_HAS_FBOW" "LITEVO_HAS_SPDLOG" "LITEVO_HAS_YAML_CPP"

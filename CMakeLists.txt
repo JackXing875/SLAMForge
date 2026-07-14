@@ -25,6 +25,9 @@ option(LITEVO_ENABLE_FBOW   "Enable FBOW visual vocabulary"         ON)
 option(LITEVO_ENABLE_SPDLOG "Enable spdlog structured logging"     ON)
 option(LITEVO_ENABLE_YAML   "Enable YAML configuration support"    ON)
 option(LITEVO_ENABLE_IPO    "Enable inter-procedural optimization" OFF)
+option(LITEVO_BUILD_PYBIND     "Build pybind11 Python bindings"       OFF)
+option(LITEVO_BUILD_ROS2       "Build ROS2 integration"               OFF)
+option(LITEVO_BUILD_BENCHMARKS "Build performance benchmarks"        OFF)
 
 # ── Inter-procedural optimization ────────────────────────────────────────────
 include(CheckIPOSupported)
@@ -35,6 +38,7 @@ endif()
 
 # ── Compiler warnings ────────────────────────────────────────────────────────
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tools")
 include(CompilerWarnings)
 
 # ── Dependencies ─────────────────────────────────────────────────────────────
@@ -134,6 +138,41 @@ if(LITEVO_BUILD_APPS)
     FetchContent_MakeAvailable(cli11)
 endif()
 
+# Python bindings: pybind11
+if(LITEVO_BUILD_PYBIND)
+    include(FetchContent)
+    FetchContent_Declare(pybind11
+        GIT_REPOSITORY  https://github.com/pybind/pybind11.git
+        GIT_TAG         v2.12.0
+    )
+    FetchContent_MakeAvailable(pybind11)
+endif()
+
+# ROS2 integration
+if(LITEVO_BUILD_ROS2)
+    find_package(ament_cmake QUIET)
+    find_package(rclcpp QUIET)
+    find_package(cv_bridge QUIET)
+    find_package(tf2_ros QUIET)
+    if(ament_cmake_FOUND AND rclcpp_FOUND AND cv_bridge_FOUND AND tf2_ros_FOUND)
+        message(STATUS "ROS2 packages found — enabling ROS2 integration")
+    else()
+        message(WARNING "ROS2 packages not found — disabling ROS2 integration")
+        set(LITEVO_BUILD_ROS2 OFF)
+    endif()
+endif()
+
+# Performance benchmarks: Google Benchmark
+if(LITEVO_BUILD_BENCHMARKS)
+    include(FetchContent)
+    FetchContent_Declare(benchmark
+        GIT_REPOSITORY  https://github.com/google/benchmark.git
+        GIT_TAG         v1.9.0
+    )
+    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+    FetchContent_MakeAvailable(benchmark)
+endif()
+
 # ── Library target ───────────────────────────────────────────────────────────
 add_subdirectory(src)
 if(LITEVO_BUILD_APPS)
@@ -142,6 +181,14 @@ endif()
 
 if(LITEVO_BUILD_TESTS)
     add_subdirectory(tests)
+endif()
+
+if(LITEVO_BUILD_PYBIND)
+    add_subdirectory(pybind)
+endif()
+
+if(LITEVO_BUILD_BENCHMARKS)
+    add_subdirectory(tests/bench)
 endif()
 
 # ── Installation ─────────────────────────────────────────────────────────────
@@ -163,6 +210,13 @@ install(EXPORT litevoTargets
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/litevo
 )
 
+# ── Packaging (CPack) ────────────────────────────────────────────────────────
+include(CPack)
+set(CPACK_PACKAGE_NAME "litevo")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Industrial-grade monocular visual SLAM system")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "LiteVO Team")
+
 # ── Feature summary ──────────────────────────────────────────────────────────
 message(STATUS "")
 message(STATUS "═══════════════════════════════════════════════════════════════")
@@ -177,5 +231,8 @@ message(STATUS "  g2o (Pose Graph):   ${LITEVO_ENABLE_G2O}")
 message(STATUS "  FBOW (Vocabulary):  ${LITEVO_ENABLE_FBOW}")
 message(STATUS "  spdlog (Logging):   ${LITEVO_ENABLE_SPDLOG}")
 message(STATUS "  yaml-cpp (Config):  ${LITEVO_ENABLE_YAML}")
+message(STATUS "  Python bindings:    ${LITEVO_BUILD_PYBIND}")
+message(STATUS "  ROS2 integration:   ${LITEVO_BUILD_ROS2}")
+message(STATUS "  Benchmarks:         ${LITEVO_BUILD_BENCHMARKS}")
 message(STATUS "═══════════════════════════════════════════════════════════════")
 message(STATUS "")

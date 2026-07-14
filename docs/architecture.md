@@ -105,14 +105,86 @@ MapPoint
 └── double (max descriptor distance)
 ```
 
+## Data Flow
+
+```
+Camera Frame
+    │
+    ▼
+Tracker::Track(image, timestamp)
+    │
+    ├── Extract ORB features (multi-scale pyramid + quadtree distribution)
+    │
+    ├── [NOT_INITIALIZED]
+    │   └── MonocularInitializer: parallel H/E computation → model selection → initial map
+    │
+    ├── [OK] TrackWithMotionModel()
+    │   ├── Predict pose from constant-velocity model
+    │   ├── Project last frame's map points → find matches
+    │   └── PnP RANSAC + nonlinear refinement → Tcw
+    │
+    ├── [OK] TrackLocalMap()
+    │   ├── Collect covisible keyframes' map points
+    │   ├── Project into current frame → expand 3D-2D matches
+    │   └── Motion-only BA → refined Tcw
+    │
+    ├── NeedNewKeyFrame()?
+    │   ├── YES: promote Frame → KeyFrame → Insert to LocalMapper queue
+    │   └── NO:  continue
+    │
+    └── [LOST] Relocalization()
+        └── BoW matching against all keyframes → PnP → if inliers > threshold: OK
+            │
+            ▼ (KeyFrame inserted)
+LocalMapper::Run() loop
+    │
+    ├── ProcessNewKeyFrame()
+    │   └── Update covisibility graph + spanning tree
+    │
+    ├── CreateNewMapPoints()
+    │   └── Triangulate with top-N covisible keyframes (parallax + reprojection check)
+    │
+    ├── CullMapPoints()
+    │   └── Remove points with < 25% found ratio in first 3 keyframes
+    │
+    ├── LocalBundleAdjustment()
+    │   └── Ceres: optimize current KF + covisible KFs + their map points (Huber loss)
+    │
+    └── CullKeyFrames()
+        └── Remove KFs where > 90% of map points are seen by ≥ 3 other KFs
+            │
+            ▼ (Every keyframe also goes to LoopClosing)
+LoopClosing::Run() loop
+    │
+    ├── DetectLoop()
+    │   └── Query BoW database → exclude recent KFs → consecutive detection check
+    │
+    ├── VerifyLoop()
+    │   └── BoW-accelerated matching → Sim(3) RANSAC → bidirectional check
+    │
+    ├── CorrectLoop()
+    │   └── Sim(3) propagation → map point fusion → covisibility update
+    │
+    ├── OptimizePoseGraph()
+    │   └── g2o: loop edges + spanning tree edges + covisibility edges → optimize
+    │
+    └── GlobalBundleAdjustment()  [triggered periodically]
+        └── Ceres: all keyframes + all map points (separate thread, can be interrupted)
+```
+
 ## Thread Safety
 
-The Atlas uses `std::shared_mutex` for read-write locking:
-- Tracking holds a **shared lock** during frame processing (read-mostly)
-- Local Mapping holds a **unique lock** when adding map points or keyframes
-- Loop Closing holds a **unique lock** during map corrections
+The Map (Atlas) uses `std::shared_mutex` for read-write locking:
+- **Tracking**: holds a **shared lock** during frame processing (read-mostly)
+- **Local Mapping**: holds a **unique lock** when adding map points or keyframes
+- **Loop Closing**: holds a **unique lock** during map corrections (pose graph + global BA)
 
-Keyframes and map points use `std::mutex` for fine-grained locking on individual elements.
+Keyframes and map points use individual `std::mutex` for fine-grained locking on specific elements (e.g., MapPoint position updates).
+
+**Lock ordering** (to prevent deadlocks):
+1. Map mutex (always first)
+2. KeyFrame::GlobalMutex
+3. Individual KeyFrame/MapPoint mutexes
 
 ## Configuration
 
