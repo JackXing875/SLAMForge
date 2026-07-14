@@ -1,0 +1,41 @@
+include/litevo/tracking/tracker.h
+  s_0e28269c6f93c6::t_0e52e72fdf1fcf 36
+  s_0e28269c6f93c6::t_420af67f530f25 7
+include/litevo/core/frame.h
+  s_0e28269c6f93c6::t_e5d76f55d9bbb7 136
+src/tracking/matcher.cpp
+  s_0e28269c6f93c6::t_569362d4641d6b 167
+src/loop_closing/corrector.cpp
+  s_0e28269c6f93c6::t_3a049041e4f505 72
+  s_0e28269c6f93c6::t_db25249b6bbf4d 46
+src/core/keyframe.cpp
+  s_0e28269c6f93c6::t_6e0865d2ee2509 136
+src/loop_closing/loop_closing.cpp
+  s_0e28269c6f93c6::t_d47f5a997034b5 153
+  s_0e28269c6f93c6::t_70472b9c599e0f 23
+  s_0e28269c6f93c6::t_5bdec5b74c2583 119
+src/mapping/local_mapper.cpp
+  s_0e28269c6f93c6::t_8040a0354f95b6 232
+  s_0e28269c6f93c6::t_7874de88162daa 222
+.clang-tidy
+  s_0e28269c6f93c6::t_9926e2886f589a 23-24
+  s_0e28269c6f93c6::t_0e991f3ec36098 3-5,11-12,14-18,22
+src/loop_closing/detector.cpp
+  s_0e28269c6f93c6::t_478ba5ecd39d92 80,137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "48bf80578e6bd49fb5718f51419412c49102ce8f",
+  "prompts": {},
+  "sessions": {
+    "s_0e28269c6f93c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "eab51ed3-4b44-4ae1-b76a-fec6cf091f85",
+        "model": "deepseek-v4-pro"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
