@@ -12,11 +12,9 @@ namespace litevo {
 
 uint64_t Frame::next_id_ = 0;
 
-Frame::Frame(const cv::Mat& image, double timestamp,
-             features::OrbExtractor& extractor, const Camera& camera)
-    : timestamp_(timestamp)
-    , camera_(camera)
-{
+Frame::Frame(const cv::Mat& image, double timestamp, features::OrbExtractor& extractor,
+             const Camera& camera)
+    : timestamp_(timestamp), camera_(camera) {
     // Assign unique ID
     id_ = FrameId{next_id_++};
 
@@ -116,8 +114,8 @@ std::vector<int> Frame::GetMapPointIndices() const {
     return indices;
 }
 
-std::vector<int> Frame::GetFeaturesInArea(
-    float x, float y, float radius, int min_level, int max_level) const {
+std::vector<int> Frame::GetFeaturesInArea(float x, float y, float radius, int min_level,
+                                          int max_level) const {
     return grid_.GetCandidates(x, y, radius, min_level, max_level);
 }
 

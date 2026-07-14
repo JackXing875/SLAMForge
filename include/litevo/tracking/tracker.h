@@ -55,9 +55,7 @@ public:
     /// @param camera      Camera model (shared, read-only).
     /// @param config      Tracking configuration.
     /// @param orb_config  ORB extractor configuration.
-    Tracker(const Camera& camera,
-            const TrackingConfig& config,
-            const OrbConfig& orb_config);
+    Tracker(const Camera& camera, const TrackingConfig& config, const OrbConfig& orb_config);
 
     ~Tracker();
 
@@ -153,8 +151,7 @@ private:
 
     /// @brief Run PnP with RANSAC + refinement on 3D-2D correspondences.
     bool EstimatePose(const std::vector<cv::Point3f>& pts_3d,
-                      const std::vector<cv::Point2f>& pts_2d,
-                      SE3& Tcw, int min_inliers = 10);
+                      const std::vector<cv::Point2f>& pts_2d, SE3& Tcw, int min_inliers = 10);
 
     /// @brief Build OpenCV intrinsic matrix.
     cv::Mat BuildK() const;

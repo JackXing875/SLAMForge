@@ -3,23 +3,20 @@
 // =============================================================================
 
 #include "litevo/geometry/pnp.h"
-#include "litevo/geometry/se3.h"
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/eigen.hpp>
 
+#include "litevo/geometry/se3.h"
+
 namespace litevo::geometry {
 
-PnPResult SolvePnPRansac(
-    const std::vector<cv::Point3f>& points_3d,
-    const std::vector<cv::Point2f>& points_2d,
-    const cv::Mat& K,
-    const PnPOptions& options) {
-
+PnPResult SolvePnPRansac(const std::vector<cv::Point3f>& points_3d,
+                         const std::vector<cv::Point2f>& points_2d, const cv::Mat& K,
+                         const PnPOptions& options) {
     PnPResult result;
 
-    if (points_3d.size() < 4 || points_2d.size() < 4 ||
-        points_3d.size() != points_2d.size()) {
+    if (points_3d.size() < 4 || points_2d.size() < 4 || points_3d.size() != points_2d.size()) {
         return result;
     }
 
@@ -31,16 +28,10 @@ PnPResult SolvePnPRansac(
         ToOpenCVRt(result.T_cw, rvec, tvec);
     }
 
-    const bool ok = cv::solvePnPRansac(
-        points_3d, points_2d, K, dist_coeffs,
-        rvec, tvec,
-        use_guess,
-        options.max_iterations,
-        static_cast<float>(options.max_reproj_error),
-        options.confidence,
-        inliers,
-        cv::SOLVEPNP_ITERATIVE
-    );
+    const bool ok =
+        cv::solvePnPRansac(points_3d, points_2d, K, dist_coeffs, rvec, tvec, use_guess,
+                           options.max_iterations, static_cast<float>(options.max_reproj_error),
+                           options.confidence, inliers, cv::SOLVEPNP_ITERATIVE);
 
     if (!ok || inliers.rows < 4) {
         return result;
@@ -58,14 +49,9 @@ PnPResult SolvePnPRansac(
     return result;
 }
 
-bool RefinePnP(
-    const std::vector<cv::Point3f>& points_3d,
-    const std::vector<cv::Point2f>& points_2d,
-    const cv::Mat& K,
-    SE3& T_cw) {
-
-    if (points_3d.size() < 4 || points_2d.size() < 4 ||
-        points_3d.size() != points_2d.size()) {
+bool RefinePnP(const std::vector<cv::Point3f>& points_3d, const std::vector<cv::Point2f>& points_2d,
+               const cv::Mat& K, SE3& T_cw) {
+    if (points_3d.size() < 4 || points_2d.size() < 4 || points_3d.size() != points_2d.size()) {
         return false;
     }
 
@@ -73,12 +59,9 @@ bool RefinePnP(
     ToOpenCVRt(T_cw, rvec, tvec);
     cv::Mat dist_coeffs = cv::Mat::zeros(4, 1, CV_64F);
 
-    const bool ok = cv::solvePnP(
-        points_3d, points_2d, K, dist_coeffs,
-        rvec, tvec,
-        true,  // useExtrinsicGuess
-        cv::SOLVEPNP_ITERATIVE
-    );
+    const bool ok = cv::solvePnP(points_3d, points_2d, K, dist_coeffs, rvec, tvec,
+                                 true,  // useExtrinsicGuess
+                                 cv::SOLVEPNP_ITERATIVE);
 
     if (ok) {
         T_cw = FromOpenCVRt(rvec, tvec);

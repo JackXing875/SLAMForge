@@ -10,12 +10,8 @@ namespace litevo {
 
 Camera::Camera(double fx, double fy, double cx, double cy, int width, int height)
     : fx_(fx), fy_(fy), cx_(cx), cy_(cy), width_(width), height_(height) {
-    K_ << fx, 0, cx,
-          0, fy, cy,
-          0,  0,  1;
-    K_inv_ << 1.0 / fx, 0, -cx / fx,
-              0, 1.0 / fy, -cy / fy,
-              0, 0, 1;
+    K_ << fx, 0, cx, 0, fy, cy, 0, 0, 1;
+    K_inv_ << 1.0 / fx, 0, -cx / fx, 0, 1.0 / fy, -cy / fy, 0, 0, 1;
 }
 
 void Camera::SetDistortion(double k1, double k2, double p1, double p2, double k3) {
@@ -24,9 +20,8 @@ void Camera::SetDistortion(double k1, double k2, double p1, double p2, double k3
     p1_ = p1;
     p2_ = p2;
     k3_ = k3;
-    has_distortion_ = (std::abs(k1) > 1e-12 || std::abs(k2) > 1e-12 ||
-                       std::abs(p1) > 1e-12 || std::abs(p2) > 1e-12 ||
-                       std::abs(k3) > 1e-12);
+    has_distortion_ = (std::abs(k1) > 1e-12 || std::abs(k2) > 1e-12 || std::abs(p1) > 1e-12 ||
+                       std::abs(p2) > 1e-12 || std::abs(k3) > 1e-12);
 }
 
 // ── Projection ────────────────────────────────────────────────────────────────
@@ -46,8 +41,7 @@ Vec2 Camera::Project(const Vec3& p_cam) const {
     }
 
     // To pixel coordinates
-    return Vec2(fx_ * normalized.x() + cx_,
-                fy_ * normalized.y() + cy_);
+    return Vec2(fx_ * normalized.x() + cx_, fy_ * normalized.y() + cy_);
 }
 
 Vec2 Camera::ProjectWorld(const Vec3& p_w, const SE3& T_cw) const {
@@ -59,8 +53,7 @@ Vec2 Camera::ProjectWorld(const Vec3& p_w, const SE3& T_cw) const {
 
 Vec3 Camera::Unproject(const Vec2& pixel) const {
     // To normalized coordinates
-    Vec2 normalized((pixel.x() - cx_) / fx_,
-                    (pixel.y() - cy_) / fy_);
+    Vec2 normalized((pixel.x() - cx_) / fx_, (pixel.y() - cy_) / fy_);
 
     // Undistort
     if (has_distortion_) {

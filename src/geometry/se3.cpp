@@ -19,17 +19,15 @@ Mat3 ExpSO3(const Vec3& omega) {
     if (theta < kEpsilon) {
         // Small angle approximation: exp(omega^) ≈ I + omega^ + 0.5 * omega^2
         Mat3 omega_hat;
-        omega_hat << Scalar(0), -omega.z(), omega.y(),
-                     omega.z(), Scalar(0), -omega.x(),
-                     -omega.y(), omega.x(), Scalar(0);
+        omega_hat << Scalar(0), -omega.z(), omega.y(), omega.z(), Scalar(0), -omega.x(), -omega.y(),
+            omega.x(), Scalar(0);
         return Mat3::Identity() + omega_hat + Scalar(0.5) * omega_hat * omega_hat;
     }
 
     const Vec3 axis = omega / theta;
     Mat3 axis_hat;
-    axis_hat << Scalar(0), -axis.z(), axis.y(),
-                axis.z(), Scalar(0), -axis.x(),
-                -axis.y(), axis.x(), Scalar(0);
+    axis_hat << Scalar(0), -axis.z(), axis.y(), axis.z(), Scalar(0), -axis.x(), -axis.y(), axis.x(),
+        Scalar(0);
 
     return Mat3::Identity() + std::sin(theta) * axis_hat +
            (Scalar(1) - std::cos(theta)) * axis_hat * axis_hat;
@@ -55,15 +53,13 @@ Mat3 LeftJacobianSO3(const Vec3& omega) {
 
 Mat3 SkewSymmetric(const Vec3& v) {
     Mat3 m;
-    m << Scalar(0), -v.z(), v.y(),
-         v.z(), Scalar(0), -v.x(),
-         -v.y(), v.x(), Scalar(0);
+    m << Scalar(0), -v.z(), v.y(), v.z(), Scalar(0), -v.x(), -v.y(), v.x(), Scalar(0);
     return m;
 }
 
 SE3 ExpSE3(const Vec6& twist) {
     const Vec3 upsilon = twist.head<3>();  // translation part
-    const Vec3 omega   = twist.tail<3>();  // rotation part
+    const Vec3 omega = twist.tail<3>();    // rotation part
 
     const Mat3 R = ExpSO3(omega);
     const Mat3 V = LeftJacobianSO3(omega);
@@ -86,8 +82,7 @@ Vec6 LogSE3(const SE3& T) {
         // Small angle: omega^ ≈ (R - R^T) / 2
         omega = VeeOperator((R - R.transpose()) / Scalar(2));
     } else {
-        omega = theta / (Scalar(2) * std::sin(theta)) *
-                VeeOperator(R - R.transpose());
+        omega = theta / (Scalar(2) * std::sin(theta)) * VeeOperator(R - R.transpose());
     }
 
     // Compute the translation part of the twist

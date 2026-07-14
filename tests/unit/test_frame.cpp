@@ -2,9 +2,9 @@
 // Frame unit tests
 // =============================================================================
 
-#include <gtest/gtest.h>
-
 #include <opencv2/imgproc.hpp>
+
+#include <gtest/gtest.h>
 
 #include "litevo/core/frame.h"
 #include "litevo/features/orb_extractor.h"
@@ -120,10 +120,8 @@ TEST_F(FrameTest, UndistortedKeypoints) {
     EXPECT_EQ(frame.KeyPoints().size(), frame.KeyPointsUndistorted().size());
     // For a distortion-free camera, positions should be identical
     for (size_t i = 0; i < frame.KeyPoints().size(); ++i) {
-        EXPECT_FLOAT_EQ(frame.KeyPoints()[i].pt.x,
-                        frame.KeyPointsUndistorted()[i].pt.x);
-        EXPECT_FLOAT_EQ(frame.KeyPoints()[i].pt.y,
-                        frame.KeyPointsUndistorted()[i].pt.y);
+        EXPECT_FLOAT_EQ(frame.KeyPoints()[i].pt.x, frame.KeyPointsUndistorted()[i].pt.x);
+        EXPECT_FLOAT_EQ(frame.KeyPoints()[i].pt.y, frame.KeyPointsUndistorted()[i].pt.y);
     }
 }
 

@@ -28,11 +28,11 @@ namespace tracking {
 /// @brief Result of two-view monocular initialization.
 struct InitializationResult {
     bool success = false;
-    SE3 Tcw;                                          ///< Pose of the second frame
-    std::vector<std::shared_ptr<MapPoint>> map_points; ///< Triangulated landmark points
-    std::vector<int> match_indices_ref;                ///< Feature indices in reference frame
-    std::vector<int> match_indices_cur;                ///< Feature indices in current frame
-    std::string model_used;                            ///< "Homography" or "Fundamental"
+    SE3 Tcw;                                            ///< Pose of the second frame
+    std::vector<std::shared_ptr<MapPoint>> map_points;  ///< Triangulated landmark points
+    std::vector<int> match_indices_ref;                 ///< Feature indices in reference frame
+    std::vector<int> match_indices_cur;                 ///< Feature indices in current frame
+    std::string model_used;                             ///< "Homography" or "Fundamental"
 };
 
 /// @brief Monocular two-view initialization using H/F model scoring.
@@ -48,19 +48,18 @@ struct InitializationResult {
 class MonocularInitializer {
 public:
     struct Options {
-        int    min_features          = 100;
-        int    min_matches           = 100;
-        int    num_ransac_iterations = 200;
-        double min_parallax_deg      = 1.0;
-        double max_reproj_error      = 4.0;
-        double hf_score_ratio        = 0.45;
+        int min_features = 100;
+        int min_matches = 100;
+        int num_ransac_iterations = 200;
+        double min_parallax_deg = 1.0;
+        double max_reproj_error = 4.0;
+        double hf_score_ratio = 0.45;
     };
 
     /// @param camera    Camera model for projection / unprojection.
     /// @param extractor ORB extractor for initialization (more features).
     /// @param opts      Configuration options.
-    MonocularInitializer(const Camera& camera,
-                         features::OrbExtractor& extractor,
+    MonocularInitializer(const Camera& camera, features::OrbExtractor& extractor,
                          const Options& opts);
 
     /// @brief Process a frame for initialization.
@@ -87,39 +86,27 @@ private:
     std::shared_ptr<Frame> reference_frame_;
 
     /// Compute H and F with inlier masks using OpenCV.
-    void ComputeModels(
-        const std::vector<cv::Point2f>& pts1,
-        const std::vector<cv::Point2f>& pts2,
-        cv::Mat& H, cv::Mat& F,
-        std::vector<uchar>& inliers_h,
-        std::vector<uchar>& inliers_f) const;
+    void ComputeModels(const std::vector<cv::Point2f>& pts1, const std::vector<cv::Point2f>& pts2,
+                       cv::Mat& H, cv::Mat& F, std::vector<uchar>& inliers_h,
+                       std::vector<uchar>& inliers_f) const;
 
     /// Score H vs F. Returns true if H is the better model.
-    bool SelectModel(
-        const cv::Mat& H, const cv::Mat& F,
-        const std::vector<cv::Point2f>& pts1,
-        const std::vector<cv::Point2f>& pts2,
-        const std::vector<uchar>& inliers_h,
-        const std::vector<uchar>& inliers_f) const;
+    bool SelectModel(const cv::Mat& H, const cv::Mat& F, const std::vector<cv::Point2f>& pts1,
+                     const std::vector<cv::Point2f>& pts2, const std::vector<uchar>& inliers_h,
+                     const std::vector<uchar>& inliers_f) const;
 
     /// Decompose H into [R|t] candidates (up to 8).
-    std::vector<std::pair<Mat3, Vec3>> DecomposeH(
-        const cv::Mat& H, const cv::Mat& K) const;
+    std::vector<std::pair<Mat3, Vec3>> DecomposeH(const cv::Mat& H, const cv::Mat& K) const;
 
     /// Decompose E into [R|t] candidates (4).
-    std::vector<std::pair<Mat3, Vec3>> DecomposeE(
-        const cv::Mat& E, const cv::Mat& K,
-        const std::vector<cv::Point2f>& pts1_norm,
-        const std::vector<cv::Point2f>& pts2_norm) const;
+    std::vector<std::pair<Mat3, Vec3>> DecomposeE(const cv::Mat& E, const cv::Mat& K,
+                                                  const std::vector<cv::Point2f>& pts1_norm,
+                                                  const std::vector<cv::Point2f>& pts2_norm) const;
 
     /// Test a motion candidate: triangulate and count valid points.
-    int CheckMotion(
-        const Mat3& R, const Vec3& t,
-        const std::vector<cv::Point2f>& pts1,
-        const std::vector<cv::Point2f>& pts2,
-        const cv::Mat& K,
-        std::vector<Vec3>& points_3d,
-        std::vector<bool>& valid) const;
+    int CheckMotion(const Mat3& R, const Vec3& t, const std::vector<cv::Point2f>& pts1,
+                    const std::vector<cv::Point2f>& pts2, const cv::Mat& K,
+                    std::vector<Vec3>& points_3d, std::vector<bool>& valid) const;
 };
 
 }  // namespace tracking

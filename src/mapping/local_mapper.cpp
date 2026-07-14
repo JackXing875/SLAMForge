@@ -19,14 +19,9 @@
 
 namespace litevo::mapping {
 
-LocalMapper::LocalMapper(Map& map, const Camera& camera,
-                         const MappingConfig& config,
+LocalMapper::LocalMapper(Map& map, const Camera& camera, const MappingConfig& config,
                          features::OrbExtractor& extractor)
-    : map_(map)
-    , camera_(camera)
-    , config_(config)
-    , extractor_(extractor)
-{}
+    : map_(map), camera_(camera), config_(config), extractor_(extractor) {}
 
 LocalMapper::~LocalMapper() {
     Stop();
@@ -35,7 +30,8 @@ LocalMapper::~LocalMapper() {
 // ── Thread control ──────────────────────────────────────────────────────────
 
 void LocalMapper::Start() {
-    if (running_) return;
+    if (running_)
+        return;
     stop_requested_ = false;
     is_finished_ = false;
     running_ = true;
@@ -55,7 +51,8 @@ void LocalMapper::RequestStop() {
 }
 
 void LocalMapper::InsertKeyFrame(std::shared_ptr<KeyFrame> kf) {
-    if (!accept_keyframes_) return;
+    if (!accept_keyframes_)
+        return;
 
     {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -76,9 +73,7 @@ void LocalMapper::Run() {
         // Wait for a new keyframe
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            cv_.wait(lock, [this] {
-                return !new_keyframes_.empty() || stop_requested_;
-            });
+            cv_.wait(lock, [this] { return !new_keyframes_.empty() || stop_requested_; });
 
             if (stop_requested_ && new_keyframes_.empty()) {
                 break;
@@ -119,7 +114,8 @@ void LocalMapper::Run() {
 // ── Processing steps ────────────────────────────────────────────────────────
 
 void LocalMapper::ProcessNewKeyFrame() {
-    if (!current_kf_) return;
+    if (!current_kf_)
+        return;
 
     // Update covisibility graph
     UpdateCovisibilityGraph(current_kf_);
@@ -136,14 +132,16 @@ void LocalMapper::ProcessNewKeyFrame() {
 }
 
 void LocalMapper::CreateNewMapPoints() {
-    if (!current_kf_) return;
+    if (!current_kf_)
+        return;
 
     // Get covisible keyframes
-    auto covisibles = current_kf_->GetBestCovisibilityKeyFrames(
-        static_cast<int>(config_.sliding_window_size));
+    auto covisibles =
+        current_kf_->GetBestCovisibilityKeyFrames(static_cast<int>(config_.sliding_window_size));
 
     for (auto* kf : covisibles) {
-        if (kf->IsBad()) continue;
+        if (kf->IsBad())
+            continue;
 
         std::vector<std::shared_ptr<MapPoint>> new_mps;
         int n_created = TriangulateWithKf(current_kf_.get(), kf, new_mps);
@@ -159,7 +157,8 @@ void LocalMapper::CreateNewMapPoints() {
 void LocalMapper::CullMapPoints() {
     auto all_mps = map_.GetAllMapPoints();
     for (auto& mp : all_mps) {
-        if (!mp || mp->IsBad()) continue;
+        if (!mp || mp->IsBad())
+            continue;
 
         // Cull map points that aren't found often enough
         float ratio = mp->GetFoundRatio();
@@ -175,11 +174,12 @@ void LocalMapper::CullMapPoints() {
 }
 
 void LocalMapper::LocalBundleAdjustment() {
-    if (!current_kf_) return;
+    if (!current_kf_)
+        return;
 
     // Collect local KFs: current + N best covisible
-    auto covisibles = current_kf_->GetBestCovisibilityKeyFrames(
-        static_cast<int>(config_.sliding_window_size));
+    auto covisibles =
+        current_kf_->GetBestCovisibilityKeyFrames(static_cast<int>(config_.sliding_window_size));
 
     std::vector<KeyFrame*> local_kfs;
     local_kfs.push_back(current_kf_.get());
@@ -189,14 +189,16 @@ void LocalMapper::LocalBundleAdjustment() {
         }
     }
 
-    if (local_kfs.size() < 2) return;
+    if (local_kfs.size() < 2)
+        return;
 
     // Collect map points observed by local KFs
     std::unordered_set<MapPoint*> mp_set;
     for (auto* kf : local_kfs) {
         for (int i = 0; i < kf->NumKeyPoints(); ++i) {
             MapPointId mp_id = kf->MapPointIdAt(i);
-            if (mp_id.id == 0) continue;
+            if (mp_id.id == 0)
+                continue;
             auto mp = map_.GetMapPoint(mp_id);
             if (mp && !mp->IsBad()) {
                 mp_set.insert(mp.get());
@@ -204,7 +206,8 @@ void LocalMapper::LocalBundleAdjustment() {
         }
     }
 
-    if (mp_set.empty()) return;
+    if (mp_set.empty())
+        return;
 
     std::vector<MapPoint*> map_points(mp_set.begin(), mp_set.end());
 
@@ -214,14 +217,17 @@ void LocalMapper::LocalBundleAdjustment() {
 
     auto all_kfs = map_.GetAllKeyFrames();
     for (auto& kf : all_kfs) {
-        if (!kf || kf->IsBad()) continue;
-        if (local_set.count(kf.get())) continue;
+        if (!kf || kf->IsBad())
+            continue;
+        if (local_set.count(kf.get()))
+            continue;
 
         // Check if this KF observes any of our map points
         bool observes_any = false;
         for (int i = 0; i < kf->NumKeyPoints() && !observes_any; ++i) {
             MapPointId mp_id = kf->MapPointIdAt(i);
-            if (mp_id.id == 0) continue;
+            if (mp_id.id == 0)
+                continue;
             auto mp = map_.GetMapPoint(mp_id);
             if (mp && mp_set.count(mp.get())) {
                 observes_any = true;
@@ -247,23 +253,28 @@ void LocalMapper::CullKeyFrames() {
     // Cull redundant keyframes: >90% of map points are seen by at least
     // 3 other keyframes in the same or finer scale
     auto all_kfs = map_.GetAllKeyFrames();
-    if (all_kfs.size() < 3) return;
+    if (all_kfs.size() < 3)
+        return;
 
     for (auto& kf : all_kfs) {
-        if (!kf || kf->IsBad()) continue;
+        if (!kf || kf->IsBad())
+            continue;
 
         // Don't cull the current or most recent KF
-        if (kf.get() == current_kf_.get()) continue;
+        if (kf.get() == current_kf_.get())
+            continue;
 
         auto covisibles = kf->GetCovisiblesByWeight(1);
-        if (covisibles.size() < 3) continue;
+        if (covisibles.size() < 3)
+            continue;
 
         int total_mps = 0;
         int redundant_mps = 0;
 
         for (int i = 0; i < kf->NumKeyPoints(); ++i) {
             MapPointId mp_id = kf->MapPointIdAt(i);
-            if (mp_id.id == 0) continue;
+            if (mp_id.id == 0)
+                continue;
 
             total_mps++;
             int kf_count = 0;
@@ -274,7 +285,8 @@ void LocalMapper::CullKeyFrames() {
                         break;
                     }
                 }
-                if (kf_count >= 3) break;
+                if (kf_count >= 3)
+                    break;
             }
 
             if (kf_count >= 3) {
@@ -299,12 +311,14 @@ void LocalMapper::UpdateCovisibilityGraph(std::shared_ptr<KeyFrame> kf) {
 
     // Update connections for KFs that share points with this one
     for (auto& other : all_kfs) {
-        if (!other || other.get() == kf.get() || other->IsBad()) continue;
+        if (!other || other.get() == kf.get() || other->IsBad())
+            continue;
 
         int shared = 0;
         for (int i = 0; i < kf->NumKeyPoints(); ++i) {
             MapPointId mp_id = kf->MapPointIdAt(i);
-            if (mp_id.id == 0) continue;
+            if (mp_id.id == 0)
+                continue;
             for (int j = 0; j < other->NumKeyPoints(); ++j) {
                 if (other->MapPointIdAt(j) == mp_id) {
                     shared++;
@@ -320,15 +334,14 @@ void LocalMapper::UpdateCovisibilityGraph(std::shared_ptr<KeyFrame> kf) {
     }
 }
 
-int LocalMapper::TriangulateWithKf(
-    KeyFrame* kf1, KeyFrame* kf2,
-    std::vector<std::shared_ptr<MapPoint>>& new_mps) {
-
+int LocalMapper::TriangulateWithKf(KeyFrame* kf1, KeyFrame* kf2,
+                                   std::vector<std::shared_ptr<MapPoint>>& new_mps) {
     // Find matching features between the two keyframes
     std::vector<std::pair<int, int>> matches;
     int n_matches = SearchForTriangulation(kf1, kf2, matches);
 
-    if (n_matches < 20) return 0;
+    if (n_matches < 20)
+        return 0;
 
     // Build projection matrices
     Mat34 P1 = camera_.ProjectionMatrix(kf1->Pose());
@@ -339,7 +352,8 @@ int LocalMapper::TriangulateWithKf(
 
     // Check baseline / parallax
     double baseline = (C2 - C1).norm();
-    if (baseline < 1e-6) return 0;
+    if (baseline < 1e-6)
+        return 0;
 
     geometry::TriangulationOptions tri_opts;
     tri_opts.min_parallax_deg = 0.5;  // degrees
@@ -366,12 +380,14 @@ int LocalMapper::TriangulateWithKf(
 
         auto result = geometry::TriangulatePoint(pt1, pt2, P1, P2, C1, C2, tri_opts);
 
-        if (!result.valid) continue;
+        if (!result.valid)
+            continue;
 
         // Check depth in both cameras
         Vec3 p_cam1 = kf1->Pose() * result.point_w;
         Vec3 p_cam2 = kf2->Pose() * result.point_w;
-        if (p_cam1.z() <= 0 || p_cam2.z() <= 0) continue;
+        if (p_cam1.z() <= 0 || p_cam2.z() <= 0)
+            continue;
 
         // Create the map point through the map
         auto mp = map_.AddMapPoint(result.point_w, kf1->Id());
@@ -395,14 +411,12 @@ int LocalMapper::TriangulateWithKf(
     return created;
 }
 
-int LocalMapper::SearchForTriangulation(
-    KeyFrame* kf1, KeyFrame* kf2,
-    std::vector<std::pair<int, int>>& matches) const {
-
+int LocalMapper::SearchForTriangulation(KeyFrame* kf1, KeyFrame* kf2,
+                                        std::vector<std::pair<int, int>>& matches) const {
     // Match descriptors between the two KFs
     tracking::FeatureMatcher matcher;
-    auto raw_matches = matcher.MatchByDescriptor(
-        kf1->Descriptors(), kf2->Descriptors(), 0.6f, true);
+    auto raw_matches =
+        matcher.MatchByDescriptor(kf1->Descriptors(), kf2->Descriptors(), 0.6f, true);
 
     matches = std::move(raw_matches);
     return static_cast<int>(matches.size());

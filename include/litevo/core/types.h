@@ -6,7 +6,6 @@
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-
 #include <cstdint>
 #include <memory>
 #include <vector>
@@ -20,23 +19,23 @@ using Scalar = double;
 
 // ── Vector type aliases ──────────────────────────────────────────────────────
 
-using Vec2  = Eigen::Matrix<Scalar, 2, 1>;
-using Vec3  = Eigen::Matrix<Scalar, 3, 1>;
-using Vec4  = Eigen::Matrix<Scalar, 4, 1>;
-using Vec6  = Eigen::Matrix<Scalar, 6, 1>;
+using Vec2 = Eigen::Matrix<Scalar, 2, 1>;
+using Vec3 = Eigen::Matrix<Scalar, 3, 1>;
+using Vec4 = Eigen::Matrix<Scalar, 4, 1>;
+using Vec6 = Eigen::Matrix<Scalar, 6, 1>;
 
-using Vec2f = Eigen::Matrix<float,  2, 1>;
-using Vec3f = Eigen::Matrix<float,  3, 1>;
-using Vec2i = Eigen::Matrix<int,    2, 1>;
+using Vec2f = Eigen::Matrix<float, 2, 1>;
+using Vec3f = Eigen::Matrix<float, 3, 1>;
+using Vec2i = Eigen::Matrix<int, 2, 1>;
 
 // ── Matrix type aliases ──────────────────────────────────────────────────────
 
-using Mat3  = Eigen::Matrix<Scalar, 3, 3>;
-using Mat4  = Eigen::Matrix<Scalar, 4, 4>;
-using Mat6  = Eigen::Matrix<Scalar, 6, 6>;
+using Mat3 = Eigen::Matrix<Scalar, 3, 3>;
+using Mat4 = Eigen::Matrix<Scalar, 4, 4>;
+using Mat6 = Eigen::Matrix<Scalar, 6, 6>;
 using Mat34 = Eigen::Matrix<Scalar, 3, 4>;
 using Mat36 = Eigen::Matrix<Scalar, 3, 6>;
-using MatX  = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
+using MatX = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>;
 
 // ── Quaternion ───────────────────────────────────────────────────────────────
 
@@ -80,10 +79,10 @@ struct Pose {
 
 /// @brief A detected 2D image feature point.
 struct Feature {
-    Vec2  pixel;          ///< Pixel coordinates (u, v)
-    float response = 0;   ///< Corner response strength
-    int   octave   = 0;   ///< Pyramid octave level
-    float angle    = 0;   ///< Orientation in radians
+    Vec2 pixel;          ///< Pixel coordinates (u, v)
+    float response = 0;  ///< Corner response strength
+    int octave = 0;      ///< Pyramid octave level
+    float angle = 0;     ///< Orientation in radians
 
     /// Optional: associated 3D map point ID (-1 = none)
     int64_t map_point_id = -1;
@@ -109,9 +108,7 @@ struct MapPointId {
 
 // Hash functions for unordered containers.
 struct FrameIdHash {
-    std::size_t operator()(FrameId fid) const noexcept {
-        return std::hash<uint64_t>{}(fid.id);
-    }
+    std::size_t operator()(FrameId fid) const noexcept { return std::hash<uint64_t>{}(fid.id); }
 };
 
 struct MapPointIdHash {

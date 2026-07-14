@@ -13,16 +13,13 @@ namespace litevo {
 
 std::mutex KeyFrame::global_mutex_;
 
-KeyFrame::KeyFrame(const Frame& frame)
-    : Frame(frame)
-{
+KeyFrame::KeyFrame(const Frame& frame) : Frame(frame) {
     SetKeyFrame(true);
 }
 
-KeyFrame::KeyFrame(const cv::Mat& image, double timestamp,
-                   features::OrbExtractor& extractor, const Camera& camera)
-    : Frame(image, timestamp, extractor, camera)
-{
+KeyFrame::KeyFrame(const cv::Mat& image, double timestamp, features::OrbExtractor& extractor,
+                   const Camera& camera)
+    : Frame(image, timestamp, extractor, camera) {
     SetKeyFrame(true);
 }
 
@@ -30,7 +27,8 @@ KeyFrame::KeyFrame(const cv::Mat& image, double timestamp,
 
 void KeyFrame::AddConnection(KeyFrame* kf, int weight) {
     std::lock_guard<std::mutex> lock(global_mutex_);
-    if (kf == this) return;
+    if (kf == this)
+        return;
     connected_keyframes_[kf] = weight;
 }
 
@@ -39,20 +37,20 @@ void KeyFrame::EraseConnection(KeyFrame* kf) {
     connected_keyframes_.erase(kf);
 }
 
-void KeyFrame::UpdateConnections(
-    const std::vector<std::shared_ptr<KeyFrame>>& all_kfs) {
-
+void KeyFrame::UpdateConnections(const std::vector<std::shared_ptr<KeyFrame>>& all_kfs) {
     // For each map point this KF observes, find other KFs that also observe it
     std::map<KeyFrame*, int> weight_map;
 
     for (const auto& other_kf : all_kfs) {
-        if (other_kf.get() == this || other_kf->IsBad()) continue;
+        if (other_kf.get() == this || other_kf->IsBad())
+            continue;
 
         int shared_count = 0;
         // Count shared map points
         for (int i = 0; i < NumKeyPoints(); ++i) {
             MapPointId mp_id = MapPointIdAt(i);
-            if (mp_id.id == 0) continue;
+            if (mp_id.id == 0)
+                continue;
 
             // Check if the other KF also observes this map point
             for (int j = 0; j < other_kf->NumKeyPoints(); ++j) {
@@ -82,8 +80,8 @@ std::vector<KeyFrame*> KeyFrame::GetBestCovisibilityKeyFrames(int N) const {
     std::lock_guard<std::mutex> lock(global_mutex_);
 
     // Sort by weight descending
-    std::vector<std::pair<KeyFrame*, int>> sorted(
-        connected_keyframes_.begin(), connected_keyframes_.end());
+    std::vector<std::pair<KeyFrame*, int>> sorted(connected_keyframes_.begin(),
+                                                  connected_keyframes_.end());
     std::sort(sorted.begin(), sorted.end(), CompareByWeight);
 
     std::vector<KeyFrame*> result;
@@ -147,8 +145,7 @@ void KeyFrame::SetBad(bool flag) {
 
 // ── MapPoint helpers ─────────────────────────────────────────────────────────
 
-std::vector<std::shared_ptr<MapPoint>> KeyFrame::GetMapPointMatches(
-    Map& map) const {
+std::vector<std::shared_ptr<MapPoint>> KeyFrame::GetMapPointMatches(Map& map) const {
     std::vector<std::shared_ptr<MapPoint>> result;
     for (int i = 0; i < NumKeyPoints(); ++i) {
         MapPointId mp_id = MapPointIdAt(i);
@@ -164,9 +161,8 @@ std::vector<std::shared_ptr<MapPoint>> KeyFrame::GetMapPointMatches(
 
 // ── Private helpers ──────────────────────────────────────────────────────────
 
-bool KeyFrame::CompareByWeight(
-    const std::pair<KeyFrame*, int>& a,
-    const std::pair<KeyFrame*, int>& b) {
+bool KeyFrame::CompareByWeight(const std::pair<KeyFrame*, int>& a,
+                               const std::pair<KeyFrame*, int>& b) {
     return a.second > b.second;  // Descending
 }
 

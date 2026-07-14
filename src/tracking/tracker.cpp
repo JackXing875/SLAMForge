@@ -14,26 +14,21 @@
 #include "litevo/geometry/pnp.h"
 #include "litevo/geometry/se3.h"
 #include "litevo/mapping/local_mapper.h"
-#include "litevo/tracking/matcher.h"
 #include "litevo/tracking/initializer.h"
+#include "litevo/tracking/matcher.h"
 
 namespace litevo::tracking {
 
-Tracker::Tracker(const Camera& camera,
-                 const TrackingConfig& config,
-                 const OrbConfig& orb_config)
-    : camera_(camera)
-    , config_(config)
-    , orb_config_(orb_config)
-{
+Tracker::Tracker(const Camera& camera, const TrackingConfig& config, const OrbConfig& orb_config)
+    : camera_(camera), config_(config), orb_config_(orb_config) {
     // Normal ORB extractor
     features::OrbExtractor::Options orb_opts;
-    orb_opts.num_features  = orb_config_.num_features;
-    orb_opts.scale_factor  = static_cast<double>(orb_config_.scale_factor);
-    orb_opts.num_levels    = orb_config_.num_levels;
+    orb_opts.num_features = orb_config_.num_features;
+    orb_opts.scale_factor = static_cast<double>(orb_config_.scale_factor);
+    orb_opts.num_levels = orb_config_.num_levels;
     orb_opts.ini_threshold = orb_config_.ini_threshold;
     orb_opts.min_threshold = orb_config_.min_threshold;
-    orb_opts.patch_size    = orb_config_.patch_size;
+    orb_opts.patch_size = orb_config_.patch_size;
     orb_extractor_ = std::make_unique<features::OrbExtractor>(orb_opts);
 
     // Initialization ORB extractor (double the features)
@@ -45,12 +40,11 @@ Tracker::Tracker(const Camera& camera,
 
     // Initializer
     MonocularInitializer::Options init_opts;
-    init_opts.min_features     = config_.min_features_for_tracking;
-    init_opts.min_matches      = config_.min_features_for_tracking;
+    init_opts.min_features = config_.min_features_for_tracking;
+    init_opts.min_matches = config_.min_features_for_tracking;
     init_opts.min_parallax_deg = config_.min_parallax_deg;
     init_opts.max_reproj_error = config_.max_reprojection_error;
-    initializer_ = std::make_unique<MonocularInitializer>(
-        camera_, *orb_extractor_ini_, init_opts);
+    initializer_ = std::make_unique<MonocularInitializer>(camera_, *orb_extractor_ini_, init_opts);
 }
 
 Tracker::~Tracker() = default;
@@ -84,10 +78,10 @@ void Tracker::Reset() {
 
 std::optional<SE3> Tracker::Track(const cv::Mat& image, double timestamp) {
     // Build Frame (extract ORB features, undistort, build grid)
-    features::OrbExtractor& extractor = (state_ == TrackingState::NOT_INITIALIZED ||
-                                          state_ == TrackingState::INITIALIZING)
-                                            ? *orb_extractor_ini_
-                                            : *orb_extractor_;
+    features::OrbExtractor& extractor =
+        (state_ == TrackingState::NOT_INITIALIZED || state_ == TrackingState::INITIALIZING)
+            ? *orb_extractor_ini_
+            : *orb_extractor_;
 
     current_frame_ = std::make_shared<Frame>(image, timestamp, extractor, camera_);
     is_new_keyframe_ = false;
@@ -230,15 +224,14 @@ bool Tracker::TrackWithMotionModel() {
     }
 
     // Search by projection
-    auto matches = matcher_->SearchByProjection(
-        *current_frame_, last_mps, camera_,
-        static_cast<float>(config_.max_reprojection_error));
+    auto matches = matcher_->SearchByProjection(*current_frame_, last_mps, camera_,
+                                                static_cast<float>(config_.max_reprojection_error));
 
     if (static_cast<int>(matches.size()) < config_.min_features_for_tracking / 2) {
         // Try again with wider search radius
-        matches = matcher_->SearchByProjection(
-            *current_frame_, last_mps, camera_,
-            static_cast<float>(config_.max_reprojection_error) * 2.0f);
+        matches =
+            matcher_->SearchByProjection(*current_frame_, last_mps, camera_,
+                                         static_cast<float>(config_.max_reprojection_error) * 2.0f);
     }
 
     if (static_cast<int>(matches.size()) < config_.min_features_for_tracking / 3) {
@@ -252,11 +245,11 @@ bool Tracker::TrackWithMotionModel() {
 
     for (const auto& [kp_idx, mp_id] : matches) {
         auto mp = map_.GetMapPoint(mp_id);
-        if (!mp) continue;
+        if (!mp)
+            continue;
 
         const Vec3& pw = mp->Position();
-        pts_3d.emplace_back(static_cast<float>(pw.x()),
-                            static_cast<float>(pw.y()),
+        pts_3d.emplace_back(static_cast<float>(pw.x()), static_cast<float>(pw.y()),
                             static_cast<float>(pw.z()));
         pts_2d.emplace_back(kps[static_cast<size_t>(kp_idx)].pt.x,
                             kps[static_cast<size_t>(kp_idx)].pt.y);
@@ -284,10 +277,8 @@ bool Tracker::TrackReferenceKeyFrame() {
     }
 
     // Match descriptors
-    auto matches = matcher_->MatchByDescriptor(
-        reference_kf_->Descriptors(),
-        current_frame_->Descriptors(),
-        0.7f, true);
+    auto matches = matcher_->MatchByDescriptor(reference_kf_->Descriptors(),
+                                               current_frame_->Descriptors(), 0.7f, true);
 
     if (static_cast<int>(matches.size()) < config_.min_features_for_tracking / 2) {
         return false;
@@ -300,14 +291,15 @@ bool Tracker::TrackReferenceKeyFrame() {
 
     for (const auto& [ref_idx, cur_idx] : matches) {
         MapPointId mp_id = reference_kf_->MapPointIdAt(ref_idx);
-        if (mp_id.id == 0) continue;
+        if (mp_id.id == 0)
+            continue;
 
         auto mp = map_.GetMapPoint(mp_id);
-        if (!mp || mp->IsBad()) continue;
+        if (!mp || mp->IsBad())
+            continue;
 
         const Vec3& pw = mp->Position();
-        pts_3d.emplace_back(static_cast<float>(pw.x()),
-                            static_cast<float>(pw.y()),
+        pts_3d.emplace_back(static_cast<float>(pw.x()), static_cast<float>(pw.y()),
                             static_cast<float>(pw.z()));
         pts_2d.emplace_back(kps[static_cast<size_t>(cur_idx)].pt.x,
                             kps[static_cast<size_t>(cur_idx)].pt.y);
@@ -340,8 +332,10 @@ bool Tracker::TrackLocalMap() {
     // Filter out already-matched and bad points
     std::vector<std::shared_ptr<MapPoint>> candidates;
     for (const auto& mp : all_mps) {
-        if (!mp || mp->IsBad()) continue;
-        if (mp->IsFound()) continue;  // Already matched in motion model / ref KF stage
+        if (!mp || mp->IsBad())
+            continue;
+        if (mp->IsFound())
+            continue;  // Already matched in motion model / ref KF stage
         candidates.push_back(mp);
     }
 
@@ -350,9 +344,8 @@ bool Tracker::TrackLocalMap() {
     }
 
     // Project and match
-    auto matches = matcher_->SearchByProjection(
-        *current_frame_, candidates, camera_,
-        static_cast<float>(config_.max_reprojection_error));
+    auto matches = matcher_->SearchByProjection(*current_frame_, candidates, camera_,
+                                                static_cast<float>(config_.max_reprojection_error));
 
     // If we got additional matches, rebuild correspondence set and refine
     if (!matches.empty()) {
@@ -364,26 +357,26 @@ bool Tracker::TrackLocalMap() {
         // Add existing matches
         for (int i = 0; i < current_frame_->NumKeyPoints(); ++i) {
             MapPointId mp_id = current_frame_->MapPointIdAt(i);
-            if (mp_id.id == 0) continue;
+            if (mp_id.id == 0)
+                continue;
             auto mp = map_.GetMapPoint(mp_id);
-            if (!mp || mp->IsBad()) continue;
+            if (!mp || mp->IsBad())
+                continue;
 
             const Vec3& pw = mp->Position();
-            pts_3d.emplace_back(static_cast<float>(pw.x()),
-                                static_cast<float>(pw.y()),
+            pts_3d.emplace_back(static_cast<float>(pw.x()), static_cast<float>(pw.y()),
                                 static_cast<float>(pw.z()));
-            pts_2d.emplace_back(kps[static_cast<size_t>(i)].pt.x,
-                                kps[static_cast<size_t>(i)].pt.y);
+            pts_2d.emplace_back(kps[static_cast<size_t>(i)].pt.x, kps[static_cast<size_t>(i)].pt.y);
         }
 
         // Add new matches from local map
         for (const auto& [kp_idx, mp_id] : matches) {
             auto mp = map_.GetMapPoint(mp_id);
-            if (!mp) continue;
+            if (!mp)
+                continue;
 
             const Vec3& pw = mp->Position();
-            pts_3d.emplace_back(static_cast<float>(pw.x()),
-                                static_cast<float>(pw.y()),
+            pts_3d.emplace_back(static_cast<float>(pw.x()), static_cast<float>(pw.y()),
                                 static_cast<float>(pw.z()));
             pts_2d.emplace_back(kps[static_cast<size_t>(kp_idx)].pt.x,
                                 kps[static_cast<size_t>(kp_idx)].pt.y);
@@ -398,9 +391,7 @@ bool Tracker::TrackLocalMap() {
             EstimatePose(pts_3d, pts_2d, pose, 10);
             current_frame_->SetPose(pose);
 
-            num_tracked_points_ = std::max(
-                num_tracked_points_,
-                static_cast<int>(pts_3d.size()));
+            num_tracked_points_ = std::max(num_tracked_points_, static_cast<int>(pts_3d.size()));
         }
     }
 
@@ -418,12 +409,11 @@ bool Tracker::Relocalization() {
     }
 
     for (const auto& kf : recent_kfs) {
-        if (!kf) continue;
+        if (!kf)
+            continue;
 
-        auto matches = matcher_->MatchByDescriptor(
-            kf->Descriptors(),
-            current_frame_->Descriptors(),
-            0.75f, true);
+        auto matches = matcher_->MatchByDescriptor(kf->Descriptors(), current_frame_->Descriptors(),
+                                                   0.75f, true);
 
         if (static_cast<int>(matches.size()) < 15) {
             continue;
@@ -436,14 +426,15 @@ bool Tracker::Relocalization() {
 
         for (const auto& [kf_idx, cur_idx] : matches) {
             MapPointId mp_id = kf->MapPointIdAt(kf_idx);
-            if (mp_id.id == 0) continue;
+            if (mp_id.id == 0)
+                continue;
 
             auto mp = map_.GetMapPoint(mp_id);
-            if (!mp || mp->IsBad()) continue;
+            if (!mp || mp->IsBad())
+                continue;
 
             const Vec3& pw = mp->Position();
-            pts_3d.emplace_back(static_cast<float>(pw.x()),
-                                static_cast<float>(pw.y()),
+            pts_3d.emplace_back(static_cast<float>(pw.x()), static_cast<float>(pw.y()),
                                 static_cast<float>(pw.z()));
             pts_2d.emplace_back(kps[static_cast<size_t>(cur_idx)].pt.x,
                                 kps[static_cast<size_t>(cur_idx)].pt.y);
@@ -472,7 +463,8 @@ bool Tracker::NeedNewKeyFrame() {
     }
 
     int ref_map_points = reference_kf_ ? reference_kf_->NumMapPoints() : num_tracked_points_;
-    if (ref_map_points == 0) ref_map_points = 1;
+    if (ref_map_points == 0)
+        ref_map_points = 1;
 
     // Condition 1: tracking weakened significantly (monocular thRefRatio = 0.9)
     bool c1 = num_tracked_points_ < static_cast<int>(ref_map_points * 0.9);
@@ -490,9 +482,7 @@ bool Tracker::NeedNewKeyFrame() {
 
 void Tracker::CreateInitialMap(const InitializationResult& result) {
     // Create keyframe 1 (world origin)
-    auto kf1 = std::make_shared<KeyFrame>(
-        current_frame_->Image(), 0.0,
-        *orb_extractor_, camera_);
+    auto kf1 = std::make_shared<KeyFrame>(current_frame_->Image(), 0.0, *orb_extractor_, camera_);
     kf1->SetPose(SE3::Identity());
 
     // Create keyframe 2
@@ -558,8 +548,7 @@ void Tracker::CleanMapPoints() {
 // ── PnP pose estimation ────────────────────────────────────────────────────
 
 bool Tracker::EstimatePose(const std::vector<cv::Point3f>& pts_3d,
-                            const std::vector<cv::Point2f>& pts_2d,
-                            SE3& Tcw, int min_inliers) {
+                           const std::vector<cv::Point2f>& pts_2d, SE3& Tcw, int min_inliers) {
     if (static_cast<int>(pts_3d.size()) < min_inliers) {
         return false;
     }

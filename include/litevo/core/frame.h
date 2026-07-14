@@ -37,8 +37,8 @@ public:
     /// @param timestamp  Time in seconds.
     /// @param extractor  ORB feature extractor.
     /// @param camera     Camera model for undistortion and projection.
-    Frame(const cv::Mat& image, double timestamp,
-          features::OrbExtractor& extractor, const Camera& camera);
+    Frame(const cv::Mat& image, double timestamp, features::OrbExtractor& extractor,
+          const Camera& camera);
 
     // ── Identity ───────────────────────────────────────────────────────────
 
@@ -70,9 +70,7 @@ public:
     const std::vector<cv::KeyPoint>& KeyPoints() const { return keypoints_; }
 
     /// @brief Undistorted keypoints.
-    const std::vector<cv::KeyPoint>& KeyPointsUndistorted() const {
-        return keypoints_undistorted_;
-    }
+    const std::vector<cv::KeyPoint>& KeyPointsUndistorted() const { return keypoints_undistorted_; }
 
     /// @brief ORB descriptors, one row per keypoint.
     const cv::Mat& Descriptors() const { return descriptors_; }
@@ -102,8 +100,8 @@ public:
     /// @param radius     Search radius in pixels.
     /// @param min_level  Minimum pyramid level (-1 = all).
     /// @param max_level  Maximum pyramid level (-1 = all).
-    std::vector<int> GetFeaturesInArea(float x, float y, float radius,
-                                       int min_level = -1, int max_level = -1) const;
+    std::vector<int> GetFeaturesInArea(float x, float y, float radius, int min_level = -1,
+                                       int max_level = -1) const;
 
     // ── Keyframe flag ──────────────────────────────────────────────────────
 

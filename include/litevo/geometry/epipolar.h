@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <vector>
-
 #include <opencv2/core.hpp>
+
+#include <vector>
 
 #include "litevo/core/types.h"
 
@@ -14,18 +14,18 @@ namespace litevo::geometry {
 
 /// @brief Result of epipolar pose estimation.
 struct EpipolarResult {
-    Mat3 R;                ///< Rotation matrix (3x3)
-    Vec3 t;                ///< Translation vector (3x1)
+    Mat3 R;                           ///< Rotation matrix (3x3)
+    Vec3 t;                           ///< Translation vector (3x1)
     std::vector<int> inlier_indices;  ///< Indices of inlier correspondences
-    int    num_inliers = 0;
-    bool   valid = false;
+    int num_inliers = 0;
+    bool valid = false;
 };
 
 /// @brief Epipolar geometry solver options.
 struct EpipolarOptions {
-    double confidence          = 0.9999; ///< RANSAC confidence level
-    double epipolar_threshold  = 1.0;    ///< Inlier threshold in pixels
-    int    min_points          = 20;     ///< Minimum points for estimation
+    double confidence = 0.9999;       ///< RANSAC confidence level
+    double epipolar_threshold = 1.0;  ///< Inlier threshold in pixels
+    int min_points = 20;              ///< Minimum points for estimation
 };
 
 /// @brief Estimate the essential matrix and recover relative pose.
@@ -38,11 +38,10 @@ struct EpipolarOptions {
 /// @param K      Camera intrinsic matrix (3x3)
 /// @param options Estimation options
 /// @return EpipolarResult with R, t, and inlier information
-[[nodiscard]] EpipolarResult EstimatePoseEssential(
-    const std::vector<cv::Point2f>& pts1,
-    const std::vector<cv::Point2f>& pts2,
-    const cv::Mat& K,
-    const EpipolarOptions& options = {});
+[[nodiscard]] EpipolarResult EstimatePoseEssential(const std::vector<cv::Point2f>& pts1,
+                                                   const std::vector<cv::Point2f>& pts2,
+                                                   const cv::Mat& K,
+                                                   const EpipolarOptions& options = {});
 
 /// @brief Recover camera pose from an essential matrix.
 ///
@@ -56,13 +55,9 @@ struct EpipolarOptions {
 /// @param t_out  Output translation vector
 /// @param mask_inout  Output inlier mask (Nx1, CV_8UC1)
 /// @return Number of points with positive depth
-[[nodiscard]] int RecoverPose(const cv::Mat& E,
-                              const std::vector<cv::Point2f>& pts1,
-                              const std::vector<cv::Point2f>& pts2,
-                              const cv::Mat& K,
-                              cv::Mat& R_out,
-                              cv::Mat& t_out,
-                              cv::Mat& mask_inout);
+[[nodiscard]] int RecoverPose(const cv::Mat& E, const std::vector<cv::Point2f>& pts1,
+                              const std::vector<cv::Point2f>& pts2, const cv::Mat& K,
+                              cv::Mat& R_out, cv::Mat& t_out, cv::Mat& mask_inout);
 
 /// @brief Compute the fundamental matrix from an essential matrix and camera intrinsics.
 /// F = K^{-T} * E * K^{-1}

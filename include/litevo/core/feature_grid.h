@@ -40,8 +40,8 @@ public:
     /// @param min_level  Minimum pyramid level (-1 = no restriction).
     /// @param max_level  Maximum pyramid level (-1 = no restriction).
     /// @return Vector of keypoint indices within the search window.
-    std::vector<int> GetCandidates(float x, float y, float radius,
-                                   int min_level = -1, int max_level = -1) const;
+    std::vector<int> GetCandidates(float x, float y, float radius, int min_level = -1,
+                                   int max_level = -1) const;
 
     /// @brief Number of grid columns.
     int GridCols() const { return grid_cols_; }

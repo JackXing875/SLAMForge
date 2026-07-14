@@ -98,12 +98,10 @@ TEST_F(CameraTest, DistortionRoundTrip) {
     cam_dist.SetDistortion(-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05, 0.0);
 
     // Test a few points
-    std::vector<Vec2> test_pixels = {
-        {400, 250}, {100, 100}, {700, 400}, {367.215, 248.375}
-    };
+    std::vector<Vec2> test_pixels = {{400, 250}, {100, 100}, {700, 400}, {367.215, 248.375}};
     for (const auto& px : test_pixels) {
         Vec2 norm((px.x() - cam_dist.cx()) / cam_dist.fx(),
-                   (px.y() - cam_dist.cy()) / cam_dist.fy());
+                  (px.y() - cam_dist.cy()) / cam_dist.fy());
         Vec2 distorted = cam_dist.Distort(norm);
         Vec2 undistorted = cam_dist.Undistort(distorted);
         EXPECT_NEAR(undistorted.x(), norm.x(), 1e-4);

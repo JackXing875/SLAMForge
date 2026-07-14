@@ -59,15 +59,15 @@ public:
 
     // ── Accessors ─────────────────────────────────────────────────────────
 
-    [[nodiscard]] const Mat3& K()          const { return K_; }
-    [[nodiscard]] const Mat3& K_inv()      const { return K_inv_; }
-    [[nodiscard]] double      fx()         const { return fx_; }
-    [[nodiscard]] double      fy()         const { return fy_; }
-    [[nodiscard]] double      cx()         const { return cx_; }
-    [[nodiscard]] double      cy()         const { return cy_; }
-    [[nodiscard]] int         width()      const { return width_; }
-    [[nodiscard]] int         height()     const { return height_; }
-    [[nodiscard]] bool        has_distortion() const { return has_distortion_; }
+    [[nodiscard]] const Mat3& K() const { return K_; }
+    [[nodiscard]] const Mat3& K_inv() const { return K_inv_; }
+    [[nodiscard]] double fx() const { return fx_; }
+    [[nodiscard]] double fy() const { return fy_; }
+    [[nodiscard]] double cx() const { return cx_; }
+    [[nodiscard]] double cy() const { return cy_; }
+    [[nodiscard]] int width() const { return width_; }
+    [[nodiscard]] int height() const { return height_; }
+    [[nodiscard]] bool has_distortion() const { return has_distortion_; }
 
     /// @brief Check if a pixel is within image bounds.
     [[nodiscard]] bool IsInImage(const Vec2& pixel, int border = 0) const;
@@ -88,11 +88,11 @@ private:
     Mat3 K_inv_{Mat3::Identity()};
 
     double fx_{0}, fy_{0}, cx_{0}, cy_{0};
-    int    width_{0}, height_{0};
+    int width_{0}, height_{0};
 
     // Distortion: radial-tangential model
     double k1_{0}, k2_{0}, p1_{0}, p2_{0}, k3_{0};
-    bool   has_distortion_{false};
+    bool has_distortion_{false};
 
     static constexpr int kMaxDistortionIterations = 10;
     static constexpr double kDistortionEpsilon = 1e-8;

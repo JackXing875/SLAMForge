@@ -46,6 +46,10 @@ loop_closing:
   enabled: false
   min_similarity_score: 0.3
   min_consecutive_loops: 3
+  vocab_path: ""
+  pose_graph_iterations: 20
+  global_ba_iterations: 20
+  enable_global_ba: true
 
 # ── I/O ───────────────────────────────────────────────────────────────────────
 input_video: ""

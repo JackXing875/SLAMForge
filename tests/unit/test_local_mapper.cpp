@@ -2,12 +2,12 @@
 // LocalMapper unit tests
 // =============================================================================
 
+#include <opencv2/imgproc.hpp>
+
 #include <gtest/gtest.h>
 
 #include <chrono>
 #include <thread>
-
-#include <opencv2/imgproc.hpp>
 
 #include "litevo/core/camera.h"
 #include "litevo/core/config.h"
@@ -42,8 +42,7 @@ protected:
         map_cfg.min_observations = 2;
         map_cfg.max_reprojection_error = 4.0;
 
-        mapper_ = std::make_unique<mapping::LocalMapper>(
-            map_, camera_, map_cfg, *extractor_);
+        mapper_ = std::make_unique<mapping::LocalMapper>(map_, camera_, map_cfg, *extractor_);
     }
 
     void TearDown() override {

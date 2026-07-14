@@ -29,8 +29,8 @@ public:
     explicit KeyFrame(const Frame& frame);
 
     /// @brief Construct a keyframe directly from an image.
-    KeyFrame(const cv::Mat& image, double timestamp,
-             features::OrbExtractor& extractor, const Camera& camera);
+    KeyFrame(const cv::Mat& image, double timestamp, features::OrbExtractor& extractor,
+             const Camera& camera);
 
     // ── Covisibility Graph ─────────────────────────────────────────────────
 
@@ -56,9 +56,7 @@ public:
     int GetWeight(KeyFrame* kf) const;
 
     /// @brief Raw sorted connections map.
-    const std::map<KeyFrame*, int>& GetCovisibleKeyFrames() const {
-        return connected_keyframes_;
-    }
+    const std::map<KeyFrame*, int>& GetCovisibleKeyFrames() const { return connected_keyframes_; }
 
     // ── Spanning Tree ──────────────────────────────────────────────────────
 
@@ -87,9 +85,8 @@ public:
 
 private:
     /// @brief Comparator for sorting connections by weight.
-    static bool CompareByWeight(
-        const std::pair<KeyFrame*, int>& a,
-        const std::pair<KeyFrame*, int>& b);
+    static bool CompareByWeight(const std::pair<KeyFrame*, int>& a,
+                                const std::pair<KeyFrame*, int>& b);
 
     std::map<KeyFrame*, int> connected_keyframes_;  // sorted by KF pointer
     std::set<KeyFrame*> children_;

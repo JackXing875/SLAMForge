@@ -4,6 +4,7 @@ set(UNIT_TEST_SOURCES
     test_core_types.cpp
     test_camera.cpp
     test_se3.cpp
+    test_sim3.cpp
     test_triangulation.cpp
     test_config.cpp
     test_feature_grid.cpp

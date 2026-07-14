@@ -12,19 +12,19 @@ namespace litevo::geometry {
 
 /// @brief Quality metrics for a triangulated point.
 struct TriangulationResult {
-    Vec3    point_w;          ///< 3D point in world coordinates
-    double  parallax_deg = 0; ///< Parallax angle in degrees
-    double  reproj_error_1 = 0; ///< Reprojection error in camera 1 (pixels)
-    double  reproj_error_2 = 0; ///< Reprojection error in camera 2 (pixels)
-    bool    valid = false;    ///< Whether the triangulation passed quality checks
+    Vec3 point_w;               ///< 3D point in world coordinates
+    double parallax_deg = 0;    ///< Parallax angle in degrees
+    double reproj_error_1 = 0;  ///< Reprojection error in camera 1 (pixels)
+    double reproj_error_2 = 0;  ///< Reprojection error in camera 2 (pixels)
+    bool valid = false;         ///< Whether the triangulation passed quality checks
 };
 
 /// @brief Triangulation options.
 struct TriangulationOptions {
-    double  min_parallax_deg      = 1.0;   ///< Minimum parallax angle (degrees)
-    double  max_reprojection_px   = 4.0;   ///< Maximum reprojection error (pixels)
-    double  min_depth             = 0.01;  ///< Minimum depth (meters, positive)
-    double  max_depth             = 200.0; ///< Maximum depth (meters)
+    double min_parallax_deg = 1.0;     ///< Minimum parallax angle (degrees)
+    double max_reprojection_px = 4.0;  ///< Maximum reprojection error (pixels)
+    double min_depth = 0.01;           ///< Minimum depth (meters, positive)
+    double max_depth = 200.0;          ///< Maximum depth (meters)
 };
 
 /// @brief Triangulate a single 3D point from two 2D observations.
@@ -39,11 +39,10 @@ struct TriangulationOptions {
 /// @param C2   Camera center 2 (world coordinates)
 /// @param opts Quality thresholds
 /// @return Triangulation result with quality metrics
-[[nodiscard]] TriangulationResult TriangulatePoint(
-    const Vec2& pt1, const Vec2& pt2,
-    const Mat34& P1, const Mat34& P2,
-    const Vec3& C1, const Vec3& C2,
-    const TriangulationOptions& opts = {});
+[[nodiscard]] TriangulationResult TriangulatePoint(const Vec2& pt1, const Vec2& pt2,
+                                                   const Mat34& P1, const Mat34& P2, const Vec3& C1,
+                                                   const Vec3& C2,
+                                                   const TriangulationOptions& opts = {});
 
 /// @brief Triangulate multiple points from two views.
 ///
@@ -56,11 +55,8 @@ struct TriangulationOptions {
 /// @param opts Quality thresholds
 /// @return Vector of triangulation results (same order as input)
 [[nodiscard]] std::vector<TriangulationResult> TriangulatePoints(
-    const std::vector<Vec2>& pts1,
-    const std::vector<Vec2>& pts2,
-    const Mat34& P1, const Mat34& P2,
-    const Vec3& C1, const Vec3& C2,
-    const TriangulationOptions& opts = {});
+    const std::vector<Vec2>& pts1, const std::vector<Vec2>& pts2, const Mat34& P1, const Mat34& P2,
+    const Vec3& C1, const Vec3& C2, const TriangulationOptions& opts = {});
 
 /// @brief Compute the reprojection error of a 3D point onto a 2D observation.
 ///
@@ -68,8 +64,7 @@ struct TriangulationOptions {
 /// @param point_w 3D point in world coordinates
 /// @param measured 2D measurement (pixels)
 /// @return Reprojection error in pixels
-[[nodiscard]] double ReprojectionError(
-    const Mat34& P, const Vec3& point_w, const Vec2& measured);
+[[nodiscard]] double ReprojectionError(const Mat34& P, const Vec3& point_w, const Vec2& measured);
 
 /// @brief Compute the parallax angle between two rays from camera centers to a point.
 ///
@@ -77,7 +72,6 @@ struct TriangulationOptions {
 /// @param C2 Camera center 2
 /// @param point_w 3D point in world coordinates
 /// @return Parallax angle in degrees
-[[nodiscard]] double ParallaxAngle(
-    const Vec3& C1, const Vec3& C2, const Vec3& point_w);
+[[nodiscard]] double ParallaxAngle(const Vec3& C1, const Vec3& C2, const Vec3& point_w);
 
 }  // namespace litevo::geometry

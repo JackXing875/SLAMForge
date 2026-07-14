@@ -18,10 +18,10 @@ namespace litevo::tracking {
 
 // ── Descriptor-to-descriptor matching ──────────────────────────────────────
 
-std::vector<std::pair<int, int>> FeatureMatcher::MatchByDescriptor(
-    const cv::Mat& desc1, const cv::Mat& desc2,
-    float ratio_threshold, bool cross_check) const {
-
+std::vector<std::pair<int, int>> FeatureMatcher::MatchByDescriptor(const cv::Mat& desc1,
+                                                                   const cv::Mat& desc2,
+                                                                   float ratio_threshold,
+                                                                   bool cross_check) const {
     std::vector<std::pair<int, int>> matches;
 
     if (desc1.empty() || desc2.empty()) {
@@ -34,7 +34,8 @@ std::vector<std::pair<int, int>> FeatureMatcher::MatchByDescriptor(
 
     // First pass: ratio test
     for (const auto& knn_pair : knn) {
-        if (knn_pair.size() < 2) continue;
+        if (knn_pair.size() < 2)
+            continue;
         if (knn_pair[0].distance < ratio_threshold * knn_pair[1].distance) {
             matches.emplace_back(knn_pair[0].queryIdx, knn_pair[0].trainIdx);
         }
@@ -72,10 +73,8 @@ std::vector<std::pair<int, int>> FeatureMatcher::MatchByDescriptor(
 
 // ── Search for initialization ──────────────────────────────────────────────
 
-int FeatureMatcher::SearchForInitialization(
-    const Frame& F1, const Frame& F2,
-    int window_size, std::vector<int>& matches_12) const {
-
+int FeatureMatcher::SearchForInitialization(const Frame& F1, const Frame& F2, int window_size,
+                                            std::vector<int>& matches_12) const {
     matches_12.assign(F1.NumKeyPoints(), -1);
 
     if (F1.NumKeyPoints() == 0 || F2.NumKeyPoints() == 0) {
@@ -129,15 +128,13 @@ int FeatureMatcher::SearchForInitialization(
 // ── Search by projection ───────────────────────────────────────────────────
 
 std::vector<std::pair<int, MapPointId>> FeatureMatcher::SearchByProjection(
-    Frame& frame,
-    const std::vector<std::shared_ptr<MapPoint>>& map_points,
-    const Camera& camera,
+    Frame& frame, const std::vector<std::shared_ptr<MapPoint>>& map_points, const Camera& camera,
     float max_dist_px, int max_desc_dist) const {
-
     std::vector<std::pair<int, MapPointId>> result;
     result.reserve(map_points.size());
 
-    if (map_points.empty()) return result;
+    if (map_points.empty())
+        return result;
 
     // Track which frame keypoints are already matched
     std::unordered_set<int> matched_kp_indices;
@@ -145,7 +142,8 @@ std::vector<std::pair<int, MapPointId>> FeatureMatcher::SearchByProjection(
     const auto& desc_frame = frame.Descriptors();
 
     for (const auto& mp : map_points) {
-        if (!mp || mp->IsBad()) continue;
+        if (!mp || mp->IsBad())
+            continue;
 
         Vec3 p_w = mp->Position();
 
@@ -158,16 +156,16 @@ std::vector<std::pair<int, MapPointId>> FeatureMatcher::SearchByProjection(
         }
 
         // Get candidate keypoints in a window
-        auto candidates = frame.GetFeaturesInArea(
-            static_cast<float>(uv.x()), static_cast<float>(uv.y()),
-            max_dist_px);
+        auto candidates = frame.GetFeaturesInArea(static_cast<float>(uv.x()),
+                                                  static_cast<float>(uv.y()), max_dist_px);
 
         int best_dist = max_desc_dist + 1;
         int best_kp_idx = -1;
 
         for (int kp_idx : candidates) {
             // Skip already matched keypoints
-            if (matched_kp_indices.count(kp_idx)) continue;
+            if (matched_kp_indices.count(kp_idx))
+                continue;
 
             int dist = DescriptorDistance(mp->Descriptor(), desc_frame.row(kp_idx));
             if (dist < best_dist) {
@@ -197,10 +195,8 @@ int FeatureMatcher::DescriptorDistance(const cv::Mat& desc_a, const cv::Mat& des
 // ── Rotation histogram filter ──────────────────────────────────────────────
 
 std::vector<std::pair<int, int>> FeatureMatcher::FilterByRotationHistogram(
-    const std::vector<std::pair<int, int>>& matches,
-    const std::vector<cv::KeyPoint>& kps1,
+    const std::vector<std::pair<int, int>>& matches, const std::vector<cv::KeyPoint>& kps1,
     const std::vector<cv::KeyPoint>& kps2) {
-
     if (matches.size() < 10) {
         return matches;  // Too few to filter meaningfully
     }
@@ -211,12 +207,15 @@ std::vector<std::pair<int, int>> FeatureMatcher::FilterByRotationHistogram(
     // Build rotation histogram
     std::vector<int> histo(kHistoBins, 0);
     for (const auto& [i1, i2] : matches) {
-        float angle_diff = kps1[static_cast<size_t>(i1)].angle -
-                           kps2[static_cast<size_t>(i2)].angle;
-        if (angle_diff < 0.0f) angle_diff += 360.0f;
+        float angle_diff =
+            kps1[static_cast<size_t>(i1)].angle - kps2[static_cast<size_t>(i2)].angle;
+        if (angle_diff < 0.0f)
+            angle_diff += 360.0f;
         int bin = static_cast<int>(std::round(angle_diff * kHistoFactor * kHistoBins));
-        if (bin >= kHistoBins) bin -= kHistoBins;
-        if (bin < 0) bin = 0;
+        if (bin >= kHistoBins)
+            bin -= kHistoBins;
+        if (bin < 0)
+            bin = 0;
         histo[static_cast<size_t>(bin)]++;
     }
 
@@ -230,12 +229,15 @@ std::vector<std::pair<int, int>> FeatureMatcher::FilterByRotationHistogram(
     // Keep matches in top 3 bins
     std::vector<std::pair<int, int>> filtered;
     for (const auto& [i1, i2] : matches) {
-        float angle_diff = kps1[static_cast<size_t>(i1)].angle -
-                           kps2[static_cast<size_t>(i2)].angle;
-        if (angle_diff < 0.0f) angle_diff += 360.0f;
+        float angle_diff =
+            kps1[static_cast<size_t>(i1)].angle - kps2[static_cast<size_t>(i2)].angle;
+        if (angle_diff < 0.0f)
+            angle_diff += 360.0f;
         int bin = static_cast<int>(std::round(angle_diff * kHistoFactor * kHistoBins));
-        if (bin >= kHistoBins) bin -= kHistoBins;
-        if (bin < 0) bin = 0;
+        if (bin >= kHistoBins)
+            bin -= kHistoBins;
+        if (bin < 0)
+            bin = 0;
         int count = histo[static_cast<size_t>(bin)];
         if (count >= threshold_3) {
             filtered.emplace_back(i1, i2);

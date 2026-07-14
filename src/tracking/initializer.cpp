@@ -20,40 +20,30 @@
 
 namespace litevo::tracking {
 
-MonocularInitializer::MonocularInitializer(
-    const Camera& camera,
-    features::OrbExtractor& extractor,
-    const Options& opts)
-    : camera_(camera)
-    , extractor_(extractor)
-    , opts_(opts)
-{}
+MonocularInitializer::MonocularInitializer(const Camera& camera, features::OrbExtractor& extractor,
+                                           const Options& opts)
+    : camera_(camera), extractor_(extractor), opts_(opts) {}
 
 void MonocularInitializer::Reset() {
     reference_frame_.reset();
 }
 
-void MonocularInitializer::ComputeModels(
-    const std::vector<cv::Point2f>& pts1,
-    const std::vector<cv::Point2f>& pts2,
-    cv::Mat& H, cv::Mat& F,
-    std::vector<uchar>& inliers_h,
-    std::vector<uchar>& inliers_f) const {
-
+void MonocularInitializer::ComputeModels(const std::vector<cv::Point2f>& pts1,
+                                         const std::vector<cv::Point2f>& pts2, cv::Mat& H,
+                                         cv::Mat& F, std::vector<uchar>& inliers_h,
+                                         std::vector<uchar>& inliers_f) const {
     // Run H and F computation in parallel threads
     cv::Mat H_thread, F_thread;
     std::vector<uchar> inliers_h_thread, inliers_f_thread;
 
     auto compute_H = [&]() {
-        H_thread = cv::findHomography(
-            pts1, pts2, cv::RANSAC, opts_.max_reproj_error,
-            inliers_h_thread, opts_.num_ransac_iterations);
+        H_thread = cv::findHomography(pts1, pts2, cv::RANSAC, opts_.max_reproj_error,
+                                      inliers_h_thread, opts_.num_ransac_iterations);
     };
 
     auto compute_F = [&]() {
-        F_thread = cv::findFundamentalMat(
-            pts1, pts2, cv::FM_RANSAC,
-            opts_.max_reproj_error, 0.99, inliers_f_thread);
+        F_thread = cv::findFundamentalMat(pts1, pts2, cv::FM_RANSAC, opts_.max_reproj_error, 0.99,
+                                          inliers_f_thread);
     };
 
     std::thread h_thread(compute_H);
@@ -66,17 +56,19 @@ void MonocularInitializer::ComputeModels(
     inliers_f = inliers_f_thread;
 }
 
-bool MonocularInitializer::SelectModel(
-    const cv::Mat& H, const cv::Mat& F,
-    const std::vector<cv::Point2f>& pts1,
-    const std::vector<cv::Point2f>& pts2,
-    const std::vector<uchar>& inliers_h,
-    const std::vector<uchar>& inliers_f) const {
-
+bool MonocularInitializer::SelectModel(const cv::Mat& H, const cv::Mat& F,
+                                       const std::vector<cv::Point2f>& pts1,
+                                       const std::vector<cv::Point2f>& pts2,
+                                       const std::vector<uchar>& inliers_h,
+                                       const std::vector<uchar>& inliers_f) const {
     // Count inliers
     int n_inliers_h = 0, n_inliers_f = 0;
-    for (auto v : inliers_h) if (v) n_inliers_h++;
-    for (auto v : inliers_f) if (v) n_inliers_f++;
+    for (auto v : inliers_h)
+        if (v)
+            n_inliers_h++;
+    for (auto v : inliers_f)
+        if (v)
+            n_inliers_f++;
 
     if (n_inliers_h < opts_.min_matches && n_inliers_f < opts_.min_matches) {
         return false;  // Both models are bad
@@ -90,8 +82,8 @@ bool MonocularInitializer::SelectModel(
         for (size_t i = 0; i < pts1.size(); ++i) {
             if (inliers_h[i]) {
                 // Forward: x2' = H * x1
-                cv::Mat p1 = (cv::Mat_<double>(3,1) << pts1[i].x, pts1[i].y, 1.0);
-                cv::Mat p2 = (cv::Mat_<double>(3,1) << pts2[i].x, pts2[i].y, 1.0);
+                cv::Mat p1 = (cv::Mat_<double>(3, 1) << pts1[i].x, pts1[i].y, 1.0);
+                cv::Mat p2 = (cv::Mat_<double>(3, 1) << pts2[i].x, pts2[i].y, 1.0);
 
                 cv::Mat proj_fwd = H * p1;
                 proj_fwd /= proj_fwd.at<double>(2);
@@ -103,11 +95,12 @@ bool MonocularInitializer::SelectModel(
                 double dx2 = proj_bwd.at<double>(0) - pts1[i].x;
                 double dy2 = proj_bwd.at<double>(1) - pts1[i].y;
 
-                SH += dx1*dx1 + dy1*dy1 + dx2*dx2 + dy2*dy2;
+                SH += dx1 * dx1 + dy1 * dy1 + dx2 * dx2 + dy2 * dy2;
                 count++;
             }
         }
-        if (count > 0) SH /= count;
+        if (count > 0)
+            SH /= count;
     }
 
     // Score F using Sampson distance
@@ -119,17 +112,17 @@ bool MonocularInitializer::SelectModel(
                 double x1 = pts1[i].x, y1 = pts1[i].y;
                 double x2 = pts2[i].x, y2 = pts2[i].y;
 
-                cv::Mat p1 = (cv::Mat_<double>(3,1) << x1, y1, 1.0);
-                cv::Mat p2 = (cv::Mat_<double>(3,1) << x2, y2, 1.0);
+                cv::Mat p1 = (cv::Mat_<double>(3, 1) << x1, y1, 1.0);
+                cv::Mat p2 = (cv::Mat_<double>(3, 1) << x2, y2, 1.0);
 
                 cv::Mat Fp1 = F * p1;
                 cv::Mat Ftp2 = F.t() * p2;
 
                 double num = std::pow(p2.dot(Fp1), 2);
-                double den = Fp1.at<double>(0)*Fp1.at<double>(0)
-                           + Fp1.at<double>(1)*Fp1.at<double>(1)
-                           + Ftp2.at<double>(0)*Ftp2.at<double>(0)
-                           + Ftp2.at<double>(1)*Ftp2.at<double>(1);
+                double den = Fp1.at<double>(0) * Fp1.at<double>(0) +
+                             Fp1.at<double>(1) * Fp1.at<double>(1) +
+                             Ftp2.at<double>(0) * Ftp2.at<double>(0) +
+                             Ftp2.at<double>(1) * Ftp2.at<double>(1);
 
                 if (den > 1e-12) {
                     SF += num / den;
@@ -137,7 +130,8 @@ bool MonocularInitializer::SelectModel(
                 count++;
             }
         }
-        if (count > 0) SF /= count;
+        if (count > 0)
+            SF /= count;
     }
 
     // Compute RH
@@ -146,12 +140,12 @@ bool MonocularInitializer::SelectModel(
     return RH > opts_.hf_score_ratio;
 }
 
-std::vector<std::pair<Mat3, Vec3>> MonocularInitializer::DecomposeH(
-    const cv::Mat& H, const cv::Mat& K) const {
-
+std::vector<std::pair<Mat3, Vec3>> MonocularInitializer::DecomposeH(const cv::Mat& H,
+                                                                    const cv::Mat& K) const {
     std::vector<std::pair<Mat3, Vec3>> candidates;
 
-    if (H.empty()) return candidates;
+    if (H.empty())
+        return candidates;
 
     cv::Mat K_inv = K.inv();
     cv::Mat H_norm = K_inv * H * K;
@@ -177,13 +171,12 @@ std::vector<std::pair<Mat3, Vec3>> MonocularInitializer::DecomposeH(
 }
 
 std::vector<std::pair<Mat3, Vec3>> MonocularInitializer::DecomposeE(
-    const cv::Mat& E, const cv::Mat& K,
-    const std::vector<cv::Point2f>& pts1_norm,
+    const cv::Mat& E, const cv::Mat& K, const std::vector<cv::Point2f>& pts1_norm,
     const std::vector<cv::Point2f>& pts2_norm) const {
-
     std::vector<std::pair<Mat3, Vec3>> candidates;
 
-    if (E.empty()) return candidates;
+    if (E.empty())
+        return candidates;
 
     cv::Mat R1, R2, t;
     cv::decomposeEssentialMat(E, R1, R2, t);
@@ -209,14 +202,11 @@ std::vector<std::pair<Mat3, Vec3>> MonocularInitializer::DecomposeE(
     return candidates;
 }
 
-int MonocularInitializer::CheckMotion(
-    const Mat3& R, const Vec3& t,
-    const std::vector<cv::Point2f>& pts1,
-    const std::vector<cv::Point2f>& pts2,
-    const cv::Mat& K,
-    std::vector<Vec3>& points_3d,
-    std::vector<bool>& valid) const {
-
+int MonocularInitializer::CheckMotion(const Mat3& R, const Vec3& t,
+                                      const std::vector<cv::Point2f>& pts1,
+                                      const std::vector<cv::Point2f>& pts2, const cv::Mat& K,
+                                      std::vector<Vec3>& points_3d,
+                                      std::vector<bool>& valid) const {
     size_t n = pts1.size();
     points_3d.resize(n);
     valid.assign(n, false);
@@ -224,12 +214,12 @@ int MonocularInitializer::CheckMotion(
     // Build projection matrices
     // Camera 1 is identity (world frame)
     Mat34 P1 = Mat34::Zero();
-    P1.block<3,3>(0,0) = Mat3::Identity();
-    P1(0,3) = P1(1,3) = P1(2,3) = 0.0;
+    P1.block<3, 3>(0, 0) = Mat3::Identity();
+    P1(0, 3) = P1(1, 3) = P1(2, 3) = 0.0;
 
     // Camera 2: [R | t]
     Mat34 P2 = Mat34::Zero();
-    P2.block<3,3>(0,0) = R;
+    P2.block<3, 3>(0, 0) = R;
     P2.col(3) = t;
 
     // Apply intrinsic calibration
@@ -274,8 +264,8 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
         if (frame.NumKeyPoints() < opts_.min_features) {
             return result;  // Not enough features
         }
-        reference_frame_ = std::make_shared<Frame>(
-            frame.Image(), frame.Timestamp(), extractor_, camera_);
+        reference_frame_ =
+            std::make_shared<Frame>(frame.Image(), frame.Timestamp(), extractor_, camera_);
         return result;
     }
 
@@ -288,14 +278,13 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
     // Match features
     FeatureMatcher matcher;
     std::vector<int> matches_12;
-    int n_matches = matcher.SearchForInitialization(
-        *reference_frame_, frame, 100, matches_12);
+    int n_matches = matcher.SearchForInitialization(*reference_frame_, frame, 100, matches_12);
 
     if (n_matches < opts_.min_matches) {
         Reset();
         // Store current as new reference
-        reference_frame_ = std::make_shared<Frame>(
-            frame.Image(), frame.Timestamp(), extractor_, camera_);
+        reference_frame_ =
+            std::make_shared<Frame>(frame.Image(), frame.Timestamp(), extractor_, camera_);
         return result;
     }
 
@@ -340,15 +329,15 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
         std::vector<cv::Point2f> pts1_norm, pts2_norm;
         cv::Mat K_inv = K_cv.inv();
         for (size_t i = 0; i < pts1.size(); ++i) {
-            cv::Mat p1 = (cv::Mat_<double>(3,1) << pts1[i].x, pts1[i].y, 1.0);
+            cv::Mat p1 = (cv::Mat_<double>(3, 1) << pts1[i].x, pts1[i].y, 1.0);
             cv::Mat n1 = K_inv * p1;
             pts1_norm.emplace_back(static_cast<float>(n1.at<double>(0)),
-                                    static_cast<float>(n1.at<double>(1)));
+                                   static_cast<float>(n1.at<double>(1)));
 
-            cv::Mat p2 = (cv::Mat_<double>(3,1) << pts2[i].x, pts2[i].y, 1.0);
+            cv::Mat p2 = (cv::Mat_<double>(3, 1) << pts2[i].x, pts2[i].y, 1.0);
             cv::Mat n2 = K_inv * p2;
             pts2_norm.emplace_back(static_cast<float>(n2.at<double>(0)),
-                                    static_cast<float>(n2.at<double>(1)));
+                                   static_cast<float>(n2.at<double>(1)));
         }
 
         // Convert F_cv (OpenCV Mat) to Eigen Mat3 for Essential matrix
@@ -421,7 +410,8 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
     if (!depths.empty()) {
         std::sort(depths.begin(), depths.end());
         median_depth = depths[depths.size() / 2];
-        if (median_depth < 1e-6) median_depth = 1.0;
+        if (median_depth < 1e-6)
+            median_depth = 1.0;
     }
 
     // Scale translation and points
@@ -443,8 +433,7 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
     // Create MapPoints
     for (size_t i = 0; i < best_points.size(); ++i) {
         if (best_valid_flags[i]) {
-            auto mp = std::make_shared<MapPoint>(
-                best_points[i], reference_frame_->Id());
+            auto mp = std::make_shared<MapPoint>(best_points[i], reference_frame_->Id());
             // Set descriptor from reference frame keypoint
             mp->SetDescriptor(reference_frame_->Descriptors().row(idx_ref[i]));
             result.map_points.push_back(mp);

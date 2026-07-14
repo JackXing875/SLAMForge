@@ -3,6 +3,8 @@
 // =============================================================================
 
 #include <CLI/CLI.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include <algorithm>
 #include <filesystem>
@@ -10,9 +12,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include "litevo/litevo.h"
 
@@ -26,8 +25,7 @@ int main(int argc, char* argv[]) {
     std::string output_path = "trajectory.txt";
     bool verbose = false;
 
-    app.add_option("-c,--config", config_path, "YAML configuration file")
-        ->check(CLI::ExistingFile);
+    app.add_option("-c,--config", config_path, "YAML configuration file")->check(CLI::ExistingFile);
     app.add_option("-i,--input", input_path, "Image directory")->required();
     app.add_option("-o,--output", output_path, "Output trajectory (TUM format)");
     app.add_flag("-v,--verbose", verbose, "Verbose per-frame output");
@@ -43,11 +41,10 @@ int main(int argc, char* argv[]) {
     auto cfg = *cfg_opt;
 
     // Build camera model
-    litevo::Camera::CameraParams cam_params{
-        cfg.camera.fx, cfg.camera.fy, cfg.camera.cx, cfg.camera.cy,
-        cfg.camera.k1, cfg.camera.k2, cfg.camera.p1, cfg.camera.p2, cfg.camera.k3,
-        cfg.camera.width, cfg.camera.height
-    };
+    litevo::Camera::CameraParams cam_params{cfg.camera.fx,    cfg.camera.fy,    cfg.camera.cx,
+                                            cfg.camera.cy,    cfg.camera.k1,    cfg.camera.k2,
+                                            cfg.camera.p1,    cfg.camera.p2,    cfg.camera.k3,
+                                            cfg.camera.width, cfg.camera.height};
     litevo::Camera camera = litevo::Camera::FromParams(cam_params);
 
     // Create tracker
@@ -55,16 +52,16 @@ int main(int argc, char* argv[]) {
 
     // Create local mapper (background thread)
     litevo::features::OrbExtractor::Options mapper_orb_opts;
-    mapper_orb_opts.num_features  = cfg.orb.num_features;
-    mapper_orb_opts.scale_factor  = static_cast<double>(cfg.orb.scale_factor);
-    mapper_orb_opts.num_levels    = cfg.orb.num_levels;
+    mapper_orb_opts.num_features = cfg.orb.num_features;
+    mapper_orb_opts.scale_factor = static_cast<double>(cfg.orb.scale_factor);
+    mapper_orb_opts.num_levels = cfg.orb.num_levels;
     mapper_orb_opts.ini_threshold = cfg.orb.ini_threshold;
     mapper_orb_opts.min_threshold = cfg.orb.min_threshold;
-    mapper_orb_opts.patch_size    = cfg.orb.patch_size;
+    mapper_orb_opts.patch_size = cfg.orb.patch_size;
     litevo::features::OrbExtractor mapper_extractor(mapper_orb_opts);
 
-    litevo::mapping::LocalMapper local_mapper(
-        tracker.GetMap(), camera, cfg.mapping, mapper_extractor);
+    litevo::mapping::LocalMapper local_mapper(tracker.GetMap(), camera, cfg.mapping,
+                                              mapper_extractor);
     tracker.SetLocalMapper(&local_mapper);
 
     // Collect images from directory
@@ -76,7 +73,9 @@ int main(int argc, char* argv[]) {
 
     std::vector<std::string> image_paths;
     for (const auto& entry : fs::directory_iterator(input_fs)) {
-        if (!entry.is_regular_file()) continue;
+        if (!entry.is_regular_file()) {
+            continue;
+        }
         std::string ext = entry.path().extension().string();
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
         if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".ppm") {
@@ -117,7 +116,9 @@ int main(int argc, char* argv[]) {
     for (const auto& path : image_paths) {
         cv::Mat image = cv::imread(path, cv::IMREAD_COLOR);
         if (image.empty()) {
-            if (verbose) std::cerr << "Warning: cannot read " << path << "\n";
+            if (verbose) {
+                std::cerr << "Warning: cannot read " << path << "\n";
+            }
             continue;
         }
 
@@ -131,28 +132,31 @@ int main(int argc, char* argv[]) {
             litevo::SE3 Twc = pose_opt->inverse();
             litevo::Pose p = litevo::Pose::FromSE3(Twc);
 
-            traj_file << timestamp << " "
-                      << p.position.x() << " " << p.position.y() << " " << p.position.z() << " "
-                      << p.orientation.x() << " " << p.orientation.y() << " "
-                      << p.orientation.z() << " " << p.orientation.w() << "\n";
+            traj_file << timestamp << " " << p.position.x() << " " << p.position.y() << " "
+                      << p.position.z() << " " << p.orientation.x() << " " << p.orientation.y()
+                      << " " << p.orientation.z() << " " << p.orientation.w() << "\n";
         } else {
             lost_count++;
         }
 
         if (verbose && (frame_count % 10 == 0 || pose_opt)) {
             auto state = tracker.State();
-            std::cout << "Frame " << frame_count
-                      << " | state=";
+            std::cout << "Frame " << frame_count << " | state=";
             switch (state) {
-                case litevo::tracking::TrackingState::NOT_INITIALIZED: std::cout << "INIT"; break;
-                case litevo::tracking::TrackingState::INITIALIZING:    std::cout << "INIT"; break;
-                case litevo::tracking::TrackingState::OK:              std::cout << "OK"; break;
-                case litevo::tracking::TrackingState::LOST:            std::cout << "LOST"; break;
+                case litevo::tracking::TrackingState::NOT_INITIALIZED:
+                case litevo::tracking::TrackingState::INITIALIZING:
+                    std::cout << "INIT";
+                    break;
+                case litevo::tracking::TrackingState::OK:
+                    std::cout << "OK";
+                    break;
+                case litevo::tracking::TrackingState::LOST:
+                    std::cout << "LOST";
+                    break;
             }
             std::cout << " | tracked=" << tracker.NumTrackedPoints()
                       << " | kfs=" << tracker.NumKeyFrames()
-                      << " | mps=" << tracker.GetMap().MapPointCount()
-                      << "\n";
+                      << " | mps=" << tracker.GetMap().MapPointCount() << "\n";
         }
 
         timestamp += dt;

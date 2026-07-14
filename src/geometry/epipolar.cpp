@@ -9,12 +9,9 @@
 
 namespace litevo::geometry {
 
-EpipolarResult EstimatePoseEssential(
-    const std::vector<cv::Point2f>& pts1,
-    const std::vector<cv::Point2f>& pts2,
-    const cv::Mat& K,
-    const EpipolarOptions& options) {
-
+EpipolarResult EstimatePoseEssential(const std::vector<cv::Point2f>& pts1,
+                                     const std::vector<cv::Point2f>& pts2, const cv::Mat& K,
+                                     const EpipolarOptions& options) {
     EpipolarResult result;
 
     if (static_cast<int>(pts1.size()) < options.min_points ||
@@ -28,13 +25,8 @@ EpipolarResult EstimatePoseEssential(
 
     // Estimate essential matrix with MAGSAC++ for robust outlier rejection
     cv::Mat inlier_mask;
-    cv::Mat E = cv::findEssentialMat(
-        pts1, pts2, K,
-        cv::USAC_MAGSAC,
-        options.confidence,
-        options.epipolar_threshold,
-        inlier_mask
-    );
+    cv::Mat E = cv::findEssentialMat(pts1, pts2, K, cv::USAC_MAGSAC, options.confidence,
+                                     options.epipolar_threshold, inlier_mask);
 
     if (E.empty() || E.rows != 3 || E.cols != 3) {
         return result;
@@ -70,13 +62,9 @@ EpipolarResult EstimatePoseEssential(
     return result;
 }
 
-int RecoverPose(const cv::Mat& E,
-                const std::vector<cv::Point2f>& pts1,
-                const std::vector<cv::Point2f>& pts2,
-                const cv::Mat& K,
-                cv::Mat& R_out,
-                cv::Mat& t_out,
-                cv::Mat& mask_inout) {
+int RecoverPose(const cv::Mat& E, const std::vector<cv::Point2f>& pts1,
+                const std::vector<cv::Point2f>& pts2, const cv::Mat& K, cv::Mat& R_out,
+                cv::Mat& t_out, cv::Mat& mask_inout) {
     return cv::recoverPose(E, pts1, pts2, K, R_out, t_out, mask_inout);
 }
 

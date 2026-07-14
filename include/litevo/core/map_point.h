@@ -79,12 +79,24 @@ public:
     void IncreaseFound(int n = 1) { found_count_ += n; }
     void ResetFound() { found_count_ = 0; }
 
+    // ── Fusion ───────────────────────────────────────────────────────────────
+
+    /// @brief Replace this MapPoint with another (fusion after loop closure).
+    ///
+    /// Transfers all observations from `other` to `this`, updates the
+    /// representative descriptor, copies the position if `other` has more
+    /// observations, and marks `other` as effectively bad.
+    ///
+    /// @param other  The MapPoint to absorb. Will NOT be erased from Map.
+    void Replace(MapPoint* other);
+
+    /// @brief Set the reference frame (used after loop correction).
+    void SetReferenceFrame(FrameId ref_frame) { reference_frame_ = ref_frame; }
+
     // ── Quality ────────────────────────────────────────────────────────────
 
     /// @brief Whether the point should be culled (too few observations).
-    bool IsBad(int min_observations = 3) const {
-        return observations_ < min_observations;
-    }
+    bool IsBad(int min_observations = 3) const { return observations_ < min_observations; }
 
     /// @brief Fraction of frames where this map point was found vs predicted.
     /// Used by LocalMapper for culling decisions.

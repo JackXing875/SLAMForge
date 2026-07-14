@@ -2,9 +2,9 @@
 // KeyFrame unit tests
 // =============================================================================
 
-#include <gtest/gtest.h>
-
 #include <opencv2/imgproc.hpp>
+
+#include <gtest/gtest.h>
 
 #include "litevo/core/camera.h"
 #include "litevo/core/config.h"

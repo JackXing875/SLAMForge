@@ -3,21 +3,18 @@
 // =============================================================================
 
 #include "litevo/geometry/triangulation.h"
-#include "litevo/geometry/se3.h"
 
 #include <Eigen/SVD>
-
 #include <cmath>
 #include <limits>
 
+#include "litevo/geometry/se3.h"
+
 namespace litevo::geometry {
 
-TriangulationResult TriangulatePoint(
-    const Vec2& pt1, const Vec2& pt2,
-    const Mat34& P1, const Mat34& P2,
-    const Vec3& C1, const Vec3& C2,
-    const TriangulationOptions& opts) {
-
+TriangulationResult TriangulatePoint(const Vec2& pt1, const Vec2& pt2, const Mat34& P1,
+                                     const Mat34& P2, const Vec3& C1, const Vec3& C2,
+                                     const TriangulationOptions& opts) {
     TriangulationResult result;
 
     // Build DLT matrix A (4x4)
@@ -43,8 +40,7 @@ TriangulationResult TriangulatePoint(
     result.point_w = Vec3(X(0) / w, X(1) / w, X(2) / w);
 
     // Numeric sanity check
-    if (!std::isfinite(result.point_w.x()) ||
-        !std::isfinite(result.point_w.y()) ||
+    if (!std::isfinite(result.point_w.x()) || !std::isfinite(result.point_w.y()) ||
         !std::isfinite(result.point_w.z())) {
         result.valid = false;
         return result;
@@ -82,13 +78,10 @@ TriangulationResult TriangulatePoint(
     return result;
 }
 
-std::vector<TriangulationResult> TriangulatePoints(
-    const std::vector<Vec2>& pts1,
-    const std::vector<Vec2>& pts2,
-    const Mat34& P1, const Mat34& P2,
-    const Vec3& C1, const Vec3& C2,
-    const TriangulationOptions& opts) {
-
+std::vector<TriangulationResult> TriangulatePoints(const std::vector<Vec2>& pts1,
+                                                   const std::vector<Vec2>& pts2, const Mat34& P1,
+                                                   const Mat34& P2, const Vec3& C1, const Vec3& C2,
+                                                   const TriangulationOptions& opts) {
     std::vector<TriangulationResult> results;
     results.reserve(pts1.size());
 
@@ -104,8 +97,7 @@ double ReprojectionError(const Mat34& P, const Vec3& point_w, const Vec2& measur
     if (std::abs(projected.z()) < 1e-10) {
         return std::numeric_limits<double>::infinity();
     }
-    const Vec2 predicted(projected.x() / projected.z(),
-                         projected.y() / projected.z());
+    const Vec2 predicted(projected.x() / projected.z(), projected.y() / projected.z());
     return (predicted - measured).norm();
 }
 

@@ -122,9 +122,7 @@ TEST_F(TriangulationTest, ParallaxAngleFunction) {
 }
 
 TEST_F(TriangulationTest, BatchPoints) {
-    std::vector<Vec3> world_points = {
-        {0, 0, 10}, {0.5, 0.5, 15}, {-0.3, 0.2, 8}
-    };
+    std::vector<Vec3> world_points = {{0, 0, 10}, {0.5, 0.5, 15}, {-0.3, 0.2, 8}};
 
     std::vector<Vec2> pts1, pts2;
     for (const auto& pw : world_points) {

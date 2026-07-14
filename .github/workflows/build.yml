@@ -39,11 +39,7 @@ jobs:
             libopencv-dev \
             libeigen3-dev \
             libspdlog-dev \
-            libyaml-cpp-dev \
-            libblas-dev \
-            liblapack-dev \
-            libsuitesparse-dev \
-            libgoogle-glog-dev
+            libyaml-cpp-dev
 
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1

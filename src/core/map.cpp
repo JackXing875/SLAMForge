@@ -19,7 +19,8 @@ std::shared_ptr<MapPoint> Map::AddMapPoint(const Vec3& position, FrameId ref_fra
 }
 
 void Map::InsertMapPoint(std::shared_ptr<MapPoint> mp) {
-    if (!mp) return;
+    if (!mp)
+        return;
     std::unique_lock lock(map_mutex_);
     map_points_[mp->Id()] = mp;
 }

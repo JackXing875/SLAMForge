@@ -44,8 +44,7 @@ public:
     /// @param camera     Camera model (read-only).
     /// @param config     Mapping configuration.
     /// @param extractor  ORB extractor for feature extraction on new frames.
-    LocalMapper(Map& map, const Camera& camera,
-                const MappingConfig& config,
+    LocalMapper(Map& map, const Camera& camera, const MappingConfig& config,
                 features::OrbExtractor& extractor);
 
     ~LocalMapper();
@@ -105,14 +104,12 @@ private:
 
     /// @brief Triangulate new points between two keyframes.
     /// @return Number of new map points created.
-    int TriangulateWithKf(
-        KeyFrame* kf1, KeyFrame* kf2,
-        std::vector<std::shared_ptr<MapPoint>>& new_mps);
+    int TriangulateWithKf(KeyFrame* kf1, KeyFrame* kf2,
+                          std::vector<std::shared_ptr<MapPoint>>& new_mps);
 
     /// @brief Search for matching features between two KFs for triangulation.
-    int SearchForTriangulation(
-        KeyFrame* kf1, KeyFrame* kf2,
-        std::vector<std::pair<int, int>>& matches) const;
+    int SearchForTriangulation(KeyFrame* kf1, KeyFrame* kf2,
+                               std::vector<std::pair<int, int>>& matches) const;
 
     // ── Members ─────────────────────────────────────────────────────────
 

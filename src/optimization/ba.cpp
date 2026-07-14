@@ -24,20 +24,18 @@ namespace litevo::optimization {
 
 /// Reprojection error: (quaternion[4], translation[3], point[3]) → residual[2]
 struct ProjectionFunctor {
-    ProjectionFunctor(double ox, double oy,
-                      double fxx, double fyy, double cxx, double cyy)
+    ProjectionFunctor(double ox, double oy, double fxx, double fyy, double cxx, double cyy)
         : ox_(ox), oy_(oy), fx_(fxx), fy_(fyy), cx_(cxx), cy_(cyy) {}
 
     template <typename T>
-    bool operator()(const T* const q, const T* const t,
-                    const T* const pt, T* res) const {
+    bool operator()(const T* const q, const T* const t, const T* const pt, T* res) const {
         // Rotate point by quaternion
         T rotated[3];
         ceres::UnitQuaternionRotatePoint(q, pt, rotated);
         // Translate
         T pc[3] = {rotated[0] + t[0], rotated[1] + t[1], rotated[2] + t[2]};
         // Project
-        T inv_z  = T(1.0) / pc[2];
+        T inv_z = T(1.0) / pc[2];
         T proj_x = T(fx_) * pc[0] * inv_z + T(cx_);
         T proj_y = T(fy_) * pc[1] * inv_z + T(cy_);
         // Residual
@@ -51,17 +49,14 @@ struct ProjectionFunctor {
 
 // ── LocalBundleAdjuster ─────────────────────────────────────────────────────
 
-LocalBundleAdjuster::LocalBundleAdjuster(const Camera& camera)
-    : camera_(camera) {}
+LocalBundleAdjuster::LocalBundleAdjuster(const Camera& camera) : camera_(camera) {}
 
 LocalBundleAdjuster::LocalBundleAdjuster(const Camera& camera, const BAOptions& opts)
     : camera_(camera), opts_(opts) {}
 
-int LocalBundleAdjuster::Optimize(
-    std::vector<KeyFrame*>& local_kfs,
-    std::vector<KeyFrame*>& fixed_kfs,
-    std::vector<MapPoint*>& map_points) {
-
+int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
+                                  std::vector<KeyFrame*>& fixed_kfs,
+                                  std::vector<MapPoint*>& map_points) {
     if (local_kfs.empty() || map_points.empty()) {
         return 0;
     }
@@ -98,8 +93,7 @@ int LocalBundleAdjuster::Optimize(
         data->t[1] = Tcw.translation().y();
         data->t[2] = Tcw.translation().z();
 
-        problem.AddParameterBlock(data->q, 4,
-            new ceres::QuaternionManifold());
+        problem.AddParameterBlock(data->q, 4, new ceres::QuaternionManifold());
         problem.AddParameterBlock(data->t, 3);
 
         if (is_fixed) {
@@ -147,45 +141,49 @@ int LocalBundleAdjuster::Optimize(
     std::vector<KeyFrame*> all_kfs = local_kfs;
     all_kfs.insert(all_kfs.end(), fixed_kfs.begin(), fixed_kfs.end());
 
-    ceres::LossFunction* loss = opts_.use_huber
-        ? new ceres::HuberLoss(opts_.huber_delta)
-        : nullptr;
+    ceres::LossFunction* loss = opts_.use_huber ? new ceres::HuberLoss(opts_.huber_delta) : nullptr;
 
     int total_residuals = 0;
 
     for (auto* kf : all_kfs) {
         auto kf_it = kf_data_map.find(kf);
-        if (kf_it == kf_data_map.end()) continue;
+        if (kf_it == kf_data_map.end())
+            continue;
 
         for (int idx = 0; idx < kf->NumKeyPoints(); ++idx) {
             MapPointId mp_id = kf->MapPointIdAt(idx);
-            if (mp_id.id == 0) continue;
+            if (mp_id.id == 0)
+                continue;
 
             // Find the MapPoint in our optimization set
             MapPoint* mp_raw = nullptr;
             for (auto* mp : map_points) {
-                if (mp->Id() == mp_id) { mp_raw = mp; break; }
+                if (mp->Id() == mp_id) {
+                    mp_raw = mp;
+                    break;
+                }
             }
-            if (!mp_raw) continue;
+            if (!mp_raw)
+                continue;
 
             auto mp_it = mp_data_map.find(mp_raw);
-            if (mp_it == mp_data_map.end()) continue;
+            if (mp_it == mp_data_map.end())
+                continue;
 
             const auto& kps = kf->KeyPoints();
-            if (idx >= static_cast<int>(kps.size())) continue;
+            if (idx >= static_cast<int>(kps.size()))
+                continue;
 
             double obs_x = kps[static_cast<size_t>(idx)].pt.x;
             double obs_y = kps[static_cast<size_t>(idx)].pt.y;
 
-            auto* cost = new ceres::AutoDiffCostFunction<
-                ProjectionFunctor, 2, 4, 3, 3>(
+            auto* cost = new ceres::AutoDiffCostFunction<ProjectionFunctor, 2, 4, 3, 3>(
                 new ProjectionFunctor(obs_x, obs_y, fx, fy, cx, cy));
 
-            problem.AddResidualBlock(
-                cost, loss,
-                kf_it->second->q,       // quaternion
-                kf_it->second->t,       // translation
-                mp_it->second->point);   // 3D point
+            problem.AddResidualBlock(cost, loss,
+                                     kf_it->second->q,       // quaternion
+                                     kf_it->second->t,       // translation
+                                     mp_it->second->point);  // 3D point
 
             total_residuals++;
         }
@@ -210,7 +208,8 @@ int LocalBundleAdjuster::Optimize(
 
     for (auto* kf : local_kfs) {
         auto it = kf_data_map.find(kf);
-        if (it == kf_data_map.end()) continue;
+        if (it == kf_data_map.end())
+            continue;
 
         const auto& data = it->second;
         Eigen::Quaterniond quat(data->q[0], data->q[1], data->q[2], data->q[3]);
@@ -226,7 +225,8 @@ int LocalBundleAdjuster::Optimize(
 
     for (auto* mp : map_points) {
         auto it = mp_data_map.find(mp);
-        if (it == mp_data_map.end()) continue;
+        if (it == mp_data_map.end())
+            continue;
 
         const auto& pt = it->second->point;
         mp->SetPosition(Vec3(pt[0], pt[1], pt[2]));
@@ -245,14 +245,13 @@ int LocalBundleAdjuster::Optimize(
 
 namespace litevo::optimization {
 
-LocalBundleAdjuster::LocalBundleAdjuster(const Camera& camera)
-    : camera_(camera) {}
+LocalBundleAdjuster::LocalBundleAdjuster(const Camera& camera) : camera_(camera) {}
 
 LocalBundleAdjuster::LocalBundleAdjuster(const Camera& camera, const BAOptions& opts)
     : camera_(camera), opts_(opts) {}
 
-int LocalBundleAdjuster::Optimize(
-    std::vector<KeyFrame*>&, std::vector<KeyFrame*>&, std::vector<MapPoint*>&) {
+int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>&, std::vector<KeyFrame*>&,
+                                  std::vector<MapPoint*>&) {
     return 0;
 }
 

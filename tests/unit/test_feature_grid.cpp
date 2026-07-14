@@ -10,8 +10,8 @@ using namespace litevo;
 
 TEST(FeatureGridTest, Construction) {
     FeatureGrid grid(640, 480, 64);
-    EXPECT_EQ(grid.GridCols(), 10);   // ceil(640/64) = 10
-    EXPECT_EQ(grid.GridRows(), 8);    // ceil(480/64) = 7.5 → 8
+    EXPECT_EQ(grid.GridCols(), 10);  // ceil(640/64) = 10
+    EXPECT_EQ(grid.GridRows(), 8);   // ceil(480/64) = 7.5 → 8
     EXPECT_EQ(grid.CellSize(), 64);
 }
 
@@ -46,7 +46,8 @@ TEST(FeatureGridTest, SearchWindow) {
     // Index 1 should be in the results
     bool found_1 = false;
     for (int idx : candidates) {
-        if (idx == 1) found_1 = true;
+        if (idx == 1)
+            found_1 = true;
     }
     EXPECT_TRUE(found_1);
 
@@ -56,7 +57,8 @@ TEST(FeatureGridTest, SearchWindow) {
 
     bool found_2 = false;
     for (int idx : candidates2) {
-        if (idx == 2) found_2 = true;
+        if (idx == 2)
+            found_2 = true;
     }
     EXPECT_TRUE(found_2);
 }

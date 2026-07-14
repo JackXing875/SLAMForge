@@ -27,6 +27,7 @@ set(LITEVO_CORE_SOURCES
     geometry/triangulation.cpp
     geometry/epipolar.cpp
     geometry/pnp.cpp
+    geometry/sim3.cpp
 
     # Tracking
     tracking/matcher.cpp
@@ -35,6 +36,15 @@ set(LITEVO_CORE_SOURCES
 
     # Mapping
     mapping/local_mapper.cpp
+
+    # Loop Closing
+    loop_closing/vocabulary.cpp
+    loop_closing/detector.cpp
+    loop_closing/verifier.cpp
+    loop_closing/corrector.cpp
+    loop_closing/pose_graph.cpp
+    loop_closing/global_ba.cpp
+    loop_closing/loop_closing.cpp
 
     # Optimization
     optimization/ba.cpp
@@ -55,11 +65,19 @@ set(LITEVO_CORE_HEADERS
     ${PROJECT_SOURCE_DIR}/include/litevo/geometry/triangulation.h
     ${PROJECT_SOURCE_DIR}/include/litevo/geometry/epipolar.h
     ${PROJECT_SOURCE_DIR}/include/litevo/geometry/pnp.h
+    ${PROJECT_SOURCE_DIR}/include/litevo/geometry/sim3.h
     ${PROJECT_SOURCE_DIR}/include/litevo/features/orb_extractor.h
     ${PROJECT_SOURCE_DIR}/include/litevo/tracking/matcher.h
     ${PROJECT_SOURCE_DIR}/include/litevo/tracking/initializer.h
     ${PROJECT_SOURCE_DIR}/include/litevo/tracking/tracker.h
     ${PROJECT_SOURCE_DIR}/include/litevo/mapping/local_mapper.h
+    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/vocabulary.h
+    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/detector.h
+    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/verifier.h
+    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/corrector.h
+    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/pose_graph.h
+    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/global_ba.h
+    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/loop_closing.h
     ${PROJECT_SOURCE_DIR}/include/litevo/optimization/ba.h
 )
 
@@ -115,4 +133,20 @@ if(LITEVO_ENABLE_G2O)
         g2o_core g2o_types_slam3d g2o_solver_eigen g2o_csparse_extension
     )
     target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_G2O)
+endif()
+
+if(LITEVO_ENABLE_FBOW)
+    find_package(FBOW QUIET)
+    if(NOT FBOW_FOUND)
+        include(FetchContent)
+        FetchContent_Declare(fbow
+            GIT_REPOSITORY  https://github.com/rmsalinas/fbow.git
+            GIT_TAG         master
+        )
+        FetchContent_MakeAvailable(fbow)
+    endif()
+    if(TARGET FBOW::FBOW)
+        target_link_libraries(litevo_core PUBLIC FBOW::FBOW)
+        target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_FBOW)
+    endif()
 endif()

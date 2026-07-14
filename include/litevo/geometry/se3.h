@@ -64,10 +64,14 @@ namespace litevo::geometry {
 // ── Pose utilities ───────────────────────────────────────────────────────────
 
 /// @brief Extract the rotation matrix from an SE(3) transformation.
-[[nodiscard]] inline Mat3 Rotation(const SE3& T) { return T.rotation(); }
+[[nodiscard]] inline Mat3 Rotation(const SE3& T) {
+    return T.rotation();
+}
 
 /// @brief Extract the translation vector from an SE(3) transformation.
-[[nodiscard]] inline Vec3 Translation(const SE3& T) { return T.translation(); }
+[[nodiscard]] inline Vec3 Translation(const SE3& T) {
+    return T.translation();
+}
 
 /// @brief Extract the camera center (world position) from a camera pose.
 ///
@@ -77,7 +81,9 @@ namespace litevo::geometry {
 }
 
 /// @brief Convert world-to-camera to camera-to-world.
-[[nodiscard]] inline SE3 InvertPose(const SE3& T_cw) { return T_cw.inverse(); }
+[[nodiscard]] inline SE3 InvertPose(const SE3& T_cw) {
+    return T_cw.inverse();
+}
 
 /// @brief Compute the relative transformation between two poses.
 /// T_rel = T_wc2 * T_cw1 = T_wc2 * inv(T_wc1)
@@ -93,8 +99,7 @@ namespace litevo::geometry {
 }
 
 /// @brief Transform a batch of 3D points.
-inline void TransformPoints(const SE3& T_cw,
-                            const std::vector<Vec3>& points_w,
+inline void TransformPoints(const SE3& T_cw, const std::vector<Vec3>& points_w,
                             std::vector<Vec3>& points_c) {
     points_c.resize(points_w.size());
     for (size_t i = 0; i < points_w.size(); ++i) {

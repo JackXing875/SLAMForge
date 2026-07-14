@@ -10,10 +10,7 @@
 namespace litevo {
 
 FeatureGrid::FeatureGrid(int image_width, int image_height, int cell_size)
-    : width_(image_width)
-    , height_(image_height)
-    , cell_size_(cell_size)
-{
+    : width_(image_width), height_(image_height), cell_size_(cell_size) {
     grid_cols_ = static_cast<int>(std::ceil(static_cast<float>(width_) / cell_size_));
     grid_rows_ = static_cast<int>(std::ceil(static_cast<float>(height_) / cell_size_));
     grid_.resize(static_cast<size_t>(grid_cols_ * grid_rows_));
@@ -34,10 +31,8 @@ void FeatureGrid::Assign(const std::vector<cv::KeyPoint>& keypoints) {
     }
 }
 
-std::vector<int> FeatureGrid::GetCandidates(
-    float x, float y, float radius,
-    int min_level, int max_level) const {
-
+std::vector<int> FeatureGrid::GetCandidates(float x, float y, float radius, int min_level,
+                                            int max_level) const {
     std::vector<int> candidates;
 
     // Determine cell range to search
