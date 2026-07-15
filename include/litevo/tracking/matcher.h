@@ -75,10 +75,10 @@ public:
     /// @brief Compute Hamming distance between two ORB descriptors.
     [[nodiscard]] static int DescriptorDistance(const cv::Mat& desc_a, const cv::Mat& desc_b);
 
-private:
     /// @brief Filter matches by rotation histogram consistency.
     /// Keeps matches whose orientation difference falls into one of the
-    /// top 3 bins in the rotation histogram.
+    /// top 3 bins in the rotation histogram.  Exposed as a pure utility so
+    /// callers and regression tests can validate orientation matching.
     static std::vector<std::pair<int, int>> FilterByRotationHistogram(
         const std::vector<std::pair<int, int>>& matches, const std::vector<cv::KeyPoint>& kps1,
         const std::vector<cv::KeyPoint>& kps2);

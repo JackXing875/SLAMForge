@@ -31,9 +31,13 @@ namespace tracking {
 struct InitializationResult {
     bool success = false;
     SE3 Tcw;                                            ///< Pose of the second frame
+    std::shared_ptr<Frame> reference_frame;             ///< Exact frame used for matching
     std::vector<std::shared_ptr<MapPoint>> map_points;  ///< Triangulated landmark points
-    std::vector<int> match_indices_ref;                 ///< Feature indices in reference frame
-    std::vector<int> match_indices_cur;                 ///< Feature indices in current frame
+    /// Feature indices parallel to @c map_points.  Only geometrically valid
+    /// triangulations are included, so the three vectors always have equal
+    /// length.
+    std::vector<int> match_indices_ref;
+    std::vector<int> match_indices_cur;
     std::string model_used;                             ///< "Homography" or "Fundamental"
 };
 
@@ -66,7 +70,7 @@ public:
 
     /// @brief Process a frame for initialization.
     ///
-    /// First call (no reference frame): stores frame as reference.
+    /// First call (no reference frame): stores an exact copy of frame as reference.
     /// Second call: matches features, computes H+F, recovers pose,
     /// triangulates, and returns the result.
     ///

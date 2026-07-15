@@ -20,7 +20,14 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from trajectory_io import FORMAT_REGISTRY, align_trajectory, compute_ate, compute_rpe, load_trajectory
+from trajectory_io import (
+    FORMAT_REGISTRY,
+    align_trajectory,
+    associate_trajectories,
+    compute_ate,
+    compute_rpe,
+    load_trajectory_full,
+)
 
 
 def find_sequences(dataset_dir: Path, pattern: str = "*") -> list[Path]:
@@ -63,26 +70,32 @@ def run_slam(
 def evaluate_sequence(
     est_path: str,
     gt_path: str,
-    format: str = "tum",
+    estimated_format: str = "tum",
+    groundtruth_format: str = "tum",
+    max_time_difference: float = 0.02,
 ) -> dict:
     """Evaluate a single sequence: load, align, compute ATE + RPE."""
     try:
-        est = load_trajectory(est_path, format)
-        gt = load_trajectory(gt_path, format)
+        est, est_timestamps, _ = load_trajectory_full(est_path, estimated_format)
+        gt, gt_timestamps, _ = load_trajectory_full(gt_path, groundtruth_format)
+        est, gt = associate_trajectories(
+            est, est_timestamps, gt, gt_timestamps, max_time_difference
+        )
     except Exception as e:
         return {"error": str(e)}
 
-    min_len = min(len(est), len(gt))
-    est = est[:min_len]
-    gt = gt[:min_len]
+    min_len = len(est)
 
     if min_len < 2:
         return {"error": "Too few poses"}
 
-    est_aligned = align_trajectory(est, gt)
-    ate = compute_ate(est_aligned, gt)
-    rpe = compute_rpe(est_aligned, gt, delta=1)
-    rpe_10 = compute_rpe(est_aligned, gt, delta=10)
+    try:
+        est_aligned = align_trajectory(est, gt)
+        ate = compute_ate(est_aligned, gt)
+        rpe = compute_rpe(est_aligned, gt, delta=1)
+        rpe_10 = compute_rpe(est_aligned, gt, delta=10)
+    except ValueError as error:
+        return {"error": str(error)}
 
     return {
         "frames": min_len,
@@ -116,7 +129,23 @@ def main():
         "--format",
         choices=list(FORMAT_REGISTRY.keys()),
         default="tum",
-        help="Trajectory format for ground truth",
+        help="Default trajectory format for both estimate and ground truth",
+    )
+    parser.add_argument(
+        "--estimated-format",
+        choices=list(FORMAT_REGISTRY.keys()),
+        help="Estimated trajectory format (overrides --format)",
+    )
+    parser.add_argument(
+        "--groundtruth-format",
+        choices=list(FORMAT_REGISTRY.keys()),
+        help="Ground-truth trajectory format (overrides --format)",
+    )
+    parser.add_argument(
+        "--max-time-difference",
+        type=float,
+        default=0.02,
+        help="Maximum timestamp difference in seconds for TUM/EuRoC association",
     )
     parser.add_argument(
         "--litevo-bin",
@@ -147,6 +176,8 @@ def main():
         "--csv", default="benchmark_results.csv", help="Output CSV summary file"
     )
     args = parser.parse_args()
+    estimated_format = args.estimated_format or args.format
+    groundtruth_format = args.groundtruth_format or args.format
 
     dataset_dir = Path(args.dataset_dir)
     if not dataset_dir.is_dir():
@@ -194,6 +225,7 @@ def main():
             args.config,
             str(image_dir),
             str(traj_out),
+            ["--output-format", estimated_format],
         )
 
         if not ok:
@@ -204,7 +236,13 @@ def main():
         # Evaluate against ground truth
         gt_path = (seq_path / args.gt_subdir / args.gt_filename) if args.gt_subdir else (seq_path / args.gt_filename)
         if gt_path.exists():
-            eval_result = evaluate_sequence(str(traj_out), str(gt_path), args.format)
+            eval_result = evaluate_sequence(
+                str(traj_out),
+                str(gt_path),
+                estimated_format,
+                groundtruth_format,
+                args.max_time_difference,
+            )
             if "error" in eval_result:
                 print(f"DONE (eval error: {eval_result['error']})")
                 results.append({"sequence": seq_name, "status": "EVAL_ERROR", **eval_result})
@@ -261,7 +299,8 @@ def main():
         json.dump({
             "config": args.config,
             "dataset_dir": str(dataset_dir),
-            "format": args.format,
+            "estimated_format": estimated_format,
+            "groundtruth_format": groundtruth_format,
             "elapsed_s": total_elapsed,
             "results": results,
         }, f, indent=2)

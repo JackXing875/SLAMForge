@@ -28,6 +28,10 @@ namespace mapping {
 class LocalMapper;
 }
 
+namespace loop_closing {
+class LoopClosing;
+}
+
 namespace tracking {
 
 class FeatureMatcher;
@@ -49,8 +53,9 @@ enum class TrackingState : std::uint8_t {
 ///   4. Local map refinement
 ///   5. Relocalization on tracking loss
 ///
-/// Thread-safe for single-threaded use. Thread safety for multi-threaded
-/// operation (with Local Mapping) will be added in Phase 4.
+/// Track() has a single producer (the tracking thread).  Its map-graph access
+/// is synchronized with LocalMapper and LoopClosing so background correction
+/// and optimization cannot race keyframe pose/association updates.
 class Tracker {
 public:
     /// @param camera      Camera model (shared, read-only).
@@ -90,6 +95,13 @@ public:
     /// @brief Get the local mapper, or nullptr if none set.
     mapping::LocalMapper* GetLocalMapper() const { return local_mapper_; }
 
+    /// @brief Set the loop-closure worker to receive newly created keyframes.
+    /// The worker remains externally owned.
+    void SetLoopClosing(loop_closing::LoopClosing* loop_closing) {
+        loop_closing_ = loop_closing;
+    }
+    loop_closing::LoopClosing* GetLoopClosing() const { return loop_closing_; }
+
 private:
     // ── Configuration ──────────────────────────────────────────────────────
 
@@ -122,6 +134,7 @@ private:
     bool is_new_keyframe_ = false;
 
     mapping::LocalMapper* local_mapper_ = nullptr;
+    loop_closing::LoopClosing* loop_closing_ = nullptr;
 
     // ── Tracking sub-methods ───────────────────────────────────────────────
 
@@ -149,6 +162,9 @@ private:
 
     /// @brief Clean map points that haven't been found recently.
     void CleanMapPoints();
+
+    /// @brief Register the observations represented by a newly added keyframe.
+    void RegisterKeyFrameObservations(const std::shared_ptr<KeyFrame>& keyframe);
 
     /// @brief Run PnP with RANSAC + refinement on 3D-2D correspondences.
     bool EstimatePose(const std::vector<cv::Point3f>& pts_3d,

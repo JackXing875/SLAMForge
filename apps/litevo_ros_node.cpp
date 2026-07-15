@@ -88,7 +88,32 @@ public:
         local_mapper_ = std::make_unique<litevo::mapping::LocalMapper>(
             tracker_->GetMap(), camera_, cfg.mapping, *mapper_extractor_);
         tracker_->SetLocalMapper(local_mapper_.get());
+
+        // ── Create loop closer (optional) ───────────────────────────────
+        if (cfg.loop_closing.enabled) {
+            loop_closing_ = std::make_unique<litevo::loop_closing::LoopClosing>(
+                tracker_->GetMap(), camera_, cfg.loop_closing);
+
+            if (!cfg.loop_closing.vocab_path.empty()) {
+                if (!loop_closing_->LoadVocabulary(cfg.loop_closing.vocab_path)) {
+                    RCLCPP_ERROR(this->get_logger(),
+                                 "Failed to load loop-closing vocabulary: %s",
+                                 cfg.loop_closing.vocab_path.c_str());
+                    loop_closing_.reset();
+                    rclcpp::shutdown();
+                    return;
+                }
+            } else {
+                RCLCPP_WARN(this->get_logger(),
+                            "Loop closing enabled without vocab_path; using descriptor fallback");
+            }
+
+            tracker_->SetLoopClosing(loop_closing_.get());
+        }
         local_mapper_->Start();
+        if (loop_closing_) {
+            loop_closing_->Start();
+        }
 
         // ── Subscribers ─────────────────────────────────────────────────
         image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
@@ -126,6 +151,12 @@ public:
     }
 
     ~LiteVONode() override {
+        if (loop_closing_) {
+            loop_closing_->Stop();
+            if (tracker_) {
+                tracker_->SetLoopClosing(nullptr);
+            }
+        }
         if (local_mapper_) {
             local_mapper_->Stop();
         }
@@ -350,6 +381,7 @@ private:
     std::unique_ptr<litevo::tracking::Tracker> tracker_;
     std::unique_ptr<litevo::features::OrbExtractor> mapper_extractor_;
     std::unique_ptr<litevo::mapping::LocalMapper> local_mapper_;
+    std::unique_ptr<litevo::loop_closing::LoopClosing> loop_closing_;
 
     // ── ROS2 communication ──────────────────────────────────────────────
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;

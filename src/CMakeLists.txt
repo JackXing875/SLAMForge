@@ -87,6 +87,12 @@ add_library(litevo_core STATIC
     ${LITEVO_CORE_HEADERS}
 )
 
+# The Python extension links litevo_core into a shared module.  Building the
+# archive as PIC keeps that link valid on ELF and Mach-O platforms.
+if(LITEVO_BUILD_PYBIND)
+    set_target_properties(litevo_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+endif()
+
 # Include directories
 target_include_directories(litevo_core
     PUBLIC
@@ -118,9 +124,17 @@ if(LITEVO_ENABLE_SPDLOG AND TARGET spdlog::spdlog)
     target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_SPDLOG)
 endif()
 
-if(LITEVO_ENABLE_YAML AND TARGET yaml-cpp::yaml-cpp)
-    target_link_libraries(litevo_core PUBLIC yaml-cpp::yaml-cpp)
-    target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_YAML_CPP)
+if(LITEVO_ENABLE_YAML)
+    # yaml-cpp 0.7 packages commonly export `yaml-cpp`, while newer builds
+    # export `yaml-cpp::yaml-cpp`.  Support both so distro packages enable the
+    # configuration system instead of silently compiling its fallback path.
+    if(TARGET yaml-cpp::yaml-cpp)
+        target_link_libraries(litevo_core PUBLIC yaml-cpp::yaml-cpp)
+        target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_YAML_CPP)
+    elseif(TARGET yaml-cpp)
+        target_link_libraries(litevo_core PUBLIC yaml-cpp)
+        target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_YAML_CPP)
+    endif()
 endif()
 
 if(LITEVO_ENABLE_CERES AND TARGET Ceres::ceres)

@@ -6,13 +6,24 @@ on:
     tags: ['v*']
     paths:
       - 'docker/**'
+      - 'apps/**'
+      - 'cmake/**'
+      - 'config/**'
       - 'include/**'
       - 'src/**'
+      - 'tools/**'
       - 'CMakeLists.txt'
   pull_request:
     branches: [main]
     paths:
       - 'docker/**'
+      - 'apps/**'
+      - 'cmake/**'
+      - 'config/**'
+      - 'include/**'
+      - 'src/**'
+      - 'tools/**'
+      - 'CMakeLists.txt'
   workflow_dispatch:
 
 env:
@@ -52,6 +63,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
+            type=raw,value=litevo-ci,enable=${{ github.event_name == 'pull_request' }}
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
@@ -59,7 +71,12 @@ jobs:
           context: .
           file: docker/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Smoke test CLI in image
+        if: github.event_name == 'pull_request'
+        run: docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:litevo-ci --help

@@ -17,6 +17,7 @@
 #include <pybind11/numpy.h>
 
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <optional>
 #include <string>
@@ -47,16 +48,25 @@ static cv::Mat ArrayToGray(py::array_t<uint8_t>& arr) {
                    CV_8UC1, info.ptr);
 }
 
-/// Convert a cv::Mat (CV_8UC1) to a read-only numpy array that borrows
-/// the Mat's data. The cv::Mat must outlive the returned py::array.
-static py::array MatToNumpy(const cv::Mat& m) {
+/// Convert a CV_8UC1 cv::Mat to an owning numpy array.
+///
+/// Descriptor accessors often return a temporary cv::Mat header; borrowing
+/// its storage would leave Python with a dangling buffer once that header is
+/// destroyed.  Copying the small ORB descriptor matrix keeps the Python API
+/// memory-safe and also handles non-contiguous OpenCV rows.
+static py::object MatToNumpy(const cv::Mat& m) {
     if (m.empty()) return py::none();
-    return py::array_t<uint8_t>(
-        {m.rows, m.cols},
-        {static_cast<ssize_t>(m.step[0]), static_cast<ssize_t>(m.step[1])},
-        m.ptr<uint8_t>(),
-        py::none()  // no base object — caller must keep Mat alive
-    );
+    if (m.type() != CV_8UC1 || m.dims != 2) {
+        throw std::runtime_error("Expected a 2-D CV_8UC1 matrix");
+    }
+
+    py::array_t<uint8_t> result({m.rows, m.cols});
+    auto* output = result.mutable_data();
+    for (int row = 0; row < m.rows; ++row) {
+        std::memcpy(output + static_cast<size_t>(row) * static_cast<size_t>(m.cols),
+                    m.ptr<uint8_t>(row), static_cast<size_t>(m.cols));
+    }
+    return result;
 }
 
 /// Convert an SE3 to a 4x4 Eigen matrix (numpy-compatible).
@@ -478,7 +488,8 @@ PYBIND11_MODULE(_litevo, m) {
         .def("reset_found", &litevo::MapPoint::ResetFound)
         .def_property_readonly("visible_count", &litevo::MapPoint::VisibleCount)
         .def("increase_visible", &litevo::MapPoint::IncreaseVisible, py::arg("n") = 1)
-        .def("is_bad", &litevo::MapPoint::IsBad, py::arg("min_observations") = 3)
+        .def("is_bad", &litevo::MapPoint::IsBad)
+        .def("set_bad", &litevo::MapPoint::SetBad, py::arg("bad") = true)
         .def("get_found_ratio", &litevo::MapPoint::GetFoundRatio)
         .def("is_erase_ready", &litevo::MapPoint::IsEraseReady,
              py::arg("min_observations") = 3)

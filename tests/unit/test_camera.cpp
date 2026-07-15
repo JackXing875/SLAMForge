@@ -115,3 +115,20 @@ TEST_F(CameraTest, NoDistortionIdentity) {
     EXPECT_NEAR(distorted.x(), norm.x(), 1e-12);
     EXPECT_NEAR(distorted.y(), norm.y(), 1e-12);
 }
+
+TEST_F(CameraTest, UndistortedProjectionMatchesFeatureCoordinateSystem) {
+    Camera cam_dist(458.654, 457.296, 367.215, 248.375, 752, 480);
+    cam_dist.SetDistortion(-0.28340811, 0.07395907, 0.00019359, 1.76187114e-05, 0.0);
+
+    const Vec3 point_cam(1.0, 0.5, 4.0);
+    const Vec2 undistorted = cam_dist.ProjectUndistorted(point_cam);
+    const Vec2 distorted = cam_dist.Project(point_cam);
+
+    EXPECT_NEAR(undistorted.x(), cam_dist.cx() + cam_dist.fx() * 0.25, 1e-9);
+    EXPECT_NEAR(undistorted.y(), cam_dist.cy() + cam_dist.fy() * 0.125, 1e-9);
+    EXPECT_GT((undistorted - distorted).norm(), 1e-3);
+
+    SE3 T_cw = SE3::Identity();
+    EXPECT_NEAR((cam_dist.ProjectWorldUndistorted(point_cam, T_cw) - undistorted).norm(), 0.0,
+                1e-12);
+}

@@ -17,7 +17,7 @@
 # Docker 构建（无需安装任何依赖）
 docker build -t litevo -f docker/Dockerfile .
 docker run --rm -v /path/to/images:/images -v $PWD/output:/output \
-    litevo run --config config/kitti.yaml --input /images --output /output/traj.txt
+    litevo run --config /opt/litevo/config/kitti.yaml --input /images --output /output/traj.txt
 
 # 本地构建 (Ubuntu 22.04)
 sudo apt-get install -y libopencv-dev libeigen3-dev libspdlog-dev libyaml-cpp-dev
@@ -110,6 +110,10 @@ python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
 ```bash
 # 对图片目录运行 SLAM
 litevo_cli run --config config/kitti.yaml --input /data/images --output traj.txt
+
+# 对 TUM/EuRoC 图片序列保留原始时间戳
+litevo_cli run --config config/euroc.yaml --input /data/images \
+    --timestamps /data/timestamps.txt --output traj.txt
 
 # 对视频文件运行 SLAM
 litevo_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30

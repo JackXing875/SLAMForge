@@ -8,6 +8,7 @@
 
 #include <opencv2/core/mat.hpp>
 
+#include <atomic>
 #include <mutex>
 #include <set>
 #include <vector>
@@ -48,38 +49,52 @@ public:
 
     // ── Normal (average viewing direction) ─────────────────────────────────
 
-    const Vec3& Normal() const { return normal_; }
+    Vec3 Normal() const;
 
     /// @brief Recompute the normal as the average of all viewing directions.
     void UpdateNormal(const Vec3& camera_center);
 
     // ── Descriptor ─────────────────────────────────────────────────────────
 
-    const cv::Mat& Descriptor() const { return descriptor_; }
+    /// @brief Thread-safe shallow copy of the representative descriptor.
+    ///
+    /// cv::Mat uses reference-counted storage, so returning a copy of its
+    /// header keeps the descriptor data alive while avoiding an unnecessary
+    /// deep copy on every matching operation.
+    cv::Mat Descriptor() const;
     void SetDescriptor(const cv::Mat& desc);
 
     // ── Observations ───────────────────────────────────────────────────────
 
-    int Observations() const { return observations_; }
+    int Observations() const;
     void AddObservation(FrameId frame_id);
     void EraseObservation(FrameId frame_id);
 
     /// @brief Reference frame that created this point.
-    FrameId ReferenceFrame() const { return reference_frame_; }
+    FrameId ReferenceFrame() const;
 
     // ── Tracking bookkeeping ───────────────────────────────────────────────
 
     /// @brief Mark as observed in the current frame's local map search.
-    void SetObserved(bool val) { is_observed_ = val; }
-    bool IsObserved() const { return is_observed_; }
+    void SetObserved(bool val);
+    bool IsObserved() const;
+
+    /// @brief Mark observed exactly once for the current frame.
+    /// @return true when this call changed the flag from false to true.
+    bool MarkObserved();
 
     /// @brief Mark as found (matched) in the current frame.
-    void SetFound(bool val) { is_found_ = val; }
-    bool IsFound() const { return is_found_; }
+    void SetFound(bool val);
+    bool IsFound() const;
 
-    int FoundCount() const { return found_count_; }
-    void IncreaseFound(int n = 1) { found_count_ += n; }
-    void ResetFound() { found_count_ = 0; }
+    int FoundCount() const;
+    void IncreaseFound(int n = 1);
+
+    /// @brief Clear the per-frame match flag without discarding quality history.
+    ///
+    /// The old implementation reset @c found_count_ here once per input frame,
+    /// which made the found-ratio culling policy meaningless.
+    void ResetFound();
 
     // ── Fusion ───────────────────────────────────────────────────────────────
 
@@ -93,12 +108,19 @@ public:
     void Replace(MapPoint* other);
 
     /// @brief Set the reference frame (used after loop correction).
-    void SetReferenceFrame(FrameId ref_frame) { reference_frame_ = ref_frame; }
+    void SetReferenceFrame(FrameId ref_frame);
 
     // ── Quality ────────────────────────────────────────────────────────────
 
-    /// @brief Whether the point should be culled (too few observations).
-    bool IsBad(int min_observations = 3) const { return observations_ < min_observations; }
+    /// @brief Whether the point has been explicitly invalidated.
+    ///
+    /// A fresh monocular landmark is initially observed by exactly two
+    /// keyframes.  Treating fewer than three observations as "bad" makes every
+    /// valid initialization point unusable before it can be tracked again.
+    /// Low-observation points are instead handled by IsEraseReady after a
+    /// grace period and quality checks.
+    bool IsBad() const;
+    void SetBad(bool bad = true);
 
     /// @brief Fraction of frames where this map point was found vs predicted.
     /// Used by LocalMapper for culling decisions.
@@ -109,12 +131,12 @@ public:
     bool IsEraseReady(int min_observations = 3) const;
 
     /// @brief Track how many times it was predicted to be visible.
-    void IncreaseVisible(int n = 1) { visible_count_ += n; }
-    int VisibleCount() const { return visible_count_; }
+    void IncreaseVisible(int n = 1);
+    int VisibleCount() const;
 
     /// @brief Frames since creation (for recent-point culling policy).
-    int FramesSinceCreation() const { return frames_since_creation_; }
-    void IncrementFrame() { frames_since_creation_++; }
+    int FramesSinceCreation() const;
+    void IncrementFrame();
 
     // ── Scale prediction ───────────────────────────────────────────────────
 
@@ -127,7 +149,8 @@ public:
 
     // ── Static ─────────────────────────────────────────────────────────────
 
-    static void ResetIdCounter() { next_id_ = 0; }
+    /// @brief Reset IDs while preserving 0 as the invalid MapPointId sentinel.
+    static void ResetIdCounter() { next_id_.store(1, std::memory_order_relaxed); }
 
 private:
     MapPointId id_;
@@ -138,6 +161,7 @@ private:
 
     int observations_ = 0;
     std::set<FrameId> observed_by_;
+    bool is_bad_ = false;
 
     // Tracking bookkeeping
     bool is_observed_ = false;
@@ -148,12 +172,13 @@ private:
 
     // Thread safety
     mutable std::mutex pos_mutex_;
+    mutable std::mutex data_mutex_;
 
     // Distance parameters for scale prediction
     float max_distance_ = 0;
     float min_distance_ = 0;
 
-    static uint64_t next_id_;
+    static std::atomic<uint64_t> next_id_;
 };
 
 }  // namespace litevo

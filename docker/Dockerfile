@@ -5,7 +5,9 @@
 #   docker build -t litevo -f docker/Dockerfile .
 #
 # Run:
-#   docker run --rm -v $(pwd)/data:/workspace/data litevo litevo_cli
+#   docker run --rm -v $(pwd)/data:/images -v $(pwd)/output:/output \
+#       litevo run --config /opt/litevo/config/kitti.yaml --input /images \
+#       --output /output/trajectory.txt
 
 FROM ubuntu:22.04
 
@@ -21,25 +23,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     unzip \
     ccache \
-    # OpenCV
     libopencv-dev \
-    # Eigen3
     libeigen3-dev \
-    # spdlog
     libspdlog-dev \
-    # yaml-cpp
     libyaml-cpp-dev \
-    # BLAS/LAPACK (for Ceres & g2o)
     libblas-dev \
     liblapack-dev \
     libsuitesparse-dev \
-    # Google Log (for Ceres)
     libgoogle-glog-dev \
-    # Python for tools
     python3 \
     python3-pip \
     python3-venv \
-    # Clean up
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -108,7 +102,7 @@ RUN cmake .. \
     && make -j$(nproc)
 
 # ── Install ───────────────────────────────────────────────────────────────────
-RUN make install
+RUN cmake --install .
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 WORKDIR /workspace

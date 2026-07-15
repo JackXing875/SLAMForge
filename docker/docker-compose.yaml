@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   litevo:
     build:
@@ -9,15 +7,15 @@ services:
     container_name: litevo_slam
     volumes:
       # Mount your dataset directory
-      - ${DATASET_DIR:-./datasets}:/datasets:ro
+      - ${DATASET_DIR:-../datasets}:/datasets:ro
       # Mount output directory for trajectories and maps
-      - ${OUTPUT_DIR:-./output}:/output
+      - ${OUTPUT_DIR:-../output}:/output
       # Mount custom configs
-      - ${CONFIG_DIR:-./config}:/config:ro
+      - ${CONFIG_DIR:-../config}:/config:ro
     working_dir: /workspace
     # Default: run LiteVO on a KITTI sequence
     command: >
-      litevo_cli run
+      run
       --config /config/kitti.yaml
       --input /datasets/kitti/00/image_0
       --output /output/trajectory.txt

@@ -42,6 +42,10 @@ cmake --build build -j$(nproc)
 # 4. Run
 ./build/apps/litevo_cli run --config config/kitti.yaml \
     --input /path/to/images --output traj.txt
+
+# Supply timestamps for TUM/EuRoC-style image sequences when available
+./build/apps/litevo_cli run --config config/euroc.yaml \
+    --input /path/to/images --timestamps /path/to/timestamps.txt --output traj.txt
 ```
 
 ## Prepare Your Data

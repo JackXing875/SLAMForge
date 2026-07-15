@@ -51,6 +51,9 @@ public:
                   std::shared_ptr<KeyFrame> loop_kf_matched, const SE3& relative_pose,
                   const Mat6& information);
 
+    /// @brief Optimizer settings in effect for this instance.
+    const PoseGraphConfig& Config() const noexcept { return config_; }
+
 private:
     PoseGraphConfig config_;
 };

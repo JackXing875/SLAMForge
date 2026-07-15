@@ -1,0 +1,219 @@
+// =============================================================================
+// Loop-closing worker lifecycle tests
+// =============================================================================
+
+#include <gtest/gtest.h>
+
+#include <opencv2/imgproc.hpp>
+
+#include <memory>
+
+#include "litevo/core/camera.h"
+#include "litevo/core/config.h"
+#include "litevo/core/keyframe.h"
+#include "litevo/core/map.h"
+#include "litevo/core/map_point.h"
+#include "litevo/features/orb_extractor.h"
+#include "litevo/loop_closing/corrector.h"
+#include "litevo/loop_closing/global_ba.h"
+#include "litevo/loop_closing/loop_closing.h"
+#include "litevo/mapping/local_mapper.h"
+
+namespace litevo {
+namespace {
+
+Camera MakeCamera() {
+    Camera::CameraParams params{500.0, 500.0, 320.0, 240.0, 0.0, 0.0, 0.0, 0.0,
+                                0.0,   640,   480};
+    return Camera::FromParams(params);
+}
+
+std::shared_ptr<KeyFrame> MakeKeyFrame(const Camera& camera,
+                                       features::OrbExtractor& extractor) {
+    cv::Mat image(480, 640, CV_8UC1, cv::Scalar(128));
+    cv::rectangle(image, cv::Rect(80, 80, 160, 160), cv::Scalar(255), -1);
+    cv::circle(image, cv::Point(420, 260), 70, cv::Scalar(0), -1);
+    auto keyframe = std::make_shared<KeyFrame>(image, 0.0, extractor, camera);
+    keyframe->SetPose(SE3::Identity());
+    return keyframe;
+}
+
+}  // namespace
+
+TEST(LoopClosingTest, QueuesKeyframesAndCanRestartAfterStop) {
+    const Camera camera = MakeCamera();
+    Map map;
+
+    features::OrbExtractor::Options extractor_options;
+    extractor_options.num_features = 200;
+    features::OrbExtractor extractor(extractor_options);
+
+    auto keyframe = MakeKeyFrame(camera, extractor);
+    map.AddKeyFrame(keyframe);
+
+    LoopClosingConfig config;
+    config.min_similarity_score = 0.71;
+    config.min_consecutive_loops = 2;
+    config.pose_graph_iterations = 7;
+    config.enable_global_ba = false;
+
+    loop_closing::LoopClosing loop_closing(map, camera, config);
+    EXPECT_FALSE(loop_closing.IsRunning());
+    EXPECT_FALSE(loop_closing.IsFinished());
+    EXPECT_FALSE(loop_closing.LoadVocabulary(""));
+    EXPECT_DOUBLE_EQ(loop_closing.DetectorSettings().min_score,
+                     config.min_similarity_score);
+    EXPECT_EQ(loop_closing.DetectorSettings().min_consecutive,
+              config.min_consecutive_loops);
+    EXPECT_EQ(loop_closing.PoseGraphSettings().max_iterations,
+              config.pose_graph_iterations);
+
+    loop_closing.InsertKeyFrame(keyframe);
+    EXPECT_EQ(loop_closing.QueueSize(), 1);
+
+    loop_closing.Start();
+    loop_closing.Stop();
+    EXPECT_FALSE(loop_closing.IsRunning());
+    EXPECT_TRUE(loop_closing.IsFinished());
+    EXPECT_EQ(loop_closing.QueueSize(), 0);
+
+    // A completed worker remains joinable until joined.  This used to cause
+    // std::terminate when Start() assigned a replacement std::thread.
+    EXPECT_NO_THROW(loop_closing.Start());
+    EXPECT_NO_THROW(loop_closing.Stop());
+    EXPECT_TRUE(loop_closing.IsFinished());
+}
+
+TEST(LoopClosingTest, MapperAndLoopWorkerSerializeSharedGraphAccess) {
+    const Camera camera = MakeCamera();
+    Map map;
+    features::OrbExtractor::Options extractor_options;
+    extractor_options.num_features = 200;
+    features::OrbExtractor extractor(extractor_options);
+    auto keyframe = MakeKeyFrame(camera, extractor);
+    map.AddKeyFrame(keyframe);
+
+    MappingConfig mapping_config;
+    mapping::LocalMapper mapper(map, camera, mapping_config, extractor);
+    LoopClosingConfig loop_config;
+    loop_config.enable_global_ba = false;
+    loop_closing::LoopClosing loop_closing(map, camera, loop_config);
+
+    mapper.Start();
+    loop_closing.Start();
+    mapper.InsertKeyFrame(keyframe);
+    loop_closing.InsertKeyFrame(keyframe);
+
+    // Both workers use the same KeyFrame and Map. Stop drains their queued
+    // work before joining, so this regression exercises the map graph lock
+    // instead of merely starting idle threads.
+    loop_closing.Stop();
+    mapper.Stop();
+
+    EXPECT_TRUE(loop_closing.IsFinished());
+    EXPECT_TRUE(mapper.IsFinished());
+    EXPECT_EQ(loop_closing.QueueSize(), 0);
+    EXPECT_EQ(mapper.QueueSize(), 0);
+}
+
+TEST(GlobalBundleAdjusterTest, StopAndRestartAreSafe) {
+    const Camera camera = MakeCamera();
+    Map map;
+    loop_closing::GlobalBundleAdjuster adjuster;
+    loop_closing::GlobalBAConfig config;
+    config.max_iterations = 1;
+
+    EXPECT_FALSE(adjuster.IsRunning());
+    EXPECT_FALSE(adjuster.IsFinished());
+    EXPECT_NO_THROW(adjuster.Stop());
+
+    // An empty map makes Ceres return immediately when available; this test
+    // also covers the no-Ceres implementation used by the lightweight CI.
+    EXPECT_NO_THROW(adjuster.Start(map, camera, config));
+    EXPECT_NO_THROW(adjuster.Stop());
+    EXPECT_FALSE(adjuster.IsRunning());
+    EXPECT_TRUE(adjuster.IsFinished());
+
+    EXPECT_NO_THROW(adjuster.Start(map, camera, config));
+    EXPECT_NO_THROW(adjuster.Stop());
+    EXPECT_FALSE(adjuster.IsRunning());
+    EXPECT_TRUE(adjuster.IsFinished());
+}
+
+TEST(LoopCorrectorTest, PropagatesFromUncorrectedRelativePoses) {
+    const Camera camera = MakeCamera();
+    features::OrbExtractor::Options extractor_options;
+    extractor_options.num_features = 200;
+    features::OrbExtractor extractor(extractor_options);
+    Map map;
+
+    auto current = MakeKeyFrame(camera, extractor);
+    auto matched = MakeKeyFrame(camera, extractor);
+    map.AddKeyFrame(current);
+    map.AddKeyFrame(matched);
+
+    SE3 current_pose = SE3::Identity();
+    current_pose.translation() = Vec3(1.0, 0.0, 0.0);
+    current->SetPose(current_pose);
+    SE3 matched_pose = SE3::Identity();
+    matched_pose.translation() = Vec3(5.0, 0.0, 0.0);
+    matched->SetPose(matched_pose);
+    current->AddConnection(matched.get(), 10);
+
+    geometry::Sim3 correction;
+    correction.t = Vec3(2.0, 0.0, 0.0);
+    loop_closing::LoopCorrector corrector;
+    corrector.CorrectLoop(current, matched, correction, {}, {}, {}, map);
+
+    // Current moves by +2.  The neighbour's original relative transform is
+    // +4, so it must land at +7.  Computing that relative transform after
+    // current has already changed was the regression and incorrectly kept it
+    // at +5.
+    EXPECT_NEAR(current->Pose().translation().x(), 3.0, 1e-12);
+    EXPECT_NEAR(matched->Pose().translation().x(), 7.0, 1e-12);
+}
+
+TEST(LoopCorrectorTest, FusionRedirectsEveryKeyFrameToSurvivingPoint) {
+    const Camera camera = MakeCamera();
+    features::OrbExtractor::Options extractor_options;
+    extractor_options.num_features = 200;
+    features::OrbExtractor extractor(extractor_options);
+    Map map;
+    MapPoint::ResetIdCounter();
+
+    auto current = MakeKeyFrame(camera, extractor);
+    auto matched = MakeKeyFrame(camera, extractor);
+    auto unrelated = MakeKeyFrame(camera, extractor);
+    ASSERT_GT(current->NumKeyPoints(), 0);
+    ASSERT_GT(matched->NumKeyPoints(), 0);
+    ASSERT_GT(unrelated->NumKeyPoints(), 0);
+    map.AddKeyFrame(current);
+    map.AddKeyFrame(matched);
+    map.AddKeyFrame(unrelated);
+
+    auto absorbed = map.AddMapPoint(Vec3(0.0, 0.0, 5.0), current->Id());
+    auto survivor = map.AddMapPoint(Vec3(0.01, 0.0, 5.0), matched->Id());
+    const cv::Mat descriptor = cv::Mat::zeros(1, 32, CV_8UC1);
+    absorbed->SetDescriptor(descriptor);
+    survivor->SetDescriptor(descriptor);
+    absorbed->AddObservation(current->Id());
+    survivor->AddObservation(matched->Id());
+    survivor->AddObservation(unrelated->Id());
+
+    current->SetMapPointId(0, absorbed->Id());
+    matched->SetMapPointId(0, survivor->Id());
+    // This KF is outside loop_kfs; it used to retain a bad-point association.
+    unrelated->SetMapPointId(0, absorbed->Id());
+
+    loop_closing::LoopCorrector corrector;
+    corrector.CorrectLoop(current, matched, geometry::Sim3::Identity(), {},
+                          {absorbed->Id()}, {}, map);
+
+    EXPECT_TRUE(absorbed->IsBad());
+    EXPECT_FALSE(survivor->IsBad());
+    EXPECT_EQ(current->MapPointIdAt(0), survivor->Id());
+    EXPECT_EQ(matched->MapPointIdAt(0), survivor->Id());
+    EXPECT_EQ(unrelated->MapPointIdAt(0), survivor->Id());
+}
+
+}  // namespace litevo

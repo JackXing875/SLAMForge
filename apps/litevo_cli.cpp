@@ -15,13 +15,25 @@
 #include <opencv2/videoio.hpp>
 
 #include <algorithm>
+#include <cmath>
+#include <cstdlib>
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <memory>
+#include <numeric>
+#include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <vector>
+
+#ifndef _WIN32
+#include <sys/wait.h>
+#endif
 
 #include "litevo/litevo.h"
 
@@ -33,6 +45,45 @@ namespace fs = std::filesystem;
 
 namespace {
 
+fs::path executable_directory;
+
+/// Resolve the binary directory even when the command was found through PATH.
+/// The installed Python evaluation tools are located relative to this path.
+fs::path ResolveExecutableDirectory(const char* argv0) {
+    std::error_code error;
+    const fs::path invocation = argv0 ? fs::path(argv0) : fs::path{};
+    if (!invocation.empty() && invocation.has_parent_path()) {
+        const fs::path absolute = fs::absolute(invocation, error);
+        if (!error) {
+            return absolute.parent_path();
+        }
+    }
+
+    const char* path_value = std::getenv("PATH");
+    if (path_value != nullptr && !invocation.empty()) {
+#ifdef _WIN32
+        constexpr char path_separator = ';';
+#else
+        constexpr char path_separator = ':';
+#endif
+        std::istringstream path_entries(path_value);
+        std::string directory;
+        while (std::getline(path_entries, directory, path_separator)) {
+            const fs::path candidate = fs::path(directory.empty() ? "." : directory) / invocation;
+            if (fs::is_regular_file(candidate, error) && !error) {
+                const fs::path absolute = fs::absolute(candidate, error);
+                if (!error) {
+                    return absolute.parent_path();
+                }
+            }
+            error.clear();
+        }
+    }
+
+    const fs::path working_directory = fs::current_path(error);
+    return error ? fs::path{} : working_directory;
+}
+
 /// Check whether a file path has a recognized video extension.
 bool IsVideoFile(const std::string& path) {
     std::string ext = fs::path(path).extension().string();
@@ -40,20 +91,147 @@ bool IsVideoFile(const std::string& path) {
     return ext == ".mp4" || ext == ".avi" || ext == ".mov" || ext == ".mkv" || ext == ".m4v";
 }
 
-/// Collect and sort image paths from a directory.
-std::vector<std::string> GetImagePaths(const std::string& dir_path) {
-    std::vector<std::string> paths;
-    for (const auto& entry : fs::directory_iterator(dir_path)) {
-        if (!entry.is_regular_file())
+/// Collect and sort image paths from a directory without allowing filesystem
+/// exceptions to terminate the CLI on an inaccessible input directory.
+bool GetImagePaths(const std::string& dir_path, std::vector<std::string>& paths,
+                   std::string& error) {
+    paths.clear();
+    std::error_code filesystem_error;
+    if (!fs::is_directory(dir_path, filesystem_error)) {
+        error = filesystem_error ? "cannot access input directory '" + dir_path + "': " +
+                                       filesystem_error.message()
+                                 : "input must be an image directory or video file";
+        return false;
+    }
+
+    fs::directory_iterator iterator(dir_path, filesystem_error);
+    const fs::directory_iterator end;
+    if (filesystem_error) {
+        error = "cannot enumerate input directory '" + dir_path + "': " +
+                filesystem_error.message();
+        return false;
+    }
+
+    while (iterator != end) {
+        const fs::directory_entry entry = *iterator;
+        const bool is_regular = entry.is_regular_file(filesystem_error);
+        if (filesystem_error) {
+            error = "cannot inspect input entry '" + entry.path().string() + "': " +
+                    filesystem_error.message();
+            return false;
+        }
+        if (!is_regular) {
+            iterator.increment(filesystem_error);
+            if (filesystem_error) {
+                error = "cannot enumerate input directory '" + dir_path + "': " +
+                        filesystem_error.message();
+                return false;
+            }
             continue;
+        }
         std::string ext = entry.path().extension().string();
         std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
         if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".bmp" || ext == ".ppm") {
             paths.push_back(entry.path().string());
         }
+        iterator.increment(filesystem_error);
+        if (filesystem_error) {
+            error = "cannot enumerate input directory '" + dir_path + "': " +
+                    filesystem_error.message();
+            return false;
+        }
     }
     std::sort(paths.begin(), paths.end());
-    return paths;
+    return true;
+}
+
+/// Normalize timestamp units at the input boundary.  EuRoC CSV files use
+/// nanoseconds, while Frame and the CLI use seconds.
+double TimestampSeconds(double timestamp) {
+    return std::abs(timestamp) > 1e12 ? timestamp * 1e-9 : timestamp;
+}
+
+/// Load timestamps for an image sequence.
+///
+/// Accepted records are either ``timestamp`` (one record per sorted image) or
+/// ``timestamp filename`` / ``timestamp,filename``.  The latter supports the
+/// standard TUM rgb.txt and EuRoC data.csv layouts, including relative paths.
+bool LoadImageTimestamps(const std::string& path, const std::vector<std::string>& image_paths,
+                         std::vector<double>& timestamps, std::string& error) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        error = "cannot open timestamp file '" + path + "'";
+        return false;
+    }
+
+    std::vector<double> ordered_timestamps;
+    std::unordered_map<std::string, double> timestamps_by_name;
+    std::string line;
+    int line_number = 0;
+
+    while (std::getline(file, line)) {
+        ++line_number;
+        const auto first = line.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos || line[first] == '#') {
+            continue;
+        }
+
+        std::replace(line.begin(), line.end(), ',', ' ');
+        std::istringstream record(line);
+        std::string timestamp_token;
+        std::string filename;
+        if (!(record >> timestamp_token)) {
+            continue;
+        }
+
+        double timestamp = 0.0;
+        try {
+            size_t parsed = 0;
+            timestamp = std::stod(timestamp_token, &parsed);
+            if (parsed != timestamp_token.size()) {
+                throw std::invalid_argument("trailing characters");
+            }
+        } catch (const std::exception&) {
+            error = "invalid timestamp at " + path + ":" + std::to_string(line_number);
+            return false;
+        }
+        if (!std::isfinite(timestamp)) {
+            error = "non-finite timestamp at " + path + ":" + std::to_string(line_number);
+            return false;
+        }
+
+        timestamp = TimestampSeconds(timestamp);
+        if (record >> filename) {
+            timestamps_by_name[fs::path(filename).filename().string()] = timestamp;
+        } else {
+            ordered_timestamps.push_back(timestamp);
+        }
+    }
+
+    if (!timestamps_by_name.empty()) {
+        if (!ordered_timestamps.empty()) {
+            error = "timestamp file mixes named and positional records: '" + path + "'";
+            return false;
+        }
+        timestamps.reserve(image_paths.size());
+        for (const auto& image_path : image_paths) {
+            const auto it = timestamps_by_name.find(fs::path(image_path).filename().string());
+            if (it == timestamps_by_name.end()) {
+                error = "no timestamp for image '" + image_path + "' in '" + path + "'";
+                return false;
+            }
+            timestamps.push_back(it->second);
+        }
+        return true;
+    }
+
+    if (ordered_timestamps.size() != image_paths.size()) {
+        error = "timestamp count (" + std::to_string(ordered_timestamps.size()) +
+                ") does not match image count (" + std::to_string(image_paths.size()) + ")";
+        return false;
+    }
+    timestamps = std::move(ordered_timestamps);
+    return true;
 }
 
 }  // anonymous namespace
@@ -62,23 +240,65 @@ std::vector<std::string> GetImagePaths(const std::string& dir_path) {
 // Python tool runner (for eval subcommand)
 // =============================================================================
 
-/// Shell out to a Python evaluation script in tools/.
-/// @returns the exit code from std::system (0 on success).
-static int RunPythonTool(const std::string& tool_name, const std::vector<std::string>& args) {
-    fs::path tool_path = fs::path("tools") / tool_name;
+/// Normalize std::system's platform-specific status into a process exit code.
+static int NormalizeSystemStatus(int status) {
+    if (status == -1) {
+        return EXIT_FAILURE;
+    }
+#ifdef _WIN32
+    return status;
+#else
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    }
+    return EXIT_FAILURE;
+#endif
+}
 
-    std::string cmd = "python3 " + tool_path.string();
-    for (const auto& arg : args) {
-        // Quote arguments containing spaces
-        if (arg.find(' ') != std::string::npos) {
-            cmd += " \"" + arg + "\"";
+/// Shell out to a Python evaluation script in tools.
+/// @returns the child process's normalized exit code (0 on success).
+static std::string ShellQuote(const std::string& value) {
+    std::string quoted = "'";
+    for (const char ch : value) {
+        if (ch == '\'') {
+            quoted += "'\\''";
         } else {
-            cmd += " " + arg;
+            quoted += ch;
         }
+    }
+    quoted += "'";
+    return quoted;
+}
+
+static int RunPythonTool(const std::string& tool_name, const std::vector<std::string>& args) {
+    std::vector<fs::path> tool_candidates = {fs::path("tools") / tool_name};
+#ifdef LITEVO_TOOLS_RELATIVE_TO_BINDIR
+    if (!executable_directory.empty()) {
+        tool_candidates.push_back(executable_directory /
+                                  fs::path(LITEVO_TOOLS_RELATIVE_TO_BINDIR) / tool_name);
+    }
+#endif
+
+    fs::path tool_path;
+    for (const auto& candidate : tool_candidates) {
+        std::error_code error;
+        if (fs::is_regular_file(candidate, error) && !error) {
+            tool_path = candidate;
+            break;
+        }
+    }
+    if (tool_path.empty()) {
+        std::cerr << "Error: cannot locate Python evaluation tool '" << tool_name << "'\n";
+        return EXIT_FAILURE;
+    }
+
+    std::string cmd = "python3 " + ShellQuote(tool_path.string());
+    for (const auto& arg : args) {
+        cmd += " " + ShellQuote(arg);
     }
 
     std::cout << "  Running: " << cmd << "\n";
-    return std::system(cmd.c_str());
+    return NormalizeSystemStatus(std::system(cmd.c_str()));
 }
 
 // =============================================================================
@@ -88,14 +308,17 @@ static int RunPythonTool(const std::string& tool_name, const std::vector<std::st
 /// Lightweight trajectory representation (translations only).
 struct TrajectoryData {
     std::vector<litevo::Vec3> positions;
+    std::vector<double> timestamps;
+    bool has_timestamps = false;
 
     bool empty() const { return positions.empty(); }
     size_t size() const { return positions.size(); }
 };
 
-/// Load a trajectory file.  Supported formats: "tum", "kitti".
+/// Load trajectory translations.  Supported formats: "tum", "kitti", "euroc".
 static TrajectoryData LoadTrajectory(const std::string& path, const std::string& format) {
     TrajectoryData data;
+    data.has_timestamps = (format != "kitti");
     std::ifstream file(path);
     if (!file.is_open()) {
         std::cerr << "Error: cannot open trajectory file: " << path << "\n";
@@ -107,40 +330,103 @@ static TrajectoryData LoadTrajectory(const std::string& path, const std::string&
         if (line.empty() || line[0] == '#')
             continue;
 
+        std::replace(line.begin(), line.end(), ',', ' ');
         std::istringstream iss(line);
         double tx = 0.0, ty = 0.0, tz = 0.0;
+        double timestamp = 0.0;
+        bool valid = false;
 
         if (format == "kitti") {
             // KITTI pose: 3x4 matrix flattened row-major
             //   r11 r12 r13 tx  r21 r22 r23 ty  r31 r32 r33 tz
             double val = 0.0;
             for (int i = 0; i < 12; ++i) {
-                if (!(iss >> val))
+                if (!(iss >> val)) {
+                    valid = false;
                     break;
+                }
                 if (i == 3)
                     tx = val;
                 else if (i == 7)
                     ty = val;
                 else if (i == 11)
                     tz = val;
+                valid = true;
             }
         } else {
-            // TUM:  timestamp tx ty tz qx qy qz qw
-            double timestamp = 0.0;
-            iss >> timestamp >> tx >> ty >> tz;
+            // TUM: timestamp tx ty tz qx qy qz qw
+            // EuRoC: timestamp,tx,ty,tz,qw,qx,qy,qz (commas normalized above)
+            valid = static_cast<bool>(iss >> timestamp >> tx >> ty >> tz);
         }
 
-        data.positions.push_back(litevo::Vec3(tx, ty, tz));
+        if (valid) {
+            data.positions.push_back(litevo::Vec3(tx, ty, tz));
+            if (data.has_timestamps) {
+                data.timestamps.push_back(TimestampSeconds(timestamp));
+            }
+        }
     }
 
     return data;
 }
 
-/// Umeyama alignment: find rotation R and translation t that minimise
-///   sum_i || R * src_i + t - dst_i ||^2
-/// Scale is fixed at 1 (appropriate for trajectory evaluation).
+/// Associate timestamped trajectories one-to-one; timestamp-free formats use
+/// positional correspondence (the only information available in KITTI files).
+static void AssociateTrajectories(const TrajectoryData& estimate, const TrajectoryData& groundtruth,
+                                  TrajectoryData& associated_estimate,
+                                  TrajectoryData& associated_groundtruth,
+                                  double max_time_difference = 0.02) {
+    associated_estimate = {};
+    associated_groundtruth = {};
+
+    const auto append_pair = [&](size_t estimate_index, size_t groundtruth_index) {
+        associated_estimate.positions.push_back(estimate.positions[estimate_index]);
+        associated_groundtruth.positions.push_back(groundtruth.positions[groundtruth_index]);
+    };
+
+    if (!estimate.has_timestamps || !groundtruth.has_timestamps ||
+        estimate.timestamps.size() != estimate.positions.size() ||
+        groundtruth.timestamps.size() != groundtruth.positions.size()) {
+        const size_t count = std::min(estimate.size(), groundtruth.size());
+        for (size_t index = 0; index < count; ++index) {
+            append_pair(index, index);
+        }
+        return;
+    }
+
+    std::vector<size_t> estimate_order(estimate.size());
+    std::vector<size_t> groundtruth_order(groundtruth.size());
+    std::iota(estimate_order.begin(), estimate_order.end(), 0);
+    std::iota(groundtruth_order.begin(), groundtruth_order.end(), 0);
+    std::sort(estimate_order.begin(), estimate_order.end(), [&](size_t lhs, size_t rhs) {
+        return estimate.timestamps[lhs] < estimate.timestamps[rhs];
+    });
+    std::sort(groundtruth_order.begin(), groundtruth_order.end(), [&](size_t lhs, size_t rhs) {
+        return groundtruth.timestamps[lhs] < groundtruth.timestamps[rhs];
+    });
+
+    size_t estimate_index = 0;
+    size_t groundtruth_index = 0;
+    while (estimate_index < estimate_order.size() && groundtruth_index < groundtruth_order.size()) {
+        const size_t est = estimate_order[estimate_index];
+        const size_t gt = groundtruth_order[groundtruth_index];
+        const double delta = estimate.timestamps[est] - groundtruth.timestamps[gt];
+        if (std::abs(delta) <= max_time_difference) {
+            append_pair(est, gt);
+            ++estimate_index;
+            ++groundtruth_index;
+        } else if (delta < 0.0) {
+            ++estimate_index;
+        } else {
+            ++groundtruth_index;
+        }
+    }
+}
+
+/// Umeyama alignment: find scale, rotation R, and translation t that minimise
+///   sum_i || scale * R * src_i + t - dst_i ||^2.
 /// @param[out] aligned  src points transformed by the optimal (R, t).
-/// @returns 1.0 (scale).
+/// @returns estimated scale.
 static double AlignUmeyama(const std::vector<litevo::Vec3>& src,
                            const std::vector<litevo::Vec3>& dst,
                            std::vector<litevo::Vec3>& aligned) {
@@ -156,8 +442,9 @@ static double AlignUmeyama(const std::vector<litevo::Vec3>& src,
     // Build Nx3 matrices
     Eigen::MatrixXd P(N, 3), Q(N, 3);
     for (size_t i = 0; i < N; ++i) {
-        P.row(i) = src[i].transpose();
-        Q.row(i) = dst[i].transpose();
+        const auto row = static_cast<Eigen::Index>(i);
+        P.row(row) = src[i].transpose();
+        Q.row(row) = dst[i].transpose();
     }
 
     // Centroids
@@ -182,29 +469,37 @@ static double AlignUmeyama(const std::vector<litevo::Vec3>& src,
         R = V * svd.matrixU().transpose();
     }
 
+    // Isotropic scale.  For row-vector point clouds the numerator is
+    // tr(R * (Pc^T * Qc)); writing Qc^T * Pc * R is not equivalent in general.
+    const double variance = Pc.squaredNorm();
+    const double scale = variance > 1e-12 ? (R * H).trace() / variance : 1.0;
+
     // Translation
-    Eigen::Vector3d t = mean_q.transpose() - R * mean_p.transpose();
+    Eigen::Vector3d t = mean_q.transpose() - scale * R * mean_p.transpose();
 
     // Apply
     for (size_t i = 0; i < N; ++i) {
-        aligned[i] = R * src[i] + t;
+        aligned[i] = scale * R * src[i] + t;
     }
 
-    return 1.0;  // scale fixed
+    return scale;
 }
 
 /// Compute Absolute Trajectory Error RMSE (after Umeyama alignment).
 static double ComputeATE(const TrajectoryData& est, const TrajectoryData& gt) {
-    const size_t N = std::min(est.size(), gt.size());
+    TrajectoryData associated_est;
+    TrajectoryData associated_gt;
+    AssociateTrajectories(est, gt, associated_est, associated_gt);
+    const size_t N = associated_est.size();
     if (N == 0)
         return -1.0;
 
     std::vector<litevo::Vec3> aligned;
-    AlignUmeyama(est.positions, gt.positions, aligned);
+    AlignUmeyama(associated_est.positions, associated_gt.positions, aligned);
 
     double sum_sq = 0.0;
     for (size_t i = 0; i < N; ++i) {
-        sum_sq += (aligned[i] - gt.positions[i]).squaredNorm();
+        sum_sq += (aligned[i] - associated_gt.positions[i]).squaredNorm();
     }
     return std::sqrt(sum_sq / static_cast<double>(N));
 }
@@ -212,25 +507,77 @@ static double ComputeATE(const TrajectoryData& est, const TrajectoryData& gt) {
 /// Compute translational Relative Pose Error RMSE (after Umeyama alignment).
 /// Uses frame delta = 1.
 static double ComputeRPE(const TrajectoryData& est, const TrajectoryData& gt, int delta = 1) {
-    const size_t N = std::min(est.size(), gt.size());
-    if (N <= static_cast<size_t>(delta) || N == 0)
+    TrajectoryData associated_est;
+    TrajectoryData associated_gt;
+    AssociateTrajectories(est, gt, associated_est, associated_gt);
+    const size_t N = associated_est.size();
+    if (delta <= 0)
+        return -1.0;
+    const size_t step = static_cast<size_t>(delta);
+    if (N <= step || N == 0)
         return -1.0;
 
     // Align the full trajectory first
     std::vector<litevo::Vec3> est_aligned;
-    AlignUmeyama(est.positions, gt.positions, est_aligned);
+    AlignUmeyama(associated_est.positions, associated_gt.positions, est_aligned);
 
     double sum_sq = 0.0;
     size_t count = 0;
-    for (size_t i = 0; i + static_cast<size_t>(delta) < N; ++i) {
-        litevo::Vec3 est_delta = est_aligned[i + delta] - est_aligned[i];
-        litevo::Vec3 gt_delta = gt.positions[i + delta] - gt.positions[i];
+    for (size_t i = 0; i + step < N; ++i) {
+        litevo::Vec3 est_delta = est_aligned[i + step] - est_aligned[i];
+        litevo::Vec3 gt_delta =
+            associated_gt.positions[i + step] - associated_gt.positions[i];
         sum_sq += (est_delta - gt_delta).squaredNorm();
         ++count;
     }
     if (count == 0)
         return -1.0;
     return std::sqrt(sum_sq / static_cast<double>(count));
+}
+
+/// Validate the trajectory output encoding configured by the user.
+static bool IsTrajectoryFormat(const std::string& format) {
+    return format == "tum" || format == "kitti" || format == "euroc";
+}
+
+/// Write a world-from-camera pose in a documented dataset trajectory format.
+static bool WriteTrajectoryPose(std::ostream& stream, const litevo::SE3& Tcw, double timestamp,
+                                const std::string& format) {
+    const litevo::SE3 Twc = Tcw.inverse();
+    stream << std::fixed << std::setprecision(9);
+
+    if (format == "tum") {
+        const litevo::Pose pose = litevo::Pose::FromSE3(Twc);
+        stream << timestamp << " " << pose.position.x() << " " << pose.position.y() << " "
+               << pose.position.z() << " " << pose.orientation.x() << " " << pose.orientation.y()
+               << " " << pose.orientation.z() << " " << pose.orientation.w() << "\n";
+        return static_cast<bool>(stream);
+    }
+
+    if (format == "euroc") {
+        // Native EuRoC pose files use nanoseconds and scalar-first quaternions:
+        // timestamp,p_x,p_y,p_z,q_w,q_x,q_y,q_z.
+        const litevo::Pose pose = litevo::Pose::FromSE3(Twc);
+        const long long timestamp_ns = std::llround(timestamp * 1e9);
+        stream << timestamp_ns << "," << pose.position.x() << "," << pose.position.y() << ","
+               << pose.position.z() << "," << pose.orientation.w() << ","
+               << pose.orientation.x() << "," << pose.orientation.y() << ","
+               << pose.orientation.z() << "\n";
+        return static_cast<bool>(stream);
+    }
+
+    if (format == "kitti") {
+        const litevo::Mat3 rotation = Twc.rotation();
+        const litevo::Vec3 translation = Twc.translation();
+        for (int row = 0; row < 3; ++row) {
+            stream << rotation(row, 0) << " " << rotation(row, 1) << " " << rotation(row, 2) << " "
+                   << translation(row);
+            stream << (row == 2 ? "\n" : " ");
+        }
+        return static_cast<bool>(stream);
+    }
+
+    return false;
 }
 
 // =============================================================================
@@ -244,7 +591,9 @@ static double ComputeRPE(const TrajectoryData& est, const TrajectoryData& gt, in
 /// @param out_mappoints  If non-null, receives the final map-point count.
 static int RunSlam(const std::string& config_path, const std::string& input_path,
                    const std::string& output_path, bool verbose, double fps,
-                   const std::string& gt_path = "", const std::string& format = "tum",
+                   const std::string& output_format_override = "",
+                   const std::string& timestamp_path = "", const std::string& gt_path = "",
+                   const std::string& gt_format = "tum",
                    int* out_keyframes = nullptr, int* out_mappoints = nullptr) {
     // ── Load configuration ──────────────────────────────────────────────────
     auto cfg_opt = litevo::SystemConfig::LoadFromYAML(config_path);
@@ -253,6 +602,18 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         return EXIT_FAILURE;
     }
     auto cfg = *cfg_opt;
+
+    const std::string output_format =
+        output_format_override.empty() ? cfg.output_format : output_format_override;
+    if (!IsTrajectoryFormat(output_format)) {
+        std::cerr << "Error: unsupported output format '" << output_format
+                  << "' (expected tum, kitti, or euroc)\n";
+        return EXIT_FAILURE;
+    }
+    if (fps <= 0.0) {
+        std::cerr << "Error: --fps must be greater than zero\n";
+        return EXIT_FAILURE;
+    }
 
     // ── Build camera model ──────────────────────────────────────────────────
     litevo::Camera::CameraParams cam_params{cfg.camera.fx,    cfg.camera.fy,    cfg.camera.cx,
@@ -278,9 +639,33 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
                                               mapper_extractor);
     tracker.SetLocalMapper(&local_mapper);
 
+    // ── Create loop closer (optional) ──────────────────────────────────────
+    // Tracker keeps a non-owning pointer and forwards every newly-created
+    // keyframe to this worker.  Its lifetime therefore spans the full tracking
+    // session and ends before the mapper/map are torn down.
+    std::unique_ptr<litevo::loop_closing::LoopClosing> loop_closing;
+    if (cfg.loop_closing.enabled) {
+        loop_closing = std::make_unique<litevo::loop_closing::LoopClosing>(
+            tracker.GetMap(), camera, cfg.loop_closing);
+
+        if (!cfg.loop_closing.vocab_path.empty()) {
+            if (!loop_closing->LoadVocabulary(cfg.loop_closing.vocab_path)) {
+                std::cerr << "Error: failed to load loop-closing vocabulary: "
+                          << cfg.loop_closing.vocab_path << "\n";
+                return EXIT_FAILURE;
+            }
+        } else {
+            std::cerr << "Warning: loop closing is enabled without vocab_path; "
+                         "using the slower descriptor fallback.\n";
+        }
+
+        tracker.SetLoopClosing(loop_closing.get());
+    }
+
     // ── Collect input ───────────────────────────────────────────────────────
     const bool is_video = IsVideoFile(input_path);
     std::vector<std::string> image_paths;
+    std::vector<double> image_timestamps;
     int total_frames = 0;
 
     cv::VideoCapture video_cap;
@@ -294,16 +679,28 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         if (total_frames <= 0)
             total_frames = 1;  // Fallback for live streams
     } else {
-        if (!fs::is_directory(input_path)) {
-            std::cerr << "Error: input must be a directory or video file\n";
+        std::string input_error;
+        if (!GetImagePaths(input_path, image_paths, input_error)) {
+            std::cerr << "Error: " << input_error << "\n";
             return EXIT_FAILURE;
         }
-        image_paths = GetImagePaths(input_path);
         if (image_paths.empty()) {
             std::cerr << "Error: no images found in " << input_path << "\n";
             return EXIT_FAILURE;
         }
         total_frames = static_cast<int>(image_paths.size());
+        if (!timestamp_path.empty()) {
+            std::string timestamp_error;
+            if (!LoadImageTimestamps(timestamp_path, image_paths, image_timestamps,
+                                     timestamp_error)) {
+                std::cerr << "Error: " << timestamp_error << "\n";
+                return EXIT_FAILURE;
+            }
+        }
+    }
+    if (is_video && !timestamp_path.empty()) {
+        std::cerr << "Error: --timestamps is only supported for image directories\n";
+        return EXIT_FAILURE;
     }
 
     // ── Print header ───────────────────────────────────────────────────────
@@ -312,9 +709,13 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     std::cout << "Input:   " << input_path << " (" << (is_video ? "video" : "images") << ", "
               << total_frames << " frames)\n";
     std::cout << "Output:  " << output_path << "\n";
+    std::cout << "Format:  " << output_format << "\n";
     std::cout << "Camera:  " << cfg.camera.width << "x" << cfg.camera.height
               << "  fx=" << cfg.camera.fx << "\n";
     std::cout << "FPS:     " << fps << "\n\n";
+    if (!image_timestamps.empty()) {
+        std::cout << "Timestamps: " << timestamp_path << "\n\n";
+    }
 
     // ── Open trajectory file ───────────────────────────────────────────────
     std::ofstream traj_file(output_path);
@@ -322,11 +723,28 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         std::cerr << "Error: cannot open " << output_path << "\n";
         return EXIT_FAILURE;
     }
+    if (output_format == "euroc") {
+        traj_file << "#timestamp [ns],p_RS_R_x [m],p_RS_R_y [m],p_RS_R_z [m],"
+                     "q_RS_w [],q_RS_x [],q_RS_y [],q_RS_z []\n";
+    }
 
     // ── Start local mapper ─────────────────────────────────────────────────
     local_mapper.Start();
+    if (loop_closing) {
+        loop_closing->Start();
+    }
     if (verbose)
-        std::cout << "Local mapping thread started\n\n";
+        std::cout << "Local mapping thread started"
+                  << (loop_closing ? "; loop-closing thread started" : "") << "\n\n";
+
+    const auto stop_background_workers = [&] {
+        // Stop loop closing first: its global-BA worker may mutate the map.
+        if (loop_closing) {
+            loop_closing->Stop();
+            tracker.SetLoopClosing(nullptr);
+        }
+        local_mapper.Stop();
+    };
 
     // ── Main tracking loop ─────────────────────────────────────────────────
     int frame_count = 0;
@@ -343,10 +761,13 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         } else {
             if (i >= static_cast<int>(image_paths.size()))
                 break;
-            image = cv::imread(image_paths[i], cv::IMREAD_COLOR);
+            const size_t image_index = static_cast<size_t>(i);
+            timestamp = image_timestamps.empty() ? static_cast<double>(i) * dt
+                                                 : image_timestamps[image_index];
+            image = cv::imread(image_paths[image_index], cv::IMREAD_COLOR);
             if (image.empty()) {
                 if (verbose)
-                    std::cerr << "Warning: cannot read " << image_paths[i] << "\n";
+                    std::cerr << "Warning: cannot read " << image_paths[image_index] << "\n";
                 continue;
             }
         }
@@ -357,13 +778,11 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         auto pose_opt = tracker.Track(gray, timestamp);
 
         if (pose_opt) {
-            // TUM format:  timestamp tx ty tz qx qy qz qw  (Twc = world-from-camera)
-            litevo::SE3 Twc = pose_opt->inverse();
-            litevo::Pose p = litevo::Pose::FromSE3(Twc);
-
-            traj_file << timestamp << " " << p.position.x() << " " << p.position.y() << " "
-                      << p.position.z() << " " << p.orientation.x() << " " << p.orientation.y()
-                      << " " << p.orientation.z() << " " << p.orientation.w() << "\n";
+            if (!WriteTrajectoryPose(traj_file, *pose_opt, timestamp, output_format)) {
+                std::cerr << "Error: failed to write trajectory output\n";
+                stop_background_workers();
+                return EXIT_FAILURE;
+            }
         } else {
             lost_count++;
         }
@@ -389,17 +808,27 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
                          tracker.NumKeyFrames());
         }
 
-        timestamp += dt;
+        if (is_video) {
+            const double video_timestamp = video_cap.get(cv::CAP_PROP_POS_MSEC) / 1000.0;
+            timestamp = video_timestamp > 0.0 ? video_timestamp : timestamp + dt;
+        }
         frame_count++;
     }
 
     std::fprintf(stderr, "\n");
     traj_file.close();
 
-    // ── Stop local mapper ──────────────────────────────────────────────────
-    local_mapper.Stop();
+    // ── Stop background workers ────────────────────────────────────────────
+    stop_background_workers();
     if (verbose)
-        std::cout << "Local mapping thread stopped\n";
+        std::cout << "Background mapping/loop-closing threads stopped\n";
+
+    // A directory can contain image-named files that OpenCV cannot decode.
+    // Do not report an empty processing run as a successful SLAM result.
+    if (frame_count == 0) {
+        std::cerr << "Error: no readable frames were processed from " << input_path << "\n";
+        return EXIT_FAILURE;
+    }
 
     // ── Collect final stats ─────────────────────────────────────────────────
     const int final_kfs = tracker.NumKeyFrames();
@@ -416,12 +845,15 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     std::cout << "  Lost:       " << lost_count << "\n";
     std::cout << "  Keyframes:  " << final_kfs << "\n";
     std::cout << "  Map points: " << final_mps << "\n";
+    if (loop_closing) {
+        std::cout << "  Loops closed: " << loop_closing->NumLoopsClosed() << "\n";
+    }
     std::cout << "  Output:     " << output_path << "\n";
 
     // ── Optional inline ATE ─────────────────────────────────────────────────
     if (!gt_path.empty()) {
-        TrajectoryData est_traj = LoadTrajectory(output_path, "tum");
-        TrajectoryData gt_traj = LoadTrajectory(gt_path, format);
+        TrajectoryData est_traj = LoadTrajectory(output_path, output_format);
+        TrajectoryData gt_traj = LoadTrajectory(gt_path, gt_format);
         if (!est_traj.empty() && !gt_traj.empty()) {
             double ate = ComputeATE(est_traj, gt_traj);
             double rpe = ComputeRPE(est_traj, gt_traj);
@@ -439,11 +871,15 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
 // =============================================================================
 
 static int RunSubcommand(CLI::App* run_cmd) {
-    std::string config = "config/default.yaml";
-    std::string input;
-    std::string output = "trajectory.txt";
-    bool verbose = false;
-    double fps = 30.0;
+    // CLI11 stores references to bound values until CLI11_PARSE executes in
+    // main().  These must therefore outlive this registration helper.
+    static std::string config = "config/default.yaml";
+    static std::string input;
+    static std::string output = "trajectory.txt";
+    static std::string output_format;
+    static std::string timestamps;
+    static bool verbose = false;
+    static double fps = 30.0;
 
     run_cmd->add_option("--config", config, "YAML configuration file")
         ->required()
@@ -451,9 +887,18 @@ static int RunSubcommand(CLI::App* run_cmd) {
     run_cmd
         ->add_option("--input", input, "Image directory or video file (.mp4/.avi/.mov/.mkv/.m4v)")
         ->required();
-    run_cmd->add_option("--output", output, "Output trajectory (TUM format)");
+    run_cmd->add_option("--output", output,
+                        "Output trajectory (format from config unless --output-format is set)")
+        ->default_val("trajectory.txt");
+    run_cmd->add_option("--output-format", output_format,
+                        "Output trajectory format override (tum|kitti|euroc)")
+        ->check(CLI::IsMember({"tum", "kitti", "euroc"}));
+    run_cmd->add_option("--timestamps", timestamps,
+                        "Timestamp file for an image sequence (TUM rgb.txt, EuRoC data.csv, or one value per image)")
+        ->check(CLI::ExistingFile);
     run_cmd->add_flag("--verbose", verbose, "Verbose per-frame output");
-    run_cmd->add_option("--fps", fps, "Frame rate override for image sequences");
+    run_cmd->add_option("--fps", fps, "Frame rate override for image sequences")
+        ->default_val(30.0);
 
     // Options are added; actual parsing happens in main() via CLI11_PARSE.
     // We return immediately — main() will call RunSlam after parsing.
@@ -466,11 +911,13 @@ static int RunSubcommand(CLI::App* run_cmd) {
 // =============================================================================
 
 static int EvalSubcommand(CLI::App* eval_cmd) {
-    std::string estimated;
-    std::string groundtruth;
-    std::string format = "tum";
-    bool rpe = false;
-    bool plot = false;
+    static std::string estimated;
+    static std::string groundtruth;
+    static std::string format = "tum";
+    static std::string estimated_format;
+    static std::string groundtruth_format;
+    static bool rpe = false;
+    static bool plot = false;
 
     eval_cmd->add_option("--estimated", estimated, "Estimated trajectory file")
         ->required()
@@ -478,7 +925,14 @@ static int EvalSubcommand(CLI::App* eval_cmd) {
     eval_cmd->add_option("--groundtruth", groundtruth, "Ground truth trajectory file")
         ->required()
         ->check(CLI::ExistingFile);
-    eval_cmd->add_option("--format", format, "Trajectory format (tum|kitti|euroc)")
+    eval_cmd->add_option("--format", format, "Default format for both trajectories (tum|kitti|euroc)")
+        ->default_val("tum")
+        ->check(CLI::IsMember({"tum", "kitti", "euroc"}));
+    eval_cmd->add_option("--estimated-format", estimated_format,
+                         "Estimated trajectory format override (tum|kitti|euroc)")
+        ->check(CLI::IsMember({"tum", "kitti", "euroc"}));
+    eval_cmd->add_option("--groundtruth-format", groundtruth_format,
+                         "Ground-truth trajectory format override (tum|kitti|euroc)")
         ->check(CLI::IsMember({"tum", "kitti", "euroc"}));
     eval_cmd->add_flag("--rpe", rpe, "Also compute Relative Pose Error");
     eval_cmd->add_flag("--plot", plot, "Plot trajectories (requires matplotlib)");
@@ -492,10 +946,10 @@ static int EvalSubcommand(CLI::App* eval_cmd) {
 // =============================================================================
 
 static int BenchSubcommand(CLI::App* bench_cmd) {
-    std::string dataset_dir;
-    std::string config;
-    std::vector<std::string> sequences;
-    std::string output_dir = "results";
+    static std::string dataset_dir;
+    static std::string config;
+    static std::vector<std::string> sequences;
+    static std::string output_dir = "results";
 
     bench_cmd->add_option("--dataset-dir", dataset_dir, "Dataset root directory")
         ->required()
@@ -504,7 +958,8 @@ static int BenchSubcommand(CLI::App* bench_cmd) {
         ->required()
         ->check(CLI::ExistingFile);
     bench_cmd->add_option("--sequences", sequences, "Sequence names (omit to discover all)");
-    bench_cmd->add_option("--output-dir", output_dir, "Output directory for results");
+    bench_cmd->add_option("--output-dir", output_dir, "Output directory for results")
+        ->default_val("results");
 
     (void)bench_cmd;
     return 0;
@@ -515,6 +970,7 @@ static int BenchSubcommand(CLI::App* bench_cmd) {
 // =============================================================================
 
 int main(int argc, char* argv[]) {
+    executable_directory = ResolveExecutableDirectory(argc > 0 ? argv[0] : nullptr);
     CLI::App app{"LiteVO — Industrial-Grade Monocular Visual SLAM"};
     app.require_subcommand(1);
 
@@ -536,7 +992,9 @@ int main(int argc, char* argv[]) {
                        run->get_option("--input")->as<std::string>(),
                        run->get_option("--output")->as<std::string>(),
                        run->get_option("--verbose")->as<bool>(),
-                       run->get_option("--fps")->as<double>());
+                       run->get_option("--fps")->as<double>(),
+                       run->get_option("--output-format")->as<std::string>(),
+                       run->get_option("--timestamps")->as<std::string>());
     }
 
     // ── Dispatch: eval ──────────────────────────────────────────────────────
@@ -544,11 +1002,21 @@ int main(int argc, char* argv[]) {
         const std::string estimated = eval->get_option("--estimated")->as<std::string>();
         const std::string groundtruth = eval->get_option("--groundtruth")->as<std::string>();
         const std::string format = eval->get_option("--format")->as<std::string>();
+        const std::string estimated_format =
+            eval->get_option("--estimated-format")->as<std::string>().empty()
+                ? format
+                : eval->get_option("--estimated-format")->as<std::string>();
+        const std::string groundtruth_format =
+            eval->get_option("--groundtruth-format")->as<std::string>().empty()
+                ? format
+                : eval->get_option("--groundtruth-format")->as<std::string>();
         const bool do_rpe = eval->get_option("--rpe")->as<bool>();
         const bool do_plot = eval->get_option("--plot")->as<bool>();
 
         // Build ATE args
-        std::vector<std::string> ate_args = {estimated, groundtruth, "--format", format};
+        std::vector<std::string> ate_args = {estimated, groundtruth, "--estimated-format",
+                                             estimated_format, "--groundtruth-format",
+                                             groundtruth_format};
         if (do_plot)
             ate_args.push_back("--plot");
 
@@ -556,8 +1024,13 @@ int main(int argc, char* argv[]) {
 
         // Optionally run RPE
         if (do_rpe) {
-            std::vector<std::string> rpe_args = {estimated, groundtruth, "--format", format};
-            ret |= RunPythonTool("evaluate_rpe.py", rpe_args);
+            std::vector<std::string> rpe_args = {estimated, groundtruth, "--estimated-format",
+                                                 estimated_format, "--groundtruth-format",
+                                                 groundtruth_format};
+            const int rpe_ret = RunPythonTool("evaluate_rpe.py", rpe_args);
+            if (ret == EXIT_SUCCESS) {
+                ret = rpe_ret;
+            }
         }
 
         return ret;
@@ -569,13 +1042,42 @@ int main(int argc, char* argv[]) {
         const std::string config_path = bench->get_option("--config")->as<std::string>();
         const std::string output_dir = bench->get_option("--output-dir")->as<std::string>();
 
+        auto cfg_opt = litevo::SystemConfig::LoadFromYAML(config_path);
+        if (!cfg_opt || !IsTrajectoryFormat(cfg_opt->output_format)) {
+            std::cerr << "Error: unable to determine a supported output format from " << config_path
+                      << "\n";
+            return EXIT_FAILURE;
+        }
+        const std::string output_format = cfg_opt->output_format;
+
         // Collect sequence names
         std::vector<std::string> seqs;
         if (bench->get_option("--sequences")->empty()) {
             // Discover all subdirectories
-            for (const auto& entry : fs::directory_iterator(dataset_dir)) {
-                if (entry.is_directory())
+            std::error_code filesystem_error;
+            fs::directory_iterator iterator(dataset_dir, filesystem_error);
+            const fs::directory_iterator end;
+            if (filesystem_error) {
+                std::cerr << "Error: cannot enumerate dataset directory " << dataset_dir << ": "
+                          << filesystem_error.message() << "\n";
+                return EXIT_FAILURE;
+            }
+            while (iterator != end) {
+                const fs::directory_entry entry = *iterator;
+                if (entry.is_directory(filesystem_error)) {
                     seqs.push_back(entry.path().filename().string());
+                }
+                if (filesystem_error) {
+                    std::cerr << "Error: cannot inspect dataset entry: "
+                              << filesystem_error.message() << "\n";
+                    return EXIT_FAILURE;
+                }
+                iterator.increment(filesystem_error);
+                if (filesystem_error) {
+                    std::cerr << "Error: cannot enumerate dataset directory " << dataset_dir << ": "
+                              << filesystem_error.message() << "\n";
+                    return EXIT_FAILURE;
+                }
             }
             std::sort(seqs.begin(), seqs.end());
         } else {
@@ -587,7 +1089,13 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;
         }
 
-        fs::create_directories(output_dir);
+        std::error_code filesystem_error;
+        fs::create_directories(output_dir, filesystem_error);
+        if (filesystem_error) {
+            std::cerr << "Error: cannot create output directory " << output_dir << ": "
+                      << filesystem_error.message() << "\n";
+            return EXIT_FAILURE;
+        }
 
         // Storage for summary table
         struct SeqResult {
@@ -616,8 +1124,9 @@ int main(int argc, char* argv[]) {
             fs::path out_traj = fs::path(output_dir) / (seq + "_traj.txt");
 
             // Skip if image directory missing
-            if (!fs::is_directory(image_path)) {
+            if (!fs::is_directory(image_path, filesystem_error) || filesystem_error) {
                 std::cerr << "Warning: no image_0/ in " << seq << ", skipping\n";
+                filesystem_error.clear();
                 r.success = false;
                 results.push_back(r);
                 continue;
@@ -626,20 +1135,24 @@ int main(int argc, char* argv[]) {
             // Locate ground truth
             std::string gt_path;
             std::string gt_format = "tum";
-            if (fs::exists(seq_path / "poses.txt")) {
+            if (fs::exists(seq_path / "poses.txt", filesystem_error) && !filesystem_error) {
                 gt_path = (seq_path / "poses.txt").string();
                 gt_format = "kitti";
-            } else if (fs::exists(seq_path / "groundtruth.txt")) {
+            } else if (!filesystem_error && fs::exists(seq_path / "groundtruth.txt", filesystem_error) &&
+                       !filesystem_error) {
                 gt_path = (seq_path / "groundtruth.txt").string();
                 gt_format = "tum";
             }
+            filesystem_error.clear();
 
             std::cout << "[" << seq << "] Running SLAM...\n";
 
             int run_kfs = 0, run_mps = 0;
             int ret =
                 RunSlam(config_path, image_path.string(), out_traj.string(), /*verbose=*/false,
-                        /*fps=*/30.0, gt_path, gt_format, &run_kfs, &run_mps);
+                        /*fps=*/30.0, /*output_format_override=*/"", /*timestamp_path=*/"",
+                        gt_path, gt_format,
+                        &run_kfs, &run_mps);
 
             r.success = (ret == EXIT_SUCCESS);
             r.keyframes = run_kfs;
@@ -647,7 +1160,7 @@ int main(int argc, char* argv[]) {
 
             if (r.success) {
                 // Count frames from output trajectory
-                TrajectoryData out_data = LoadTrajectory(out_traj.string(), "tum");
+                TrajectoryData out_data = LoadTrajectory(out_traj.string(), output_format);
                 r.frames = static_cast<int>(out_data.size());
 
                 // Compute ATE / RPE if ground truth available

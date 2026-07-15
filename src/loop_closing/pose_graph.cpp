@@ -32,6 +32,11 @@ void PoseGraphOptimizer::Optimize(Map& map, std::shared_ptr<KeyFrame> loop_kf,
     if (!loop_kf || !loop_kf_matched)
         return;
 
+    // Protect KeyFrame poses and graph edges as one transaction.  The lock is
+    // recursive because LoopClosing may already own it for the surrounding
+    // correction pipeline.
+    auto graph_lock = map.AcquireGraphLock();
+
     // Setup g2o optimizer
     using BlockSolverType = g2o::BlockSolver<g2o::BlockSolverTraits<6, 6>>;
     auto linear_solver =

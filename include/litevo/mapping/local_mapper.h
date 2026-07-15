@@ -120,6 +120,7 @@ private:
 
     // Threading
     std::thread thread_;
+    mutable std::mutex lifecycle_mutex_;
     mutable std::mutex mutex_;
     std::condition_variable cv_;
     KfQueue new_keyframes_;

@@ -74,40 +74,60 @@ bool MonocularInitializer::SelectModel(const cv::Mat& H, const cv::Mat& F,
         return false;  // Both models are bad
     }
 
-    // Score H using symmetric transfer error
-    double SH = 0.0;
-    if (!H.empty() && n_inliers_h > 0) {
+    // Score the models with robust *inlier support*, rather than comparing
+    // their mean residuals directly.  A residual is an error, so the former
+    // implementation's SH / (SH + SF) selected the *worse* model whenever
+    // both models were available.  The scoring below follows the ORB-SLAM
+    // convention: every geometrically consistent observation contributes a
+    // positive amount, and lower residuals contribute more.
+    const double reprojection_threshold_sq = opts_.max_reproj_error * opts_.max_reproj_error;
+    const auto score_residual = [reprojection_threshold_sq](double residual) {
+        if (!std::isfinite(residual) || residual < 0.0 || residual > reprojection_threshold_sq) {
+            return 0.0;
+        }
+        return reprojection_threshold_sq - residual;
+    };
+
+    // Homography: symmetric transfer error in both directions.
+    double score_h = 0.0;
+    if (!H.empty() && n_inliers_h >= opts_.min_matches) {
         cv::Mat H_inv = H.inv();
-        int count = 0;
-        for (size_t i = 0; i < pts1.size(); ++i) {
+        for (size_t i = 0; i < pts1.size() && i < inliers_h.size(); ++i) {
             if (inliers_h[i]) {
                 // Forward: x2' = H * x1
                 cv::Mat p1 = (cv::Mat_<double>(3, 1) << pts1[i].x, pts1[i].y, 1.0);
                 cv::Mat p2 = (cv::Mat_<double>(3, 1) << pts2[i].x, pts2[i].y, 1.0);
 
                 cv::Mat proj_fwd = H * p1;
-                proj_fwd /= proj_fwd.at<double>(2);
-                double dx1 = proj_fwd.at<double>(0) - pts2[i].x;
-                double dy1 = proj_fwd.at<double>(1) - pts2[i].y;
+                const double forward_w = proj_fwd.at<double>(2);
+                if (std::abs(forward_w) > 1e-12) {
+                    proj_fwd /= forward_w;
+                    const double dx1 =
+                        proj_fwd.at<double>(0) - static_cast<double>(pts2[i].x);
+                    const double dy1 =
+                        proj_fwd.at<double>(1) - static_cast<double>(pts2[i].y);
+                    score_h += score_residual(dx1 * dx1 + dy1 * dy1);
+                }
 
                 cv::Mat proj_bwd = H_inv * p2;
-                proj_bwd /= proj_bwd.at<double>(2);
-                double dx2 = proj_bwd.at<double>(0) - pts1[i].x;
-                double dy2 = proj_bwd.at<double>(1) - pts1[i].y;
-
-                SH += dx1 * dx1 + dy1 * dy1 + dx2 * dx2 + dy2 * dy2;
-                count++;
+                const double backward_w = proj_bwd.at<double>(2);
+                if (std::abs(backward_w) > 1e-12) {
+                    proj_bwd /= backward_w;
+                    const double dx2 =
+                        proj_bwd.at<double>(0) - static_cast<double>(pts1[i].x);
+                    const double dy2 =
+                        proj_bwd.at<double>(1) - static_cast<double>(pts1[i].y);
+                    score_h += score_residual(dx2 * dx2 + dy2 * dy2);
+                }
             }
         }
-        if (count > 0)
-            SH /= count;
     }
 
-    // Score F using Sampson distance
-    double SF = 0.0;
-    if (!F.empty() && n_inliers_f > 0) {
-        int count = 0;
-        for (size_t i = 0; i < pts1.size(); ++i) {
+    // Fundamental matrix: point-to-epipolar-line distance in both images.
+    // This is comparable to the two directional homography residuals above.
+    double score_f = 0.0;
+    if (!F.empty() && n_inliers_f >= opts_.min_matches) {
+        for (size_t i = 0; i < pts1.size() && i < inliers_f.size(); ++i) {
             if (inliers_f[i]) {
                 double x1 = pts1[i].x, y1 = pts1[i].y;
                 double x2 = pts2[i].x, y2 = pts2[i].y;
@@ -119,25 +139,29 @@ bool MonocularInitializer::SelectModel(const cv::Mat& H, const cv::Mat& F,
                 cv::Mat Ftp2 = F.t() * p2;
 
                 double num = std::pow(p2.dot(Fp1), 2);
-                double den = Fp1.at<double>(0) * Fp1.at<double>(0) +
-                             Fp1.at<double>(1) * Fp1.at<double>(1) +
-                             Ftp2.at<double>(0) * Ftp2.at<double>(0) +
-                             Ftp2.at<double>(1) * Ftp2.at<double>(1);
+                const double den_forward = Fp1.at<double>(0) * Fp1.at<double>(0) +
+                                           Fp1.at<double>(1) * Fp1.at<double>(1);
+                const double den_backward = Ftp2.at<double>(0) * Ftp2.at<double>(0) +
+                                            Ftp2.at<double>(1) * Ftp2.at<double>(1);
 
-                if (den > 1e-12) {
-                    SF += num / den;
+                if (den_forward > 1e-12) {
+                    score_f += score_residual(num / den_forward);
                 }
-                count++;
+                if (den_backward > 1e-12) {
+                    score_f += score_residual(num / den_backward);
+                }
             }
         }
-        if (count > 0)
-            SF /= count;
     }
 
-    // Compute RH
-    double RH = (SH + SF > 1e-12) ? SH / (SH + SF) : 0.0;
+    const double score_sum = score_h + score_f;
+    if (score_sum <= 1e-12) {
+        // Degenerate numeric case: retain the model with more RANSAC support.
+        return n_inliers_h >= n_inliers_f;
+    }
 
-    return RH > opts_.hf_score_ratio;
+    const double homography_ratio = score_h / score_sum;
+    return homography_ratio > opts_.hf_score_ratio;
 }
 
 std::vector<std::pair<Mat3, Vec3>> MonocularInitializer::DecomposeH(const cv::Mat& H,
@@ -147,12 +171,11 @@ std::vector<std::pair<Mat3, Vec3>> MonocularInitializer::DecomposeH(const cv::Ma
     if (H.empty())
         return candidates;
 
-    cv::Mat K_inv = K.inv();
-    cv::Mat H_norm = K_inv * H * K;
-
-    // OpenCV decomposeHomographyMat
+    // OpenCV expects the homography in pixel coordinates together with the
+    // camera calibration matrix.  Passing a pre-normalized H along with K
+    // applies the calibration twice and produces invalid motion candidates.
     std::vector<cv::Mat> rotations, translations, normals;
-    int num_solutions = cv::decomposeHomographyMat(H_norm, K, rotations, translations, normals);
+    int num_solutions = cv::decomposeHomographyMat(H, K, rotations, translations, normals);
 
     for (int i = 0; i < num_solutions; ++i) {
         Mat3 R;
@@ -264,8 +287,10 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
         if (frame.NumKeyPoints() < opts_.min_features) {
             return result;  // Not enough features
         }
-        reference_frame_ =
-            std::make_shared<Frame>(frame.Image(), frame.Timestamp(), extractor_, camera_);
+        // Keep the exact feature set and frame identity that the tracker
+        // supplied.  Re-extracting here changes keypoint indices, which made
+        // initial map associations point at unrelated features.
+        reference_frame_ = std::make_shared<Frame>(frame);
         return result;
     }
 
@@ -283,8 +308,7 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
     if (n_matches < opts_.min_matches) {
         Reset();
         // Store current as new reference
-        reference_frame_ =
-            std::make_shared<Frame>(frame.Image(), frame.Timestamp(), extractor_, camera_);
+        reference_frame_ = std::make_shared<Frame>(frame);
         return result;
     }
 
@@ -318,6 +342,24 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
 
     // Select model
     bool use_H = SelectModel(H, F, pts1, pts2, inliers_h, inliers_f);
+
+    // SelectModel uses false for the fundamental-matrix branch.  Do not try
+    // to decompose an empty F when only a homography was estimated (or vice
+    // versa).
+    if (use_H && H.empty()) {
+        if (F.empty()) {
+            Reset();
+            return result;
+        }
+        use_H = false;
+    }
+    if (!use_H && F.empty()) {
+        if (H.empty()) {
+            Reset();
+            return result;
+        }
+        use_H = true;
+    }
 
     // Get motion candidates
     std::vector<std::pair<Mat3, Vec3>> candidates;
@@ -371,8 +413,8 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
     int best_valid = 0;
     std::vector<Vec3> best_points;
     std::vector<bool> best_valid_flags;
-    Mat3 best_R;
-    Vec3 best_t;
+    Mat3 best_R = Mat3::Identity();
+    Vec3 best_t = Vec3::Zero();
 
     for (const auto& [R, t] : candidates) {
         std::vector<Vec3> points;
@@ -427,18 +469,28 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
     result.success = true;
     result.Tcw = geometry::MakeSE3(best_R, t_scaled);
     result.model_used = use_H ? "Homography" : "Fundamental";
-    result.match_indices_ref = idx_ref;
-    result.match_indices_cur = idx_cur;
+    result.reference_frame = reference_frame_;
+    result.map_points.reserve(static_cast<size_t>(best_valid));
+    result.match_indices_ref.reserve(static_cast<size_t>(best_valid));
+    result.match_indices_cur.reserve(static_cast<size_t>(best_valid));
 
-    // Create MapPoints
+    // Keep feature indices parallel to map_points.  Some candidate matches
+    // fail cheirality/reprojection checks, so returning all raw match indices
+    // would shift later associations after the first rejected point.
     for (size_t i = 0; i < best_points.size(); ++i) {
         if (best_valid_flags[i]) {
             auto mp = std::make_shared<MapPoint>(best_points[i], reference_frame_->Id());
             // Set descriptor from reference frame keypoint
             mp->SetDescriptor(reference_frame_->Descriptors().row(idx_ref[i]));
             result.map_points.push_back(mp);
+            result.match_indices_ref.push_back(idx_ref[i]);
+            result.match_indices_cur.push_back(idx_cur[i]);
         }
     }
+
+    // The result keeps the reference frame alive until Tracker has promoted
+    // it to a keyframe; the initializer itself no longer needs it.
+    reference_frame_.reset();
 
     return result;
 }

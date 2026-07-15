@@ -17,7 +17,7 @@
 # Build with Docker (zero host dependencies)
 docker build -t litevo -f docker/Dockerfile .
 docker run --rm -v /path/to/images:/images -v $PWD/output:/output \
-    litevo run --config config/kitti.yaml --input /images --output /output/traj.txt
+    litevo run --config /opt/litevo/config/kitti.yaml --input /images --output /output/traj.txt
 
 # Or build natively (Ubuntu 22.04)
 sudo apt-get install -y libopencv-dev libeigen3-dev libspdlog-dev libyaml-cpp-dev
@@ -137,6 +137,10 @@ LiteVO/
 # Run SLAM on a directory of images
 litevo_cli run --config config/kitti.yaml --input /data/images --output traj.txt
 
+# Preserve source timestamps for TUM/EuRoC-style image sequences
+litevo_cli run --config config/euroc.yaml --input /data/images \
+    --timestamps /data/timestamps.txt --output traj.txt
+
 # Run SLAM on a video file
 litevo_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30
 
@@ -174,12 +178,13 @@ print(f"Keyframes: {map_.keyframe_count}, Map points: {map_.map_point_count}")
 ## ROS2 Node
 
 ```bash
-# Build with ROS2 support
+# Source your ROS2 installation, then build the node with ROS2 support
+source /opt/ros/$ROS_DISTRO/setup.bash
 cmake -B build -DLITEVO_BUILD_ROS2=ON
 cmake --build build
 
-# Run
-ros2 run litevo litevo_ros_node --ros-args -p config_path:=config/euroc.yaml
+# Run the CMake-built node
+./build/apps/litevo_ros_node --ros-args -p config_path:=config/euroc.yaml
 ```
 
 **Published topics:**

@@ -8,6 +8,7 @@
 
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <thread>
 
 #include "litevo/core/types.h"
@@ -45,6 +46,12 @@ public:
     /// @param config  Solver configuration.
     void Start(Map& map, const Camera& camera, const GlobalBAConfig& config);
 
+    /// @brief Stop the worker and wait for it to finish.
+    ///
+    /// This is safe to call before Start(), after completion, and repeatedly.
+    /// Start() also joins a completed worker before launching a new one.
+    void Stop();
+
     /// @brief Request the thread to stop (non-blocking).
     void RequestStop();
 
@@ -68,6 +75,7 @@ private:
     GlobalBAConfig config_;
 
     std::thread thread_;
+    mutable std::mutex lifecycle_mutex_;
     std::atomic<bool> running_{false};
     std::atomic<bool> stop_requested_{false};
     std::atomic<bool> is_finished_{false};

@@ -13,6 +13,7 @@
 #include "litevo/features/orb_extractor.h"
 #include "litevo/geometry/pnp.h"
 #include "litevo/geometry/se3.h"
+#include "litevo/loop_closing/loop_closing.h"
 #include "litevo/mapping/local_mapper.h"
 #include "litevo/tracking/initializer.h"
 #include "litevo/tracking/matcher.h"
@@ -59,6 +60,7 @@ cv::Mat Tracker::BuildK() const {
 }
 
 void Tracker::Reset() {
+    auto graph_lock = map_.AcquireGraphLock();
     state_ = TrackingState::NOT_INITIALIZED;
     map_.Clear();
     current_frame_.reset();
@@ -85,6 +87,11 @@ std::optional<SE3> Tracker::Track(const cv::Mat& image, double timestamp) {
 
     current_frame_ = std::make_shared<Frame>(image, timestamp, extractor, camera_);
     is_new_keyframe_ = false;
+
+    // Keyframe poses and feature-to-landmark associations are shared with the
+    // mapping and loop-closing workers.  Keep one coherent graph snapshot for
+    // this tracking update instead of racing a loop correction or BA write.
+    auto graph_lock = map_.AcquireGraphLock();
 
     // ── NOT_INITIALIZED → attempt initialization ──────────────────────
     if (state_ == TrackingState::NOT_INITIALIZED) {
@@ -156,11 +163,15 @@ std::optional<SE3> Tracker::Track(const cv::Mat& image, double timestamp) {
             if (NeedNewKeyFrame()) {
                 auto kf = std::make_shared<KeyFrame>(*current_frame_);
                 map_.AddKeyFrame(kf);
+                RegisterKeyFrameObservations(kf);
                 reference_kf_ = kf;
 
                 // Notify local mapper (if running)
                 if (local_mapper_) {
                     local_mapper_->InsertKeyFrame(kf);
+                }
+                if (loop_closing_) {
+                    loop_closing_->InsertKeyFrame(kf);
                 }
 
                 frames_since_last_kf_ = 0;
@@ -206,7 +217,6 @@ bool Tracker::TrackWithMotionModel() {
 
     // Collect map points from last frame
     std::vector<std::shared_ptr<MapPoint>> last_mps;
-    std::vector<int> last_kp_indices;
 
     for (int i = 0; i < last_frame_->NumKeyPoints(); ++i) {
         MapPointId mp_id = last_frame_->MapPointIdAt(i);
@@ -214,7 +224,6 @@ bool Tracker::TrackWithMotionModel() {
             auto mp = map_.GetMapPoint(mp_id);
             if (mp && !mp->IsBad()) {
                 last_mps.push_back(mp);
-                last_kp_indices.push_back(i);
             }
         }
     }
@@ -241,11 +250,12 @@ bool Tracker::TrackWithMotionModel() {
     // Build 3D-2D correspondences
     std::vector<cv::Point3f> pts_3d;
     std::vector<cv::Point2f> pts_2d;
+    std::vector<std::shared_ptr<MapPoint>> matched_mps;
     const auto& kps = current_frame_->KeyPointsUndistorted();
 
     for (const auto& [kp_idx, mp_id] : matches) {
         auto mp = map_.GetMapPoint(mp_id);
-        if (!mp)
+        if (!mp || mp->IsBad())
             continue;
 
         const Vec3& pw = mp->Position();
@@ -253,6 +263,7 @@ bool Tracker::TrackWithMotionModel() {
                             static_cast<float>(pw.z()));
         pts_2d.emplace_back(kps[static_cast<size_t>(kp_idx)].pt.x,
                             kps[static_cast<size_t>(kp_idx)].pt.y);
+        matched_mps.push_back(mp);
 
         // Set association
         current_frame_->SetMapPointId(kp_idx, mp_id);
@@ -265,7 +276,11 @@ bool Tracker::TrackWithMotionModel() {
     }
 
     current_frame_->SetPose(pose);
-    num_tracked_points_ = static_cast<int>(matches.size());
+    for (const auto& mp : matched_mps) {
+        mp->IncreaseFound();
+        mp->SetFound(true);
+    }
+    num_tracked_points_ = static_cast<int>(matched_mps.size());
     return true;
 }
 
@@ -287,6 +302,7 @@ bool Tracker::TrackReferenceKeyFrame() {
     // Build 3D-2D correspondences from matched map points
     std::vector<cv::Point3f> pts_3d;
     std::vector<cv::Point2f> pts_2d;
+    std::vector<std::shared_ptr<MapPoint>> matched_mps;
     const auto& kps = current_frame_->KeyPointsUndistorted();
 
     for (const auto& [ref_idx, cur_idx] : matches) {
@@ -303,6 +319,7 @@ bool Tracker::TrackReferenceKeyFrame() {
                             static_cast<float>(pw.z()));
         pts_2d.emplace_back(kps[static_cast<size_t>(cur_idx)].pt.x,
                             kps[static_cast<size_t>(cur_idx)].pt.y);
+        matched_mps.push_back(mp);
 
         current_frame_->SetMapPointId(cur_idx, mp_id);
     }
@@ -319,7 +336,12 @@ bool Tracker::TrackReferenceKeyFrame() {
     }
 
     current_frame_->SetPose(pose);
-    num_tracked_points_ = static_cast<int>(pts_3d.size());
+    for (const auto& mp : matched_mps) {
+        mp->IncreaseVisible();
+        mp->IncreaseFound();
+        mp->SetFound(true);
+    }
+    num_tracked_points_ = static_cast<int>(matched_mps.size());
     return true;
 }
 
@@ -370,9 +392,10 @@ bool Tracker::TrackLocalMap() {
         }
 
         // Add new matches from local map
+        std::vector<std::shared_ptr<MapPoint>> newly_matched_mps;
         for (const auto& [kp_idx, mp_id] : matches) {
             auto mp = map_.GetMapPoint(mp_id);
-            if (!mp)
+            if (!mp || mp->IsBad())
                 continue;
 
             const Vec3& pw = mp->Position();
@@ -382,16 +405,22 @@ bool Tracker::TrackLocalMap() {
                                 kps[static_cast<size_t>(kp_idx)].pt.y);
 
             current_frame_->SetMapPointId(kp_idx, mp_id);
-            mp->IncreaseFound();
+            newly_matched_mps.push_back(mp);
         }
 
         // Refine pose with all correspondences
         if (pts_3d.size() >= 10) {
             SE3 pose = current_frame_->Pose();
-            EstimatePose(pts_3d, pts_2d, pose, 10);
-            current_frame_->SetPose(pose);
+            if (EstimatePose(pts_3d, pts_2d, pose, 10)) {
+                current_frame_->SetPose(pose);
+            }
 
             num_tracked_points_ = std::max(num_tracked_points_, static_cast<int>(pts_3d.size()));
+        }
+
+        for (const auto& mp : newly_matched_mps) {
+            mp->IncreaseFound();
+            mp->SetFound(true);
         }
     }
 
@@ -422,6 +451,7 @@ bool Tracker::Relocalization() {
         // Build 3D-2D correspondences
         std::vector<cv::Point3f> pts_3d;
         std::vector<cv::Point2f> pts_2d;
+        std::vector<std::pair<int, std::shared_ptr<MapPoint>>> matched_mps;
         const auto& kps = current_frame_->KeyPointsUndistorted();
 
         for (const auto& [kf_idx, cur_idx] : matches) {
@@ -438,6 +468,7 @@ bool Tracker::Relocalization() {
                                 static_cast<float>(pw.z()));
             pts_2d.emplace_back(kps[static_cast<size_t>(cur_idx)].pt.x,
                                 kps[static_cast<size_t>(cur_idx)].pt.y);
+            matched_mps.emplace_back(cur_idx, mp);
         }
 
         if (static_cast<int>(pts_3d.size()) < 15) {
@@ -447,7 +478,13 @@ bool Tracker::Relocalization() {
         SE3 pose = SE3::Identity();
         if (EstimatePose(pts_3d, pts_2d, pose, 15)) {
             current_frame_->SetPose(pose);
-            num_tracked_points_ = static_cast<int>(pts_3d.size());
+            for (const auto& [cur_idx, mp] : matched_mps) {
+                current_frame_->SetMapPointId(cur_idx, mp->Id());
+                mp->IncreaseVisible();
+                mp->IncreaseFound();
+                mp->SetFound(true);
+            }
+            num_tracked_points_ = static_cast<int>(matched_mps.size());
             return true;
         }
     }
@@ -481,13 +518,24 @@ bool Tracker::NeedNewKeyFrame() {
 // ── Create initial map ─────────────────────────────────────────────────────
 
 void Tracker::CreateInitialMap(const InitializationResult& result) {
-    // Create keyframe 1 (world origin)
-    auto kf1 = std::make_shared<KeyFrame>(current_frame_->Image(), 0.0, *orb_extractor_, camera_);
+    if (!current_frame_ || !result.reference_frame ||
+        result.map_points.size() != result.match_indices_ref.size() ||
+        result.map_points.size() != result.match_indices_cur.size()) {
+        return;
+    }
+
+    // The initializer estimates the current-frame pose; persist it before
+    // promoting that frame and returning it from Track().
+    current_frame_->SetPose(result.Tcw);
+
+    // Promote the exact frames that were matched during initialization.
+    // Re-extracting kf1 from the current image changes its feature indices and
+    // makes result.match_indices_ref refer to unrelated keypoints.
+    auto kf1 = std::make_shared<KeyFrame>(*result.reference_frame);
     kf1->SetPose(SE3::Identity());
 
-    // Create keyframe 2
+    // The current frame already carries result.Tcw.
     auto kf2 = std::make_shared<KeyFrame>(*current_frame_);
-    kf2->SetPose(result.Tcw);
 
     // Add keyframes to map
     map_.AddKeyFrame(kf1);
@@ -496,6 +544,9 @@ void Tracker::CreateInitialMap(const InitializationResult& result) {
     // Add map points and set associations
     for (size_t i = 0; i < result.map_points.size(); ++i) {
         auto& mp = result.map_points[i];
+        if (!mp) {
+            continue;
+        }
         int idx_ref = result.match_indices_ref[i];
         int idx_cur = result.match_indices_cur[i];
 
@@ -504,16 +555,22 @@ void Tracker::CreateInitialMap(const InitializationResult& result) {
 
         kf1->SetMapPointId(idx_ref, mp->Id());
         kf2->SetMapPointId(idx_cur, mp->Id());
+        current_frame_->SetMapPointId(idx_cur, mp->Id());
 
         mp->AddObservation(kf1->Id());
         mp->AddObservation(kf2->Id());
         mp->UpdateNormal(kf1->CameraCenter());
+        mp->UpdateNormal(kf2->CameraCenter());
     }
 
     // Notify local mapper
     if (local_mapper_) {
         local_mapper_->InsertKeyFrame(kf1);
         local_mapper_->InsertKeyFrame(kf2);
+    }
+    if (loop_closing_) {
+        loop_closing_->InsertKeyFrame(kf1);
+        loop_closing_->InsertKeyFrame(kf2);
     }
 
     // Initialize velocity
@@ -536,12 +593,35 @@ void Tracker::UpdateMotionModel() {
 // ── Clean map points ───────────────────────────────────────────────────────
 
 void Tracker::CleanMapPoints() {
-    // Remove map points with too few observations
+    // Keep fresh two-view landmarks through their grace period; remove points
+    // only after the map-point quality policy has enough evidence.
     auto all_mps = map_.GetAllMapPoints();
     for (const auto& mp : all_mps) {
-        if (mp && mp->IsBad(config_.min_features_for_tracking / 10)) {
+        if (mp && mp->IsEraseReady(3)) {
             map_.EraseMapPoint(mp->Id());
         }
+    }
+}
+
+void Tracker::RegisterKeyFrameObservations(const std::shared_ptr<KeyFrame>& keyframe) {
+    if (!keyframe) {
+        return;
+    }
+
+    const Vec3 camera_center = keyframe->CameraCenter();
+    for (int i = 0; i < keyframe->NumKeyPoints(); ++i) {
+        const MapPointId mp_id = keyframe->MapPointIdAt(i);
+        if (mp_id.id == 0) {
+            continue;
+        }
+
+        const auto mp = map_.GetMapPoint(mp_id);
+        if (!mp || mp->IsBad()) {
+            continue;
+        }
+
+        mp->AddObservation(keyframe->Id());
+        mp->UpdateNormal(camera_center);
     }
 }
 

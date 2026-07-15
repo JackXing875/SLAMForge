@@ -10,9 +10,12 @@ set(UNIT_TEST_SOURCES
     test_feature_grid.cpp
     test_frame.cpp
     test_map.cpp
+    test_matcher.cpp
+    test_tracking_initialization.cpp
     test_keyframe.cpp
     test_ba.cpp
     test_local_mapper.cpp
+    test_loop_closing.cpp
 )
 
 foreach(test_src ${UNIT_TEST_SOURCES})

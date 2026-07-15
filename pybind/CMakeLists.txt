@@ -23,13 +23,22 @@ endif()
 find_package(Python COMPONENTS Interpreter Development.Module REQUIRED)
 
 # ── pybind11 ───────────────────────────────────────────────────────────────
-include(FetchContent)
-FetchContent_Declare(
-    pybind11
-    GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG        v2.12.0
-)
-FetchContent_MakeAvailable(pybind11)
+# The top-level project normally provides pybind11.  Retain a fallback for
+# standalone use of this directory without downloading a second copy when the
+# target already exists.
+if(NOT TARGET pybind11::module)
+    find_package(pybind11 2.12 CONFIG QUIET)
+endif()
+
+if(NOT TARGET pybind11::module)
+    include(FetchContent)
+    FetchContent_Declare(
+        pybind11
+        GIT_REPOSITORY https://github.com/pybind/pybind11.git
+        GIT_TAG        v2.12.0
+    )
+    FetchContent_MakeAvailable(pybind11)
+endif()
 
 # ── Module target ──────────────────────────────────────────────────────────
 pybind11_add_module(_litevo
@@ -39,7 +48,6 @@ pybind11_add_module(_litevo
 target_link_libraries(_litevo PRIVATE
     litevo_core
     pybind11::headers
-    pybind11::numpy_header
 )
 
 target_compile_definitions(_litevo PRIVATE
@@ -52,8 +60,18 @@ if(COMMAND set_project_warnings)
 endif()
 
 # On Linux/macOS, hide internal symbols for smaller binary
-if(NOT MSVC)
+if(UNIX AND NOT APPLE)
     target_link_options(_litevo PRIVATE
         -Wl,--exclude-libs,ALL
     )
 endif()
+
+# Place the extension next to the Python package when installing directly with
+# CMake and when scikit-build-core assembles a wheel.
+install(TARGETS _litevo
+    LIBRARY DESTINATION litevo
+    RUNTIME DESTINATION litevo
+)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/litevo/__init__.py"
+    DESTINATION litevo
+)

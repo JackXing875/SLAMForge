@@ -36,11 +36,20 @@ public:
     /// @return 2D pixel coordinates, or (-1,-1) if behind camera
     [[nodiscard]] Vec2 Project(const Vec3& p_cam) const;
 
+    /// @brief Project a camera-frame point without applying lens distortion.
+    ///
+    /// Frame feature grids are built from undistorted keypoints, so tracking
+    /// code should use this variant when it searches those grids.
+    [[nodiscard]] Vec2 ProjectUndistorted(const Vec3& p_cam) const;
+
     /// @brief Project a 3D world point using the camera pose.
     /// @param p_w 3D point in world frame
     /// @param T_cw World-to-camera transformation
     /// @return 2D pixel coordinates
     [[nodiscard]] Vec2 ProjectWorld(const Vec3& p_w, const SE3& T_cw) const;
+
+    /// @brief Project a world point to the undistorted image plane.
+    [[nodiscard]] Vec2 ProjectWorldUndistorted(const Vec3& p_w, const SE3& T_cw) const;
 
     // ── Unprojection ──────────────────────────────────────────────────────
 

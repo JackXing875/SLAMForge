@@ -4,6 +4,7 @@
 
 #include "litevo/loop_closing/loop_closing.h"
 
+#include <exception>
 #include <iostream>
 
 #include "litevo/core/camera.h"
@@ -18,9 +19,10 @@ LoopClosing::LoopClosing(Map& map, const Camera& camera, const LoopClosingConfig
     : map_(map),
       camera_(camera),
       config_(config),
-      detector_(LoopDetectorConfig{}),
+      detector_(LoopDetectorConfig{.min_score = config.min_similarity_score,
+                                   .min_consecutive = config.min_consecutive_loops}),
       verifier_(LoopVerifierConfig{}, &camera),
-      pose_graph_(PoseGraphConfig{}) {}
+      pose_graph_(PoseGraphConfig{.max_iterations = config.pose_graph_iterations}) {}
 
 LoopClosing::~LoopClosing() {
     Stop();
@@ -29,23 +31,49 @@ LoopClosing::~LoopClosing() {
 // ── Thread control ──────────────────────────────────────────────────────────
 
 void LoopClosing::Start() {
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
     if (running_)
         return;
+
+    // A finished std::thread remains joinable.  Join it before assigning a
+    // replacement, otherwise assigning to thread_ would call std::terminate.
+    if (thread_.joinable()) {
+        thread_.join();
+    }
+
     stop_requested_ = false;
     is_finished_ = false;
+    loop_detected_ = false;
+    num_loops_closed_ = 0;
     running_ = true;
-    thread_ = std::thread(&LoopClosing::Run, this);
+    try {
+        thread_ = std::thread([this] {
+            try {
+                Run();
+            } catch (const std::exception& e) {
+                std::cerr << "[LoopClosing] Worker exception: " << e.what() << '\n';
+            } catch (...) {
+                std::cerr << "[LoopClosing] Worker exception: unknown error\n";
+            }
+            running_ = false;
+            is_finished_ = true;
+        });
+    } catch (...) {
+        running_ = false;
+        is_finished_ = true;
+        throw;
+    }
 }
 
 void LoopClosing::Stop() {
     RequestStop();
-    if (thread_.joinable()) {
-        thread_.join();
+    {
+        std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
+        if (thread_.joinable()) {
+            thread_.join();
+        }
     }
-    // Also stop global BA if running
-    if (global_ba_.IsRunning()) {
-        global_ba_.RequestStop();
-    }
+    global_ba_.Stop();
 }
 
 void LoopClosing::RequestStop() {
@@ -71,6 +99,9 @@ int LoopClosing::QueueSize() const {
 // ── Vocabulary ──────────────────────────────────────────────────────────────
 
 bool LoopClosing::LoadVocabulary(const std::string& path) {
+    if (path.empty() || running_) {
+        return false;
+    }
     return detector_.LoadVocabulary(path);
 }
 
@@ -95,72 +126,78 @@ void LoopClosing::Run() {
         if (!kf)
             continue;
 
+        // LoopDetected() describes the last processed keyframe, not an
+        // historical latch that stays true after a loop was closed.
+        loop_detected_ = false;
+
+        bool launch_global_ba = false;
+        GlobalBAConfig global_ba_config;
         try {
-            // ── Step 1: Add to BoW database ────────────────────────────────
-            detector_.Insert(kf);
+            {
+                // Frame/KeyFrame fields are not individually synchronized.
+                // Serialize this full graph transaction against tracking,
+                // local BA, pose-graph updates, and GlobalBA.
+                auto graph_lock = map_.AcquireGraphLock();
 
-            // ── Step 2: Detect loop candidates ────────────────────────────
-            auto candidate = detector_.Detect(kf, map_);
+                // ── Step 1: Add to BoW database ────────────────────────────
+                detector_.Insert(kf);
 
-            if (!candidate) {
-                continue;  // No candidate found
-            }
+                // ── Step 2: Detect loop candidates ────────────────────────
+                auto candidate = detector_.Detect(kf, map_);
 
-            // ── Step 3: Verify geometrically ────────────────────────────────
-            auto verification = verifier_.Verify(kf, candidate, detector_, map_);
-
-            if (!verification.valid) {
-                continue;  // Verification failed
-            }
-
-            std::cout << "[LoopClosing] Loop detected! "
-                      << "Current KF #" << kf->Id().id << " matches KF #" << candidate->Id().id
-                      << " with " << verification.num_inliers << " inliers"
-                      << " (scale=" << verification.S_cw.s << ")\n";
-
-            // ── Step 4: Correct the loop ──────────────────────────────────
-            corrector_.CorrectLoop(kf, candidate, verification.S_cw, verification.matches,
-                                   verification.matched_mps_cur, verification.matched_mps_cand,
-                                   map_);
-
-            // ── Step 5: Pose graph optimization ───────────────────────────
-
-            // Compute relative pose between matched and current KF
-            SE3 relative_pose = geometry::RelativePose(candidate->Pose(), kf->Pose());
-
-            // Information matrix (identity scaled by connection weight)
-            Mat6 info = Mat6::Identity() * 100.0;
-
-            pose_graph_.Optimize(map_, kf, candidate, relative_pose, info);
-
-            // ── Step 6: Launch global BA in separate thread ────────────────
-
-            if (config_.enable_global_ba && camera_.fx() > 0) {
-                // Stop any existing global BA
-                if (global_ba_.IsRunning()) {
-                    global_ba_.RequestStop();
+                if (!candidate) {
+                    continue;  // No candidate found
                 }
-                GlobalBAConfig gba_cfg;
-                gba_cfg.max_iterations = config_.global_ba_iterations;
-                global_ba_.Start(map_, camera_, gba_cfg);
+
+                // ── Step 3: Verify geometrically ────────────────────────────
+                auto verification = verifier_.Verify(kf, candidate, detector_, map_);
+
+                if (!verification.valid) {
+                    continue;  // Verification failed
+                }
+
+                std::cout << "[LoopClosing] Loop detected! "
+                          << "Current KF #" << kf->Id().id << " matches KF #"
+                          << candidate->Id().id << " with " << verification.num_inliers
+                          << " inliers"
+                          << " (scale=" << verification.S_cw.s << ")\n";
+
+                // Preserve the pre-correction loop constraint for the pose
+                // graph.  Reading it after CorrectLoop would encode an
+                // already-mutated pose pair rather than the observation.
+                const SE3 relative_pose = geometry::RelativePose(candidate->Pose(), kf->Pose());
+
+                // ── Step 4: Correct the loop ──────────────────────────────
+                corrector_.CorrectLoop(kf, candidate, verification.S_cw, verification.matches,
+                                       verification.matched_mps_cur, verification.matched_mps_cand,
+                                       map_);
+
+                // ── Step 5: Pose graph optimization ───────────────────────
+                const Mat6 info = Mat6::Identity() * 100.0;
+                pose_graph_.Optimize(map_, kf, candidate, relative_pose, info);
+
+                // GlobalBA::Start may join a prior worker.  Defer it until
+                // this graph lock is released so a prior BA waiting for that
+                // lock cannot deadlock the loop-closing worker.
+                launch_global_ba = config_.enable_global_ba && camera_.fx() > 0;
+                global_ba_config.max_iterations = config_.global_ba_iterations;
+
+                // ── Statistics ──────────────────────────────────────────────
+                loop_detected_ = true;
+                num_loops_closed_++;
             }
 
-            // ── Statistics ──────────────────────────────────────────────────
-            loop_detected_ = true;
-            num_loops_closed_++;
-
+            if (launch_global_ba) {
+                global_ba_.Start(map_, camera_, global_ba_config);
+            }
         } catch (const std::exception& e) {
             std::cerr << "[LoopClosing] Exception: " << e.what() << '\n';
         }
     }
 
-    // Wait for global BA to finish before exiting
-    if (global_ba_.IsRunning()) {
-        global_ba_.RequestStop();
-    }
+    // Do not leave a BA worker mutating the map after loop closing stops.
+    global_ba_.Stop();
 
-    is_finished_ = true;
-    running_ = false;
 }
 
 }  // namespace litevo::loop_closing

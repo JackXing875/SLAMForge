@@ -54,6 +54,9 @@ public:
 
     int DatabaseSize() const { return database_size_; }
 
+    /// @brief Detector settings in effect for this worker.
+    const LoopDetectorConfig& Config() const noexcept { return config_; }
+
 private:
     double ScoreBetween(std::shared_ptr<KeyFrame> kf1, std::shared_ptr<KeyFrame> kf2);
     std::shared_ptr<KeyFrame> DetectWithFallback(std::shared_ptr<KeyFrame> current_kf,

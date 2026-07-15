@@ -49,6 +49,9 @@ Makefile
 
 # Data and output
 data/
+# Small deterministic test fixtures are source, not user datasets.
+!tests/data/
+!tests/data/**
 
 # Misc
 .DS_Store

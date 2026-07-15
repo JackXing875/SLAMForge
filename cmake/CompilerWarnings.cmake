@@ -61,5 +61,8 @@ function(set_project_warnings target_name)
         set(PROJECT_WARNINGS ${GCC_WARNINGS})
     endif()
 
-    target_compile_options(${target_name} INTERFACE ${PROJECT_WARNINGS})
+    # Warnings are a build-time policy of this project, not part of its public
+    # API.  Keeping them private prevents an installed LiteVO target from
+    # unexpectedly changing a downstream project's warning policy.
+    target_compile_options(${target_name} PRIVATE ${PROJECT_WARNINGS})
 endfunction()

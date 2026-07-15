@@ -5,6 +5,7 @@
 #pragma once
 
 #include <memory>
+#include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
 #include <vector>
@@ -19,12 +20,24 @@ class MapPoint;
 
 /// @brief Thread-safe container holding all MapPoints and KeyFrames.
 ///
-/// Uses std::shared_mutex: shared_lock for reads, unique_lock for writes.
-/// The Tracker (main thread) and LocalMapper (background thread) access
-/// the map concurrently.
+/// Uses a graph transaction lock for coherent keyframe/landmark updates plus
+/// a std::shared_mutex for the owning collections.  The Tracker, LocalMapper,
+/// LoopClosing, and GlobalBA workers access the map concurrently.
 class Map {
 public:
+    /// @brief Exclusive guard for a coherent map-graph transaction.
+    ///
+    /// The container mutex protects only the keyframe/map-point collections;
+    /// poses, feature associations, and graph edges live in the objects those
+    /// collections own.  Tracker, LocalMapper, LoopClosing, and GlobalBA take
+    /// this guard around their graph-level operations so loop correction and
+    /// BA cannot race on those object fields.  It is recursive to allow the
+    /// guarded workflows to call the regular Map accessors safely.
+    using GraphLock = std::unique_lock<std::recursive_mutex>;
+
     Map() = default;
+
+    [[nodiscard]] GraphLock AcquireGraphLock() const { return GraphLock(graph_mutex_); }
 
     // ── MapPoint operations ────────────────────────────────────────────────
 
@@ -74,6 +87,7 @@ public:
     void Clear();
 
 private:
+    mutable std::recursive_mutex graph_mutex_;
     mutable std::shared_mutex map_mutex_;
 
     std::unordered_map<MapPointId, std::shared_ptr<MapPoint>, MapPointIdHash> map_points_;

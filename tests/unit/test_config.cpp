@@ -28,6 +28,9 @@ TEST(ConfigTest, LoadFromYAML) {
     if (cfg_opt) {
         EXPECT_GT(cfg_opt->camera.width, 0);
         EXPECT_GT(cfg_opt->camera.height, 0);
+        EXPECT_TRUE(cfg_opt->enable_viewer);
+        EXPECT_TRUE(cfg_opt->enable_logging);
+        EXPECT_EQ(cfg_opt->log_level, 2);
     }
 }
 

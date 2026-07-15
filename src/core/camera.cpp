@@ -44,9 +44,22 @@ Vec2 Camera::Project(const Vec3& p_cam) const {
     return Vec2(fx_ * normalized.x() + cx_, fy_ * normalized.y() + cy_);
 }
 
+Vec2 Camera::ProjectUndistorted(const Vec3& p_cam) const {
+    if (p_cam.z() <= 1e-10) {
+        return Vec2(-1, -1);
+    }
+
+    const double inv_z = 1.0 / p_cam.z();
+    return Vec2(fx_ * p_cam.x() * inv_z + cx_, fy_ * p_cam.y() * inv_z + cy_);
+}
+
 Vec2 Camera::ProjectWorld(const Vec3& p_w, const SE3& T_cw) const {
     const Vec3 p_cam = T_cw * p_w;
     return Project(p_cam);
+}
+
+Vec2 Camera::ProjectWorldUndistorted(const Vec3& p_w, const SE3& T_cw) const {
+    return ProjectUndistorted(T_cw * p_w);
 }
 
 // ── Unprojection ──────────────────────────────────────────────────────────────

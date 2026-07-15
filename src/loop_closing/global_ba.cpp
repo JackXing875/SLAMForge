@@ -9,6 +9,8 @@
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 
+#include <exception>
+#include <iostream>
 #include <memory>
 #include <unordered_map>
 
@@ -43,15 +45,20 @@ struct GlobalBAProjectionFunctor {
 };
 
 GlobalBundleAdjuster::~GlobalBundleAdjuster() {
-    RequestStop();
-    if (thread_.joinable()) {
-        thread_.join();
-    }
+    Stop();
 }
 
 void GlobalBundleAdjuster::Start(Map& map, const Camera& camera, const GlobalBAConfig& config) {
-    if (running_)
-        return;
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
+
+    // A previous solve can have finished while its std::thread is still
+    // joinable.  Always stop/join it before replacing thread_.  If it is
+    // currently solving, this waits for its iteration callback to honour the
+    // stop request instead of silently dropping the new BA request.
+    stop_requested_ = true;
+    if (thread_.joinable()) {
+        thread_.join();
+    }
 
     map_ = &map;
     camera_ = &camera;
@@ -62,7 +69,33 @@ void GlobalBundleAdjuster::Start(Map& map, const Camera& camera, const GlobalBAC
     final_cost_ = 0.0;
 
     running_ = true;
-    thread_ = std::thread(&GlobalBundleAdjuster::Run, this);
+    try {
+        thread_ = std::thread([this] {
+            try {
+                Run();
+            } catch (const std::exception& e) {
+                std::cerr << "[GlobalBA] Worker exception: " << e.what() << '\n';
+            } catch (...) {
+                std::cerr << "[GlobalBA] Worker exception: unknown error\n";
+            }
+            // A background exception must not terminate the process.  These flags
+            // also make the worker safely restartable after any completion path.
+            running_ = false;
+            is_finished_ = true;
+        });
+    } catch (...) {
+        running_ = false;
+        is_finished_ = true;
+        throw;
+    }
+}
+
+void GlobalBundleAdjuster::Stop() {
+    RequestStop();
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
+    if (thread_.joinable()) {
+        thread_.join();
+    }
 }
 
 void GlobalBundleAdjuster::RequestStop() {
@@ -71,10 +104,15 @@ void GlobalBundleAdjuster::RequestStop() {
 
 void GlobalBundleAdjuster::Run() {
     if (!map_ || !camera_) {
-        running_ = false;
-        is_finished_ = true;
         return;
     }
+
+    // Ceres works on a snapshot and writes its optimized poses/landmarks back
+    // at the end.  Holding the graph transaction for this solve prevents a
+    // concurrent tracker/local-BA/loop correction from changing associations
+    // underneath that snapshot or overwriting its results midway through the
+    // final commit.
+    auto graph_lock = map_->AcquireGraphLock();
 
     // ── Build the Ceres problem ─────────────────────────────────────────────
 
@@ -191,8 +229,6 @@ void GlobalBundleAdjuster::Run() {
     }
 
     if (total_residuals == 0) {
-        running_ = false;
-        is_finished_ = true;
         return;
     }
 
@@ -258,8 +294,6 @@ void GlobalBundleAdjuster::Run() {
         mp->SetPosition(Vec3(pt[0], pt[1], pt[2]));
     }
 
-    running_ = false;
-    is_finished_ = true;
 }
 
 }  // namespace litevo::loop_closing
@@ -269,15 +303,28 @@ void GlobalBundleAdjuster::Run() {
 namespace litevo::loop_closing {
 
 GlobalBundleAdjuster::~GlobalBundleAdjuster() {
+    Stop();
+}
+
+void GlobalBundleAdjuster::Start(Map&, const Camera&, const GlobalBAConfig&) {
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
+    if (thread_.joinable())
+        thread_.join();
+    stop_requested_ = false;
+    running_ = false;
+    is_finished_ = true;
+}
+
+void GlobalBundleAdjuster::Stop() {
+    RequestStop();
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
     if (thread_.joinable())
         thread_.join();
 }
 
-void GlobalBundleAdjuster::Start(Map&, const Camera&, const GlobalBAConfig&) {
-    is_finished_ = true;
+void GlobalBundleAdjuster::RequestStop() {
+    stop_requested_ = true;
 }
-
-void GlobalBundleAdjuster::RequestStop() {}
 
 }  // namespace litevo::loop_closing
 

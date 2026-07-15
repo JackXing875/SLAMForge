@@ -120,6 +120,17 @@ TEST_F(LocalMapperTest, DoubleStartNoCrash) {
     mapper_->Stop();
 }
 
+TEST_F(LocalMapperTest, RestartAfterStopIsSafe) {
+    mapper_->Start();
+    mapper_->Stop();
+    ASSERT_TRUE(mapper_->IsFinished());
+
+    EXPECT_NO_THROW(mapper_->Start());
+    EXPECT_TRUE(mapper_->IsRunning());
+    mapper_->Stop();
+    EXPECT_TRUE(mapper_->IsFinished());
+}
+
 TEST_F(LocalMapperTest, StopBeforeStart) {
     EXPECT_NO_THROW(mapper_->Stop());  // Should not crash
     EXPECT_FALSE(mapper_->IsRunning());

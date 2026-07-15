@@ -30,8 +30,17 @@ LocalMapper::~LocalMapper() {
 // ── Thread control ──────────────────────────────────────────────────────────
 
 void LocalMapper::Start() {
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
     if (running_)
         return;
+
+    // A worker that has completed remains joinable until it is joined.  Join
+    // it before assigning a replacement thread, otherwise a Start/Stop/Start
+    // sequence terminates the process.
+    if (thread_.joinable()) {
+        thread_.join();
+    }
+
     stop_requested_ = false;
     is_finished_ = false;
     running_ = true;
@@ -40,6 +49,7 @@ void LocalMapper::Start() {
 
 void LocalMapper::Stop() {
     RequestStop();
+    std::lock_guard<std::mutex> lifecycle_lock(lifecycle_mutex_);
     if (thread_.joinable()) {
         thread_.join();
     }
@@ -84,6 +94,7 @@ void LocalMapper::Run() {
         }
 
         // Process the new keyframe
+        auto graph_lock = map_.AcquireGraphLock();
         try {
             ProcessNewKeyFrame();
             CreateNewMapPoints();
@@ -95,7 +106,7 @@ void LocalMapper::Run() {
             {
                 auto all_mps = map_.GetAllMapPoints();
                 for (const auto& mp : all_mps) {
-                    if (mp && mp->IsBad(config_.min_observations)) {
+                    if (mp && mp->IsEraseReady(config_.min_observations)) {
                         map_.EraseMapPoint(mp->Id());
                     }
                 }
@@ -157,18 +168,16 @@ void LocalMapper::CreateNewMapPoints() {
 void LocalMapper::CullMapPoints() {
     auto all_mps = map_.GetAllMapPoints();
     for (auto& mp : all_mps) {
-        if (!mp || mp->IsBad())
+        if (!mp)
             continue;
 
-        // Cull map points that aren't found often enough
-        float ratio = mp->GetFoundRatio();
-        if (ratio >= 0.0f && ratio < 0.25f && mp->FramesSinceCreation() > 2) {
-            // Mark as bad — will be erased by the periodic cleanup
-        }
+        // Advance the recent-point grace period once per keyframe processed.
+        mp->IncrementFrame();
 
-        // Check if erase-ready
+        // IsEraseReady keeps valid two-view initialization points alive until
+        // there is enough age and tracking evidence to judge their quality.
         if (mp->IsEraseReady(config_.min_observations)) {
-            // Will be erased in the periodic cleanup
+            map_.EraseMapPoint(mp->Id());
         }
     }
 }

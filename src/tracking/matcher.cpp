@@ -16,6 +16,28 @@
 
 namespace litevo::tracking {
 
+namespace {
+
+constexpr int kRotationHistogramBins = 30;
+
+/// Map an orientation difference in degrees to a cyclic histogram bin.
+/// ORB keypoint angles are degrees, not radians; using 1/(2*pi) here made
+/// values near 360 index far beyond the 30-element histogram and corrupted
+/// heap memory during two-view initialization.
+int RotationHistogramBin(float angle_diff_degrees) {
+    float normalized = std::fmod(angle_diff_degrees, 360.0f);
+    if (normalized < 0.0f) {
+        normalized += 360.0f;
+    }
+
+    int bin = static_cast<int>(std::lround(
+        normalized * static_cast<float>(kRotationHistogramBins) / 360.0f));
+    bin %= kRotationHistogramBins;
+    return bin < 0 ? bin + kRotationHistogramBins : bin;
+}
+
+}  // namespace
+
 // ── Descriptor-to-descriptor matching ──────────────────────────────────────
 
 std::vector<std::pair<int, int>> FeatureMatcher::MatchByDescriptor(const cv::Mat& desc1,
@@ -49,7 +71,7 @@ std::vector<std::pair<int, int>> FeatureMatcher::MatchByDescriptor(const cv::Mat
     std::vector<std::vector<cv::DMatch>> knn_rev;
     matcher.knnMatch(desc2, desc1, knn_rev, 1);
 
-    std::vector<int> best_rev(desc2.rows, -1);
+    std::vector<int> best_rev(static_cast<size_t>(desc2.rows), -1);
     for (size_t i = 0; i < knn_rev.size(); ++i) {
         if (!knn_rev[i].empty()) {
             best_rev[i] = knn_rev[i][0].trainIdx;
@@ -58,9 +80,6 @@ std::vector<std::pair<int, int>> FeatureMatcher::MatchByDescriptor(const cv::Mat
 
     std::vector<std::pair<int, int>> cross_matches;
     for (const auto& [q_idx, t_idx] : matches) {
-        if (q_idx >= 0 && q_idx < static_cast<int>(best_rev.size())) {
-            (void)t_idx;
-        }
         if (t_idx >= 0 && t_idx < static_cast<int>(best_rev.size())) {
             if (best_rev[static_cast<size_t>(t_idx)] == q_idx) {
                 cross_matches.emplace_back(q_idx, t_idx);
@@ -75,7 +94,7 @@ std::vector<std::pair<int, int>> FeatureMatcher::MatchByDescriptor(const cv::Mat
 
 int FeatureMatcher::SearchForInitialization(const Frame& F1, const Frame& F2, int window_size,
                                             std::vector<int>& matches_12) const {
-    matches_12.assign(F1.NumKeyPoints(), -1);
+    matches_12.assign(static_cast<size_t>(F1.NumKeyPoints()), -1);
 
     if (F1.NumKeyPoints() == 0 || F2.NumKeyPoints() == 0) {
         return 0;
@@ -86,7 +105,11 @@ int FeatureMatcher::SearchForInitialization(const Frame& F1, const Frame& F2, in
     const auto& desc1 = F1.Descriptors();
     const auto& desc2 = F2.Descriptors();
 
-    std::vector<std::pair<int, int>> raw_matches;
+    // Keep the initialization correspondence set one-to-one.  Without this,
+    // several reference features can select the same current feature and the
+    // resulting map points overwrite one another's KeyFrame association.
+    std::vector<int> best_ref_for_current(static_cast<size_t>(F2.NumKeyPoints()), -1);
+    std::vector<int> best_dist_for_current(static_cast<size_t>(F2.NumKeyPoints()), 256);
 
     for (int i = 0; i < F1.NumKeyPoints(); ++i) {
         float x = kps1[static_cast<size_t>(i)].pt.x;
@@ -110,8 +133,20 @@ int FeatureMatcher::SearchForInitialization(const Frame& F1, const Frame& F2, in
         }
 
         // Ratio test
-        if (best_idx >= 0 && best_dist < 0.7f * second_best) {
-            raw_matches.emplace_back(i, best_idx);
+        if (best_idx >= 0 && best_dist * 10 < 7 * second_best) {
+            if (best_dist < best_dist_for_current[static_cast<size_t>(best_idx)]) {
+                best_dist_for_current[static_cast<size_t>(best_idx)] = best_dist;
+                best_ref_for_current[static_cast<size_t>(best_idx)] = i;
+            }
+        }
+    }
+
+    std::vector<std::pair<int, int>> raw_matches;
+    raw_matches.reserve(static_cast<size_t>(F2.NumKeyPoints()));
+    for (int current_idx = 0; current_idx < F2.NumKeyPoints(); ++current_idx) {
+        const int reference_idx = best_ref_for_current[static_cast<size_t>(current_idx)];
+        if (reference_idx >= 0) {
+            raw_matches.emplace_back(reference_idx, current_idx);
         }
     }
 
@@ -148,11 +183,23 @@ std::vector<std::pair<int, MapPointId>> FeatureMatcher::SearchByProjection(
         Vec3 p_w = mp->Position();
 
         // Project to current frame
-        Vec2 uv = camera.ProjectWorld(p_w, frame.Pose());
+        // Frame grids are built from undistorted keypoints.  Project to the
+        // same coordinate system; using Camera::ProjectWorld here would
+        // search at distorted pixels for cameras with lens distortion.
+        Vec2 uv = camera.ProjectWorldUndistorted(p_w, frame.Pose());
 
         // Check visibility
         if (!camera.IsInImage(uv, static_cast<int>(max_dist_px))) {
             continue;
+        }
+
+        // The same frame can be searched more than once (a wider retry in
+        // TrackWithMotionModel followed by local-map refinement).  Count a
+        // landmark as visible at most once per frame, otherwise the quality
+        // ratio is artificially driven down and valid recent points are
+        // culled.  Tracker::ResetFound clears this per-frame flag.
+        if (mp->MarkObserved()) {
+            mp->IncreaseVisible();
         }
 
         // Get candidate keypoints in a window
@@ -164,7 +211,7 @@ std::vector<std::pair<int, MapPointId>> FeatureMatcher::SearchByProjection(
 
         for (int kp_idx : candidates) {
             // Skip already matched keypoints
-            if (matched_kp_indices.contains(kp_idx))
+            if (matched_kp_indices.contains(kp_idx) || frame.MapPointIdAt(kp_idx).id != 0)
                 continue;
 
             int dist = DescriptorDistance(mp->Descriptor(), desc_frame.row(kp_idx));
@@ -201,43 +248,26 @@ std::vector<std::pair<int, int>> FeatureMatcher::FilterByRotationHistogram(
         return matches;  // Too few to filter meaningfully
     }
 
-    constexpr int kHistoBins = 30;
-    constexpr float kHistoFactor = 1.0f / (2.0f * static_cast<float>(M_PI));
-
     // Build rotation histogram
-    std::vector<int> histo(kHistoBins, 0);
+    std::vector<int> histo(kRotationHistogramBins, 0);
     for (const auto& [i1, i2] : matches) {
         float angle_diff =
             kps1[static_cast<size_t>(i1)].angle - kps2[static_cast<size_t>(i2)].angle;
-        if (angle_diff < 0.0f)
-            angle_diff += 360.0f;
-        int bin = static_cast<int>(std::round(angle_diff * kHistoFactor * kHistoBins));
-        if (bin >= kHistoBins)
-            bin -= kHistoBins;
-        if (bin < 0)
-            bin = 0;
+        const int bin = RotationHistogramBin(angle_diff);
         histo[static_cast<size_t>(bin)]++;
     }
 
     // Find top 3 bins
     std::vector<int> histo_sorted = histo;
     std::sort(histo_sorted.begin(), histo_sorted.end(), std::greater<int>());
-    int threshold_1 = histo_sorted[0];
-    int threshold_2 = histo_sorted[1];
-    int threshold_3 = histo_sorted[2];
+    const int threshold_3 = histo_sorted[2];
 
     // Keep matches in top 3 bins
     std::vector<std::pair<int, int>> filtered;
     for (const auto& [i1, i2] : matches) {
         float angle_diff =
             kps1[static_cast<size_t>(i1)].angle - kps2[static_cast<size_t>(i2)].angle;
-        if (angle_diff < 0.0f)
-            angle_diff += 360.0f;
-        int bin = static_cast<int>(std::round(angle_diff * kHistoFactor * kHistoBins));
-        if (bin >= kHistoBins)
-            bin -= kHistoBins;
-        if (bin < 0)
-            bin = 0;
+        const int bin = RotationHistogramBin(angle_diff);
         int count = histo[static_cast<size_t>(bin)];
         if (count >= threshold_3) {
             filtered.emplace_back(i1, i2);

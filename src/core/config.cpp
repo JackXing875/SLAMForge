@@ -144,6 +144,15 @@ std::optional<SystemConfig> SystemConfig::LoadFromYAML(const std::string& path) 
         if (root["input_video"]) {
             cfg.input_video = root["input_video"].as<std::string>();
         }
+        if (root["enable_viewer"]) {
+            cfg.enable_viewer = root["enable_viewer"].as<bool>(cfg.enable_viewer);
+        }
+        if (root["enable_logging"]) {
+            cfg.enable_logging = root["enable_logging"].as<bool>(cfg.enable_logging);
+        }
+        if (root["log_level"]) {
+            cfg.log_level = root["log_level"].as<int>(cfg.log_level);
+        }
 
         return cfg;
     } catch (const YAML::Exception& e) {

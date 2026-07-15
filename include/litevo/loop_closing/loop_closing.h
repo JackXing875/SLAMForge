@@ -93,6 +93,14 @@ public:
     /// @brief Load BoW vocabulary from file (must be called before Start).
     bool LoadVocabulary(const std::string& path);
 
+    /// @brief Whether a BoW vocabulary was loaded successfully.
+    bool HasVocabulary() const { return detector_.GetVocabulary().IsLoaded(); }
+
+    /// @brief Effective settings for the detector and pose-graph optimizer.
+    /// Useful for diagnostics and for verifying loaded configuration.
+    const LoopDetectorConfig& DetectorSettings() const { return detector_.Config(); }
+    const PoseGraphConfig& PoseGraphSettings() const { return pose_graph_.Config(); }
+
     // ── State ───────────────────────────────────────────────────────────────
 
     /// @brief Whether a loop was detected and corrected in the last processing.
@@ -112,7 +120,6 @@ private:
     const Camera& camera_;
     LoopClosingConfig config_;
 
-    Vocabulary vocabulary_;
     LoopDetector detector_;
     LoopVerifier verifier_;
     LoopCorrector corrector_;
@@ -122,6 +129,7 @@ private:
     // ── Threading ───────────────────────────────────────────────────────────
 
     std::thread thread_;
+    mutable std::mutex lifecycle_mutex_;
     mutable std::mutex mutex_;
     std::condition_variable cv_;
     KfQueue kf_queue_;
