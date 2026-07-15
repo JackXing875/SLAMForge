@@ -8,6 +8,7 @@
 
 #include <cmath>
 #include <limits>
+#include <numbers>
 
 #include "slamforge/geometry/se3.h"
 
@@ -106,7 +107,7 @@ double ParallaxAngle(const Vec3& C1, const Vec3& C2, const Vec3& point_w) {
     const Vec3 ray1 = (point_w - C1).normalized();
     const Vec3 ray2 = (point_w - C2).normalized();
     const double cos_angle = std::clamp(ray1.dot(ray2), -1.0, 1.0);
-    return std::acos(cos_angle) * 180.0 / M_PI;
+    return std::acos(cos_angle) * 180.0 / std::numbers::pi_v<double>;
 }
 
 }  // namespace slamforge::geometry
