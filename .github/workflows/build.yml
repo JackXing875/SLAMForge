@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    name: "${{ matrix.os }} / ${{ matrix.compiler }}"
+    name: "${{ matrix.os }} / ${{ matrix.compiler }} / ${{ matrix.build_type }}"
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -76,7 +76,7 @@ jobs:
 
       - name: Test
         working-directory: build
-        run: ctest --output-on-failure -C ${{ matrix.build_type }}
+        run: ctest --output-on-failure --timeout 120 -C ${{ matrix.build_type }}
 
       - name: Install package
         run: cmake --install build --prefix "$PWD/stage"
@@ -140,7 +140,7 @@ jobs:
       - name: Build and run tests
         run: |
           cmake --build build-coverage -j$(nproc)
-          ctest --test-dir build-coverage --output-on-failure
+          ctest --test-dir build-coverage --output-on-failure --timeout 120
 
       - name: Generate coverage reports
         run: |
