@@ -1,12 +1,12 @@
 // =============================================================================
-// LiteVO camera model — implementation
+// SLAMForge camera model — implementation
 // =============================================================================
 
-#include "litevo/core/camera.h"
+#include "slamforge/core/camera.h"
 
 #include <cmath>
 
-namespace litevo {
+namespace slamforge {
 
 Camera::Camera(double fx, double fy, double cx, double cy, int width, int height)
     : fx_(fx), fy_(fy), cx_(cx), cy_(cy), width_(width), height_(height) {
@@ -139,4 +139,4 @@ Camera Camera::FromParams(const CameraParams& p) {
     return cam;
 }
 
-}  // namespace litevo
+}  // namespace slamforge

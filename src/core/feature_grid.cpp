@@ -2,17 +2,19 @@
 // FeatureGrid implementation
 // =============================================================================
 
-#include "litevo/core/feature_grid.h"
+#include "slamforge/core/feature_grid.h"
 
 #include <algorithm>
 #include <cmath>
 
-namespace litevo {
+namespace slamforge {
 
 FeatureGrid::FeatureGrid(int image_width, int image_height, int cell_size)
     : width_(image_width), height_(image_height), cell_size_(cell_size) {
-    grid_cols_ = static_cast<int>(std::ceil(static_cast<float>(width_) / cell_size_));
-    grid_rows_ = static_cast<int>(std::ceil(static_cast<float>(height_) / cell_size_));
+    grid_cols_ =
+        static_cast<int>(std::ceil(static_cast<float>(width_) / static_cast<float>(cell_size_)));
+    grid_rows_ =
+        static_cast<int>(std::ceil(static_cast<float>(height_) / static_cast<float>(cell_size_)));
     grid_.resize(static_cast<size_t>(grid_cols_ * grid_rows_));
 }
 
@@ -61,15 +63,15 @@ std::vector<int> FeatureGrid::GetCandidates(float x, float y, float radius, int 
 }
 
 int FeatureGrid::PosToGridX(float x) const {
-    return static_cast<int>(std::floor(x / cell_size_));
+    return static_cast<int>(std::floor(x / static_cast<float>(cell_size_)));
 }
 
 int FeatureGrid::PosToGridY(float y) const {
-    return static_cast<int>(std::floor(y / cell_size_));
+    return static_cast<int>(std::floor(y / static_cast<float>(cell_size_)));
 }
 
 bool FeatureGrid::IsValidCell(int col, int row) const {
     return col >= 0 && col < grid_cols_ && row >= 0 && row < grid_rows_;
 }
 
-}  // namespace litevo
+}  // namespace slamforge

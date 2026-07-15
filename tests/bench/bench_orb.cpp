@@ -6,7 +6,7 @@
 
 #include <benchmark/benchmark.h>
 
-#include "litevo/features/orb_extractor.h"
+#include "slamforge/features/orb_extractor.h"
 
 namespace {
 
@@ -18,13 +18,13 @@ cv::Mat MakeSyntheticImage(int width, int height) {
 }
 
 void BM_OrbExtract_KITTI(benchmark::State& state) {
-    litevo::features::OrbExtractor::Options opts;
+    slamforge::features::OrbExtractor::Options opts;
     opts.num_features = 1200;
     opts.scale_factor = 1.2;
     opts.num_levels = 8;
     opts.ini_threshold = 20;
     opts.min_threshold = 7;
-    litevo::features::OrbExtractor extractor(opts);
+    slamforge::features::OrbExtractor extractor(opts);
 
     cv::Mat img = MakeSyntheticImage(1241, 376);
     std::vector<cv::KeyPoint> kps;
@@ -41,11 +41,11 @@ void BM_OrbExtract_KITTI(benchmark::State& state) {
 BENCHMARK(BM_OrbExtract_KITTI)->Unit(benchmark::kMillisecond);
 
 void BM_OrbExtract_VGA(benchmark::State& state) {
-    litevo::features::OrbExtractor::Options opts;
+    slamforge::features::OrbExtractor::Options opts;
     opts.num_features = 1000;
     opts.scale_factor = 1.2;
     opts.num_levels = 8;
-    litevo::features::OrbExtractor extractor(opts);
+    slamforge::features::OrbExtractor extractor(opts);
 
     cv::Mat img = MakeSyntheticImage(640, 480);
     std::vector<cv::KeyPoint> kps;
@@ -62,11 +62,11 @@ void BM_OrbExtract_VGA(benchmark::State& state) {
 BENCHMARK(BM_OrbExtract_VGA)->Unit(benchmark::kMillisecond);
 
 void BM_OrbExtract_HD(benchmark::State& state) {
-    litevo::features::OrbExtractor::Options opts;
+    slamforge::features::OrbExtractor::Options opts;
     opts.num_features = 2000;
     opts.scale_factor = 1.2;
     opts.num_levels = 8;
-    litevo::features::OrbExtractor extractor(opts);
+    slamforge::features::OrbExtractor extractor(opts);
 
     cv::Mat img = MakeSyntheticImage(1920, 1080);
     std::vector<cv::KeyPoint> kps;

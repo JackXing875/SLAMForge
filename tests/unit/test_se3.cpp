@@ -4,10 +4,10 @@
 
 #include <gtest/gtest.h>
 
-#include "litevo/geometry/se3.h"
+#include "slamforge/geometry/se3.h"
 
-using namespace litevo;
-using namespace litevo::geometry;
+using namespace slamforge;
+using namespace slamforge::geometry;
 
 TEST(SE3Test, MakeSE3_Rt) {
     Mat3 R = Mat3::Identity();

@@ -1,13 +1,13 @@
-# LiteVO — 工业级单目视觉 SLAM 系统
+# SLAMForge — 工业级单目视觉 SLAM 系统
 
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg)](LICENSE)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue?logo=c%2B%2B)](https://isocpp.org/)
-[![Docker](https://img.shields.io/badge/Docker-latest-2496ED?logo=docker)](https://github.com/yourname/LiteVO/pkgs/container/litevo)
+[![Docker](https://img.shields.io/badge/Docker-latest-2496ED?logo=docker)](https://github.com/JackXing875/SLAMForge/pkgs/container/slamforge)
 
 [English Version](README.md)
 
-**LiteVO** 是一个从零构建的**工业级单目视觉 SLAM** 系统，使用 C++20 编写。它从单个视频流中实时估计 6-DoF 相机运动并构建稀疏 3D 地图，架构对标 **ORB-SLAM3**。
+**SLAMForge** 是一个从零构建的**工业级单目视觉 SLAM** 系统，使用 C++20 编写。它从单个视频流中实时估计 6-DoF 相机运动并构建稀疏 3D 地图，架构对标 **ORB-SLAM3**。
 
 ---
 
@@ -15,14 +15,14 @@
 
 ```bash
 # Docker 构建（无需安装任何依赖）
-docker build -t litevo -f docker/Dockerfile .
+docker build -t slamforge -f docker/Dockerfile .
 docker run --rm -v /path/to/images:/images -v $PWD/output:/output \
-    litevo run --config /opt/litevo/config/kitti.yaml --input /images --output /output/traj.txt
+    slamforge run --config /opt/slamforge/config/kitti.yaml --input /images --output /output/traj.txt
 
 # 本地构建 (Ubuntu 22.04)
 sudo apt-get install -y libopencv-dev libeigen3-dev libspdlog-dev libyaml-cpp-dev
 cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j$(nproc)
-./build/apps/litevo_cli run --config config/kitti.yaml --input /path/to/images
+./build/apps/slamforge_cli run --config config/kitti.yaml --input /path/to/images
 
 # 评估结果
 python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
@@ -109,31 +109,31 @@ python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
 
 ```bash
 # 对图片目录运行 SLAM
-litevo_cli run --config config/kitti.yaml --input /data/images --output traj.txt
+slamforge_cli run --config config/kitti.yaml --input /data/images --output traj.txt
 
 # 对 TUM/EuRoC 图片序列保留原始时间戳
-litevo_cli run --config config/euroc.yaml --input /data/images \
+slamforge_cli run --config config/euroc.yaml --input /data/images \
     --timestamps /data/timestamps.txt --output traj.txt
 
 # 对视频文件运行 SLAM
-litevo_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30
+slamforge_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30
 
 # 评估轨迹精度
-litevo_cli eval --estimated traj.txt --groundtruth gt.txt --format kitti
+slamforge_cli eval --estimated traj.txt --groundtruth gt.txt --format kitti
 
 # 批量基准测试
-litevo_cli benchmark --dataset-dir /data/kitti --config config/kitti.yaml
+slamforge_cli benchmark --dataset-dir /data/kitti --config config/kitti.yaml
 ```
 
 ## Python API
 
 ```python
 import numpy as np
-import litevo
+import slamforge
 
-cfg = litevo.load_config("config/kitti.yaml")
-camera = litevo.Camera(cfg.camera)
-tracker = litevo.Tracker(camera, cfg.tracking, cfg.orb)
+cfg = slamforge.load_config("config/kitti.yaml")
+camera = slamforge.Camera(cfg.camera)
+tracker = slamforge.Tracker(camera, cfg.tracking, cfg.orb)
 
 for frame in frames:
     pose = tracker.track(frame, timestamp)
@@ -150,7 +150,7 @@ print(f"关键帧: {map_.keyframe_count}, 地图点: {map_.map_point_count}")
 sudo apt-get install -y build-essential cmake libopencv-dev libeigen3-dev \
     libspdlog-dev libyaml-cpp-dev libceres-dev
 
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DLITEVO_BUILD_TESTS=ON
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DSLAMFORGE_BUILD_TESTS=ON
 cmake --build build -j$(nproc)
 cd build && ctest --output-on-failure
 ```
@@ -160,7 +160,7 @@ cd build && ctest --output-on-failure
 - [快速开始指南](docs/quick_start.md)
 - [架构概览](docs/architecture.md)
 - [调优指南](docs/tuning_guide.md)
-- [API 文档](https://yourname.github.io/LiteVO/)
+- [API 文档](https://JackXing875.github.io/SLAMForge/)
 
 ## 参与贡献
 
@@ -168,7 +168,7 @@ cd build && ctest --output-on-failure
 
 ## 开源协议
 
-MIT License. 详见 [LICENSE](LICENSE).
+本项目采用 GNU General Public License v3.0 only（GPL-3.0-only）许可证。详见 [LICENSE](LICENSE)。
 
 ---
 

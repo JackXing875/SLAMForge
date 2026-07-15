@@ -1,16 +1,16 @@
-"""Conan recipe for LiteVO — Industrial-Grade Monocular Visual SLAM."""
+"""Conan recipe for SLAMForge — Industrial-Grade Monocular Visual SLAM."""
 
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
 from conan.tools.files import copy
 
 
-class LiteVOConan(ConanFile):
-    name = "litevo"
-    version = "2.0.0"
+class SLAMForgeConan(ConanFile):
+    name = "slamforge"
+    version = "3.0.0"
     description = "Industrial-grade monocular visual SLAM system"
-    license = "MIT"
-    url = "https://github.com/yourname/LiteVO"
+    license = "GPL-3.0-only"
+    url = "https://github.com/JackXing875/SLAMForge"
     topics = ("slam", "visual-odometry", "computer-vision", "robotics")
 
     settings = "os", "compiler", "build_type", "arch"
@@ -54,16 +54,16 @@ class LiteVOConan(ConanFile):
 
     def generate(self):
         tc = CMakeToolchain(self)
-        tc.variables["LITEVO_ENABLE_SOPHUS"] = self.options.with_sophus
-        tc.variables["LITEVO_ENABLE_CERES"] = self.options.with_ceres
-        tc.variables["LITEVO_ENABLE_G2O"] = self.options.with_g2o
-        tc.variables["LITEVO_ENABLE_FBOW"] = self.options.with_fbow
-        tc.variables["LITEVO_ENABLE_SPDLOG"] = self.options.with_spdlog
-        tc.variables["LITEVO_ENABLE_YAML"] = self.options.with_yaml
-        tc.variables["LITEVO_BUILD_TESTS"] = self.options.build_tests
-        tc.variables["LITEVO_BUILD_APPS"] = self.options.build_apps
-        tc.variables["LITEVO_BUILD_PYBIND"] = False
-        tc.variables["LITEVO_BUILD_ROS2"] = False
+        tc.variables["SLAMFORGE_ENABLE_SOPHUS"] = self.options.with_sophus
+        tc.variables["SLAMFORGE_ENABLE_CERES"] = self.options.with_ceres
+        tc.variables["SLAMFORGE_ENABLE_G2O"] = self.options.with_g2o
+        tc.variables["SLAMFORGE_ENABLE_FBOW"] = self.options.with_fbow
+        tc.variables["SLAMFORGE_ENABLE_SPDLOG"] = self.options.with_spdlog
+        tc.variables["SLAMFORGE_ENABLE_YAML"] = self.options.with_yaml
+        tc.variables["SLAMFORGE_BUILD_TESTS"] = self.options.build_tests
+        tc.variables["SLAMFORGE_BUILD_APPS"] = self.options.build_apps
+        tc.variables["SLAMFORGE_BUILD_PYBIND"] = False
+        tc.variables["SLAMFORGE_BUILD_ROS2"] = False
         tc.generate()
 
     def build(self):
@@ -77,5 +77,5 @@ class LiteVOConan(ConanFile):
         copy(self, "LICENSE", src=self.source_folder, dst=self.package_folder)
 
     def package_info(self):
-        self.cpp_info.libs = ["litevo_core"]
+        self.cpp_info.libs = ["slamforge_core"]
         self.cpp_info.includedirs = ["include"]

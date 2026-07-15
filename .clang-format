@@ -1,5 +1,5 @@
 ---
-# LiteVO clang-format configuration
+# SLAMForge clang-format configuration
 # Based on Google style with adjustments for readability
 BasedOnStyle: Google
 

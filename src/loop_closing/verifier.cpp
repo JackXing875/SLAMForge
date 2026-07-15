@@ -2,19 +2,19 @@
 // LoopVerifier implementation — Sim(3) geometric verification
 // =============================================================================
 
-#include "litevo/loop_closing/verifier.h"
+#include "slamforge/loop_closing/verifier.h"
 
 #include <algorithm>
 #include <unordered_set>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map.h"
-#include "litevo/core/map_point.h"
-#include "litevo/geometry/triangulation.h"
-#include "litevo/loop_closing/detector.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map.h"
+#include "slamforge/core/map_point.h"
+#include "slamforge/geometry/triangulation.h"
+#include "slamforge/loop_closing/detector.h"
 
-namespace litevo::loop_closing {
+namespace slamforge::loop_closing {
 
 LoopVerifier::LoopVerifier(const LoopVerifierConfig& config, const Camera* camera)
     : config_(config), camera_(camera) {}
@@ -74,8 +74,10 @@ VerificationResult LoopVerifier::Verify(std::shared_ptr<KeyFrame> current_kf,
             int cand_idx = match_idx_cand[static_cast<size_t>(inlier_idx)];
             const auto& kps = candidate_kf->KeyPointsUndistorted();
             if (cand_idx >= 0 && cand_idx < static_cast<int>(kps.size())) {
-                double dx = proj_cand.x() - kps[static_cast<size_t>(cand_idx)].pt.x;
-                double dy = proj_cand.y() - kps[static_cast<size_t>(cand_idx)].pt.y;
+                double dx =
+                    proj_cand.x() - static_cast<double>(kps[static_cast<size_t>(cand_idx)].pt.x);
+                double dy =
+                    proj_cand.y() - static_cast<double>(kps[static_cast<size_t>(cand_idx)].pt.y);
                 if (dx * dx + dy * dy < config_.max_reproj_error * config_.max_reproj_error) {
                     reproj_inliers++;
                 }
@@ -129,7 +131,8 @@ int LoopVerifier::SearchByBoW(std::shared_ptr<KeyFrame> kf1, std::shared_ptr<Key
     for (size_t i = 0; i < knn_matches.size(); ++i) {
         const auto& knn = knn_matches[i];
         if (knn.size() >= 2) {
-            if (knn[0].distance < config_.min_inlier_ratio * knn[1].distance) {
+            if (static_cast<double>(knn[0].distance) <
+                config_.min_inlier_ratio * static_cast<double>(knn[1].distance)) {
                 matches.emplace_back(knn[0].queryIdx, knn[0].trainIdx);
             }
         } else if (knn.size() == 1) {
@@ -176,4 +179,4 @@ int LoopVerifier::Build3DCorrespondences(std::shared_ptr<KeyFrame> kf_cur,
     return static_cast<int>(pts_cur_w.size());
 }
 
-}  // namespace litevo::loop_closing
+}  // namespace slamforge::loop_closing

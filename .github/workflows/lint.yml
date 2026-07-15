@@ -43,11 +43,11 @@ jobs:
         run: |
           cmake -B build \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DLITEVO_BUILD_TESTS=ON \
-            -DLITEVO_BUILD_APPS=ON \
-            -DLITEVO_ENABLE_SOPHUS=OFF \
-            -DLITEVO_ENABLE_CERES=OFF \
-            -DLITEVO_ENABLE_G2O=OFF
+            -DSLAMFORGE_BUILD_TESTS=ON \
+            -DSLAMFORGE_BUILD_APPS=ON \
+            -DSLAMFORGE_ENABLE_SOPHUS=OFF \
+            -DSLAMFORGE_ENABLE_CERES=OFF \
+            -DSLAMFORGE_ENABLE_G2O=OFF
 
       - name: Run clang-tidy
         run: |

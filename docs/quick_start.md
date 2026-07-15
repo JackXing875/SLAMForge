@@ -1,6 +1,6 @@
-# LiteVO Quick Start Guide
+# SLAMForge Quick Start Guide
 
-Get LiteVO running on your own images in 5 minutes.
+Get SLAMForge running on your own images in 5 minutes.
 
 ## Prerequisites
 
@@ -11,12 +11,12 @@ Get LiteVO running on your own images in 5 minutes.
 
 ```bash
 # 1. Clone and build
-git clone https://github.com/yourname/LiteVO.git && cd LiteVO
-docker build -t litevo -f docker/Dockerfile .
+git clone https://github.com/JackXing875/SLAMForge.git && cd SLAMForge
+docker build -t slamforge -f docker/Dockerfile .
 
 # 2. Run on your images
 docker run --rm -v /path/to/images:/images -v $PWD/output:/output \
-    litevo run --config /opt/litevo/config/kitti.yaml \
+    slamforge run --config /opt/slamforge/config/kitti.yaml \
     --input /images --output /output/traj.txt --verbose
 
 # 3. Evaluate against ground truth
@@ -34,17 +34,17 @@ sudo apt-get install -y build-essential cmake libopencv-dev libeigen3-dev \
 git clone https://github.com/strasdat/Sophus.git && cd Sophus
 cmake -B build && cmake --build build && sudo cmake --install build
 
-# 3. Build LiteVO
-cd LiteVO
+# 3. Build SLAMForge
+cd SLAMForge
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
 
 # 4. Run
-./build/apps/litevo_cli run --config config/kitti.yaml \
+./build/apps/slamforge_cli run --config config/kitti.yaml \
     --input /path/to/images --output traj.txt
 
 # Supply timestamps for TUM/EuRoC-style image sequences when available
-./build/apps/litevo_cli run --config config/euroc.yaml \
+./build/apps/slamforge_cli run --config config/euroc.yaml \
     --input /path/to/images --timestamps /path/to/timestamps.txt --output traj.txt
 ```
 
@@ -87,4 +87,4 @@ python3 tools/evaluate_rpe.py output/traj.txt groundtruth.txt --delta 1 --format
 
 - [Tuning Guide](tuning_guide.md) — adjust parameters for your camera/scene
 - [Architecture](architecture.md) — understand the system design
-- [Python API](../pybind/) — use LiteVO from Python
+- [Python API](../pybind/) — use SLAMForge from Python

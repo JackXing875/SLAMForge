@@ -1,5 +1,5 @@
 # =============================================================================
-# LiteVO — EuRoC MAV dataset configuration
+# SLAMForge — EuRoC MAV dataset configuration
 # =============================================================================
 # EuRoC Micro Aerial Vehicle datasets: monocular grayscale at 20 Hz.
 # Image resolution: 752x480 (Machine Hall), 752x480 (Vicon Room).

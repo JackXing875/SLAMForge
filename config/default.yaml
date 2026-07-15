@@ -1,7 +1,7 @@
 # =============================================================================
-# LiteVO — Default configuration
+# SLAMForge — Default configuration
 # =============================================================================
-# This is the default configuration file for LiteVO.
+# This is the default configuration file for SLAMForge.
 # Copy it and modify for your specific camera/dataset.
 
 # ── Camera intrinsic parameters ───────────────────────────────────────────────

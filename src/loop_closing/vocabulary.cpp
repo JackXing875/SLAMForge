@@ -2,7 +2,7 @@
 // Vocabulary implementation — FBOW wrapper with descriptor fallback
 // =============================================================================
 
-#include "litevo/loop_closing/vocabulary.h"
+#include "slamforge/loop_closing/vocabulary.h"
 
 #include <opencv2/core.hpp>
 #include <opencv2/features2d.hpp>
@@ -10,13 +10,13 @@
 #include <algorithm>
 #include <cmath>
 
-#ifdef LITEVO_HAS_FBOW
+#ifdef SLAMFORGE_HAS_FBOW
 #include <fbow/fbow.h>
 #endif
 
-namespace litevo::loop_closing {
+namespace slamforge::loop_closing {
 
-#ifdef LITEVO_HAS_FBOW
+#ifdef SLAMFORGE_HAS_FBOW
 namespace {
 // Global FBOW vocabulary instance (lazy-loaded, shared)
 std::unique_ptr<fbow::Vocabulary> g_fbow_vocab;
@@ -24,7 +24,7 @@ std::unique_ptr<fbow::Vocabulary> g_fbow_vocab;
 #endif
 
 bool Vocabulary::Load(const std::string& path) {
-#ifdef LITEVO_HAS_FBOW
+#ifdef SLAMFORGE_HAS_FBOW
     try {
         auto vocab = std::make_unique<fbow::Vocabulary>();
         vocab->readFromFile(path);
@@ -51,7 +51,7 @@ void Vocabulary::Transform(const cv::Mat& descriptors, std::vector<float>& bow,
     if (!is_loaded_ || descriptors.empty())
         return;
 
-#ifdef LITEVO_HAS_FBOW
+#ifdef SLAMFORGE_HAS_FBOW
     if (!g_fbow_vocab || !g_fbow_vocab->isValid())
         return;
 
@@ -80,7 +80,7 @@ double Vocabulary::Score(const std::vector<float>& bow1, const std::vector<float
     double score = 0.0;
     size_t n = std::min(bow1.size(), bow2.size());
     for (size_t i = 0; i < n; ++i) {
-        score += std::min(bow1[i], bow2[i]);
+        score += static_cast<double>(std::min(bow1[i], bow2[i]));
     }
     return score;
 }
@@ -112,4 +112,4 @@ double ComputeDescriptorSimilarity(const cv::Mat& desc1, const cv::Mat& desc2,
     return static_cast<double>(good) / static_cast<double>(desc1.rows);
 }
 
-}  // namespace litevo::loop_closing
+}  // namespace slamforge::loop_closing

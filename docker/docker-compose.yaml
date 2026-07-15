@@ -1,10 +1,10 @@
 services:
-  litevo:
+  slamforge:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: litevo:latest
-    container_name: litevo_slam
+    image: slamforge:latest
+    container_name: slamforge_slam
     volumes:
       # Mount your dataset directory
       - ${DATASET_DIR:-../datasets}:/datasets:ro
@@ -13,7 +13,7 @@ services:
       # Mount custom configs
       - ${CONFIG_DIR:-../config}:/config:ro
     working_dir: /workspace
-    # Default: run LiteVO on a KITTI sequence
+    # Default: run SLAMForge on a KITTI sequence
     command: >
       run
       --config /config/kitti.yaml

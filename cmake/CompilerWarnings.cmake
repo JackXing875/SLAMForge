@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Compiler warning configuration for LiteVO
+# Compiler warning configuration for SLAMForge
 # -----------------------------------------------------------------------------
 
 function(set_project_warnings target_name)
@@ -52,6 +52,7 @@ function(set_project_warnings target_name)
         -Wuseless-cast
         -Wno-unknown-pragmas
     )
+    list(REMOVE_ITEM GCC_WARNINGS -Wno-unknown-warning-option)
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
         set(PROJECT_WARNINGS ${MSVC_WARNINGS})
@@ -62,7 +63,7 @@ function(set_project_warnings target_name)
     endif()
 
     # Warnings are a build-time policy of this project, not part of its public
-    # API.  Keeping them private prevents an installed LiteVO target from
+    # API.  Keeping them private prevents an installed SLAMForge target from
     # unexpectedly changing a downstream project's warning policy.
     target_compile_options(${target_name} PRIVATE ${PROJECT_WARNINGS})
 endfunction()

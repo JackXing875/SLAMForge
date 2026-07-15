@@ -4,9 +4,9 @@
 
 #include <gtest/gtest.h>
 
-#include "litevo/core/camera.h"
+#include "slamforge/core/camera.h"
 
-using namespace litevo;
+using namespace slamforge;
 
 class CameraTest : public ::testing::Test {
 protected:

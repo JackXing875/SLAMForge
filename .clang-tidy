@@ -1,5 +1,5 @@
 ---
-# LiteVO clang-tidy configuration
+# SLAMForge clang-tidy configuration
 # Focuses on bug detection and critical performance issues.
 # Style/naming/modernize checks are disabled for now — to be re-enabled
 # gradually as the codebase is cleaned up file by file.

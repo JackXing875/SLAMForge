@@ -1,13 +1,13 @@
-# LiteVO — Industrial-Grade Monocular Visual SLAM
+# SLAMForge — Industrial-Grade Monocular Visual SLAM
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL--3.0--only-blue.svg)](LICENSE)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue?logo=c%2B%2B)](https://isocpp.org/)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python)](https://www.python.org/)
-[![Docker](https://img.shields.io/badge/Docker-latest-2496ED?logo=docker)](https://github.com/yourname/LiteVO/pkgs/container/litevo)
+[![Docker](https://img.shields.io/badge/Docker-latest-2496ED?logo=docker)](https://github.com/JackXing875/SLAMForge/pkgs/container/slamforge)
 
 [中文版本 (Chinese Version)](README_ch.md)
 
-**LiteVO** is an industrial-grade **monocular visual SLAM** system built from scratch in C++20. It estimates 6-DoF camera motion and builds a sparse 3D map from a single video stream in real time — with an architecture modeled after **ORB-SLAM3**.
+**SLAMForge** is an industrial-grade **monocular visual SLAM** system built from scratch in C++20. It estimates 6-DoF camera motion and builds a sparse 3D map from a single video stream in real time — with an architecture modeled after **ORB-SLAM3**.
 
 ---
 
@@ -15,14 +15,14 @@
 
 ```bash
 # Build with Docker (zero host dependencies)
-docker build -t litevo -f docker/Dockerfile .
+docker build -t slamforge -f docker/Dockerfile .
 docker run --rm -v /path/to/images:/images -v $PWD/output:/output \
-    litevo run --config /opt/litevo/config/kitti.yaml --input /images --output /output/traj.txt
+    slamforge run --config /opt/slamforge/config/kitti.yaml --input /images --output /output/traj.txt
 
 # Or build natively (Ubuntu 22.04)
 sudo apt-get install -y libopencv-dev libeigen3-dev libspdlog-dev libyaml-cpp-dev
 cmake -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j$(nproc)
-./build/apps/litevo_cli run --config config/kitti.yaml --input /path/to/images
+./build/apps/slamforge_cli run --config config/kitti.yaml --input /path/to/images
 
 # Evaluate results
 python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
@@ -110,8 +110,8 @@ python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
 ## Project Structure
 
 ```
-LiteVO/
-├── include/litevo/         # Public headers
+SLAMForge/
+├── include/slamforge/         # Public headers
 │   ├── core/               # Types, Camera, Map, Frame, Config
 │   ├── tracking/           # Tracker, Initializer, FeatureMatcher
 │   ├── mapping/            # LocalMapper
@@ -135,34 +135,34 @@ LiteVO/
 
 ```bash
 # Run SLAM on a directory of images
-litevo_cli run --config config/kitti.yaml --input /data/images --output traj.txt
+slamforge_cli run --config config/kitti.yaml --input /data/images --output traj.txt
 
 # Preserve source timestamps for TUM/EuRoC-style image sequences
-litevo_cli run --config config/euroc.yaml --input /data/images \
+slamforge_cli run --config config/euroc.yaml --input /data/images \
     --timestamps /data/timestamps.txt --output traj.txt
 
 # Run SLAM on a video file
-litevo_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30
+slamforge_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30
 
 # Evaluate trajectory against ground truth
-litevo_cli eval --estimated traj.txt --groundtruth gt.txt --format kitti
+slamforge_cli eval --estimated traj.txt --groundtruth gt.txt --format kitti
 
 # Batch benchmark across dataset sequences
-litevo_cli benchmark --dataset-dir /data/kitti --config config/kitti.yaml
+slamforge_cli benchmark --dataset-dir /data/kitti --config config/kitti.yaml
 ```
 
 ## Python API
 
 ```python
 import numpy as np
-import litevo
+import slamforge
 
 # Load configuration
-cfg = litevo.load_config("config/kitti.yaml")
+cfg = slamforge.load_config("config/kitti.yaml")
 
 # Create camera and tracker
-camera = litevo.Camera(cfg.camera)
-tracker = litevo.Tracker(camera, cfg.tracking, cfg.orb)
+camera = slamforge.Camera(cfg.camera)
+tracker = slamforge.Tracker(camera, cfg.tracking, cfg.orb)
 
 # Track frames
 for frame in frames:
@@ -180,11 +180,11 @@ print(f"Keyframes: {map_.keyframe_count}, Map points: {map_.map_point_count}")
 ```bash
 # Source your ROS2 installation, then build the node with ROS2 support
 source /opt/ros/$ROS_DISTRO/setup.bash
-cmake -B build -DLITEVO_BUILD_ROS2=ON
+cmake -B build -DSLAMFORGE_BUILD_ROS2=ON
 cmake --build build
 
 # Run the CMake-built node
-./build/apps/litevo_ros_node --ros-args -p config_path:=config/euroc.yaml
+./build/apps/slamforge_ros_node --ros-args -p config_path:=config/euroc.yaml
 ```
 
 **Published topics:**
@@ -207,10 +207,10 @@ sudo apt-get install -y libceres-dev libgoogle-glog-dev libgflags-dev
 git clone https://github.com/strasdat/Sophus.git && cd Sophus
 cmake -B build && cmake --build build && sudo cmake --install build
 
-# Build LiteVO
+# Build SLAMForge
 cmake -B build -DCMAKE_BUILD_TYPE=Release \
-    -DLITEVO_BUILD_TESTS=ON \
-    -DLITEVO_ENABLE_CERES=ON
+    -DSLAMFORGE_BUILD_TESTS=ON \
+    -DSLAMFORGE_ENABLE_CERES=ON
 cmake --build build -j$(nproc)
 
 # Run tests
@@ -222,7 +222,7 @@ cd build && ctest --output-on-failure
 - [Quick Start Guide](docs/quick_start.md) — Get running in 5 minutes
 - [Architecture Overview](docs/architecture.md) — System design and data flow
 - [Tuning Guide](docs/tuning_guide.md) — Parameter optimization for your scene
-- [API Documentation](https://yourname.github.io/LiteVO/) — Doxygen-generated class reference
+- [API Documentation](https://JackXing875.github.io/SLAMForge/) — Doxygen-generated class reference
 
 ## Contributing
 
@@ -230,7 +230,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and PR
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+This project is licensed under the GNU General Public License v3.0 only. See [LICENSE](LICENSE) for details.
 
 ---
 

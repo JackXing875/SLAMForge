@@ -2,17 +2,17 @@
 // LoopDetector implementation
 // =============================================================================
 
-#include "litevo/loop_closing/detector.h"
+#include "slamforge/loop_closing/detector.h"
 
 #include <opencv2/features2d.hpp>
 
 #include <algorithm>
 #include <set>
 
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map.h"
 
-namespace litevo::loop_closing {
+namespace slamforge::loop_closing {
 
 LoopDetector::LoopDetector(const LoopDetectorConfig& config) : config_(config) {}
 
@@ -176,4 +176,4 @@ double LoopDetector::ScoreBetween(std::shared_ptr<KeyFrame> kf1, std::shared_ptr
     return ComputeDescriptorSimilarity(kf1->Descriptors(), kf2->Descriptors());
 }
 
-}  // namespace litevo::loop_closing
+}  // namespace slamforge::loop_closing

@@ -2,22 +2,22 @@
 // LocalMapper implementation
 // =============================================================================
 
-#include "litevo/mapping/local_mapper.h"
+#include "slamforge/mapping/local_mapper.h"
 
 #include <algorithm>
 #include <iostream>
 #include <unordered_set>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map.h"
-#include "litevo/core/map_point.h"
-#include "litevo/features/orb_extractor.h"
-#include "litevo/geometry/triangulation.h"
-#include "litevo/optimization/ba.h"
-#include "litevo/tracking/matcher.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map.h"
+#include "slamforge/core/map_point.h"
+#include "slamforge/features/orb_extractor.h"
+#include "slamforge/geometry/triangulation.h"
+#include "slamforge/optimization/ba.h"
+#include "slamforge/tracking/matcher.h"
 
-namespace litevo::mapping {
+namespace slamforge::mapping {
 
 LocalMapper::LocalMapper(Map& map, const Camera& camera, const MappingConfig& config,
                          features::OrbExtractor& extractor)
@@ -431,4 +431,4 @@ int LocalMapper::SearchForTriangulation(KeyFrame* kf1, KeyFrame* kf2,
     return static_cast<int>(matches.size());
 }
 
-}  // namespace litevo::mapping
+}  // namespace slamforge::mapping

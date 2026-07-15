@@ -1,6 +1,12 @@
-#!/bin/bash
-set -e
-cd /home/schrieffer/LiteVO/build
-cmake .. -DLITEVO_BUILD_TESTS=ON -DLITEVO_ENABLE_CERES=ON -DLITEVO_ENABLE_G2O=OFF
-make -j$(nproc) 2>&1
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+cmake -S "${project_dir}" -B "${project_dir}/build" \
+    -DSLAMFORGE_BUILD_TESTS=ON \
+    -DSLAMFORGE_ENABLE_CERES=ON \
+    -DSLAMFORGE_ENABLE_G2O=OFF
+cmake --build "${project_dir}/build" --parallel
+
 echo "BUILD COMPLETED"

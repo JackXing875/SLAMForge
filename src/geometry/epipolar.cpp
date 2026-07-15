@@ -1,13 +1,13 @@
 // =============================================================================
-// LiteVO epipolar geometry — implementation
+// SLAMForge epipolar geometry — implementation
 // =============================================================================
 
-#include "litevo/geometry/epipolar.h"
+#include "slamforge/geometry/epipolar.h"
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/eigen.hpp>
 
-namespace litevo::geometry {
+namespace slamforge::geometry {
 
 EpipolarResult EstimatePoseEssential(const std::vector<cv::Point2f>& pts1,
                                      const std::vector<cv::Point2f>& pts2, const cv::Mat& K,
@@ -73,4 +73,4 @@ Mat3 FundamentalFromEssential(const Mat3& E, const Mat3& K) {
     return K_inv.transpose() * E * K_inv;
 }
 
-}  // namespace litevo::geometry
+}  // namespace slamforge::geometry

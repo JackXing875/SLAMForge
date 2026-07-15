@@ -1,17 +1,17 @@
 // =============================================================================
-// LiteVO configuration loader — YAML parsing implementation
+// SLAMForge configuration loader — YAML parsing implementation
 // =============================================================================
 
-#include "litevo/core/config.h"
+#include "slamforge/core/config.h"
 
 #include <fstream>
 #include <sstream>
 
-#ifdef LITEVO_HAS_YAML_CPP
+#ifdef SLAMFORGE_HAS_YAML_CPP
 #include <yaml-cpp/yaml.h>
 #endif
 
-namespace litevo {
+namespace slamforge {
 
 SystemConfig SystemConfig::Default() {
     SystemConfig cfg;
@@ -57,7 +57,7 @@ SystemConfig SystemConfig::Default() {
 }
 
 std::optional<SystemConfig> SystemConfig::LoadFromYAML(const std::string& path) {
-#ifdef LITEVO_HAS_YAML_CPP
+#ifdef SLAMFORGE_HAS_YAML_CPP
     try {
         YAML::Node root = YAML::LoadFile(path);
         SystemConfig cfg = Default();
@@ -165,4 +165,4 @@ std::optional<SystemConfig> SystemConfig::LoadFromYAML(const std::string& path) 
 #endif
 }
 
-}  // namespace litevo
+}  // namespace slamforge

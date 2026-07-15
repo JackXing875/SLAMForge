@@ -2,14 +2,14 @@
 // KeyFrame implementation
 // =============================================================================
 
-#include "litevo/core/keyframe.h"
+#include "slamforge/core/keyframe.h"
 
 #include <algorithm>
 
-#include "litevo/core/map.h"
-#include "litevo/core/map_point.h"
+#include "slamforge/core/map.h"
+#include "slamforge/core/map_point.h"
 
-namespace litevo {
+namespace slamforge {
 
 std::mutex KeyFrame::global_mutex_;
 
@@ -166,4 +166,4 @@ bool KeyFrame::CompareByWeight(const std::pair<KeyFrame*, int>& a,
     return a.second > b.second;  // Descending
 }
 
-}  // namespace litevo
+}  // namespace slamforge

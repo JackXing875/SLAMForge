@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'include/litevo/**'
+      - 'include/slamforge/**'
       - 'docs/**'
       - 'Doxyfile'
       - 'README.md'

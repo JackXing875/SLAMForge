@@ -2,9 +2,9 @@
 // PoseGraphOptimizer implementation — g2o pose graph optimization
 // =============================================================================
 
-#include "litevo/loop_closing/pose_graph.h"
+#include "slamforge/loop_closing/pose_graph.h"
 
-#ifdef LITEVO_HAS_G2O
+#ifdef SLAMFORGE_HAS_G2O
 
 #include <g2o/core/block_solver.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
@@ -16,11 +16,11 @@
 
 #include <unordered_map>
 
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map.h"
-#include "litevo/geometry/se3.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map.h"
+#include "slamforge/geometry/se3.h"
 
-namespace litevo::loop_closing {
+namespace slamforge::loop_closing {
 
 PoseGraphOptimizer::PoseGraphOptimizer(const PoseGraphConfig& config) : config_(config) {}
 
@@ -205,14 +205,14 @@ void PoseGraphOptimizer::Optimize(Map& map, std::shared_ptr<KeyFrame> loop_kf,
     }
 }
 
-}  // namespace litevo::loop_closing
+}  // namespace slamforge::loop_closing
 
-#else  // !LITEVO_HAS_G2O
+#else  // !SLAMFORGE_HAS_G2O
 
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map.h"
 
-namespace litevo::loop_closing {
+namespace slamforge::loop_closing {
 
 PoseGraphOptimizer::PoseGraphOptimizer(const PoseGraphConfig& config) : config_(config) {}
 
@@ -223,6 +223,6 @@ void PoseGraphOptimizer::Optimize(Map&, std::shared_ptr<KeyFrame>, std::shared_p
     // No-op when g2o is not available
 }
 
-}  // namespace litevo::loop_closing
+}  // namespace slamforge::loop_closing
 
-#endif  // LITEVO_HAS_G2O
+#endif  // SLAMFORGE_HAS_G2O

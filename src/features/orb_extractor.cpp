@@ -1,15 +1,15 @@
 // =============================================================================
-// LiteVO ORB extractor — implementation
+// SLAMForge ORB extractor — implementation
 // =============================================================================
 
-#include "litevo/features/orb_extractor.h"
+#include "slamforge/features/orb_extractor.h"
 
 #include <opencv2/imgproc.hpp>
 
 #include <algorithm>
 #include <cmath>
 
-namespace litevo::features {
+namespace slamforge::features {
 
 OrbExtractor::OrbExtractor() : opts_{} {
     ComputePyramidParameters();
@@ -31,10 +31,11 @@ OrbExtractor::OrbExtractor(const Options& opts) : opts_(opts) {
 }
 
 void OrbExtractor::ComputePyramidParameters() {
-    scale_factors_.resize(opts_.num_levels);
-    inv_scale_factors_.resize(opts_.num_levels);
-    inv_scale_factors_sq_.resize(opts_.num_levels);
-    level_sigmas_.resize(opts_.num_levels);
+    const auto num_levels = static_cast<size_t>(opts_.num_levels);
+    scale_factors_.resize(num_levels);
+    inv_scale_factors_.resize(num_levels);
+    inv_scale_factors_sq_.resize(num_levels);
+    level_sigmas_.resize(num_levels);
 
     scale_factors_[0] = 1.0f;
     inv_scale_factors_[0] = 1.0f;
@@ -42,10 +43,12 @@ void OrbExtractor::ComputePyramidParameters() {
     level_sigmas_[0] = 1.0f;
 
     for (int level = 1; level < opts_.num_levels; ++level) {
-        scale_factors_[level] = scale_factors_[level - 1] * static_cast<float>(opts_.scale_factor);
-        inv_scale_factors_[level] = 1.0f / scale_factors_[level];
-        inv_scale_factors_sq_[level] = inv_scale_factors_[level] * inv_scale_factors_[level];
-        level_sigmas_[level] = scale_factors_[level];
+        const auto index = static_cast<size_t>(level);
+        const auto previous = static_cast<size_t>(level - 1);
+        scale_factors_[index] = scale_factors_[previous] * static_cast<float>(opts_.scale_factor);
+        inv_scale_factors_[index] = 1.0f / scale_factors_[index];
+        inv_scale_factors_sq_[index] = inv_scale_factors_[index] * inv_scale_factors_[index];
+        level_sigmas_[index] = scale_factors_[index];
     }
 }
 
@@ -63,7 +66,7 @@ int OrbExtractor::Extract(const cv::Mat& image, std::vector<cv::KeyPoint>& keypo
         std::partial_sort(
             keypoints.begin(), keypoints.begin() + opts_.num_features, keypoints.end(),
             [](const cv::KeyPoint& a, const cv::KeyPoint& b) { return a.response > b.response; });
-        keypoints.resize(opts_.num_features);
+        keypoints.resize(static_cast<size_t>(opts_.num_features));
 
         // Trim descriptors to match
         if (!descriptors.empty()) {
@@ -82,7 +85,7 @@ int OrbExtractor::ExtractUniform(const cv::Mat& image, std::vector<cv::KeyPoint>
 
     // Step 1: Extract features with a lower threshold to get more candidates
     cv::Ptr<cv::ORB> orb_low =
-        cv::ORB::create(static_cast<int>(opts_.num_features * 2),  // more candidates
+        cv::ORB::create(opts_.num_features * 2,  // more candidates
                         static_cast<float>(opts_.scale_factor), opts_.num_levels,
                         opts_.min_threshold,  // use lower threshold for more candidates
                         0, 2, cv::ORB::HARRIS_SCORE, opts_.patch_size, opts_.min_threshold);
@@ -98,22 +101,26 @@ int OrbExtractor::ExtractUniform(const cv::Mat& image, std::vector<cv::KeyPoint>
     }
 
     // Step 2: Group keypoints by octave
-    std::vector<std::vector<cv::KeyPoint>> kps_by_level(opts_.num_levels);
+    const auto num_levels = static_cast<size_t>(opts_.num_levels);
+    std::vector<std::vector<cv::KeyPoint>> kps_by_level(num_levels);
     for (const auto& kp : all_keypoints) {
-        kps_by_level[kp.octave].push_back(kp);
+        if (kp.octave >= 0 && kp.octave < opts_.num_levels) {
+            kps_by_level[static_cast<size_t>(kp.octave)].push_back(kp);
+        }
     }
 
     // Step 3: Compute target count per level based on scale factors
-    std::vector<int> target_per_level(opts_.num_levels, 0);
+    std::vector<int> target_per_level(num_levels, 0);
     float total_area = 0.0f;
     for (int level = 0; level < opts_.num_levels; ++level) {
-        total_area += 1.0f / scale_factors_[level];
+        total_area += 1.0f / scale_factors_[static_cast<size_t>(level)];
     }
     int assigned = 0;
     for (int level = 0; level < opts_.num_levels; ++level) {
-        target_per_level[level] =
-            static_cast<int>(opts_.num_features * (1.0f / scale_factors_[level]) / total_area);
-        assigned += target_per_level[level];
+        const auto index = static_cast<size_t>(level);
+        target_per_level[index] = static_cast<int>(static_cast<float>(opts_.num_features) *
+                                                   (1.0f / scale_factors_[index]) / total_area);
+        assigned += target_per_level[index];
     }
     // Distribute remainder
     target_per_level[0] += (opts_.num_features - assigned);
@@ -123,11 +130,12 @@ int OrbExtractor::ExtractUniform(const cv::Mat& image, std::vector<cv::KeyPoint>
     std::vector<int> selected_indices;
 
     for (int level = 0; level < opts_.num_levels; ++level) {
-        const auto& level_kps = kps_by_level[level];
+        const auto index = static_cast<size_t>(level);
+        const auto& level_kps = kps_by_level[index];
         if (level_kps.empty())
             continue;
 
-        int target = std::min(target_per_level[level], static_cast<int>(level_kps.size()));
+        int target = std::min(target_per_level[index], static_cast<int>(level_kps.size()));
 
         if (target <= 0)
             continue;
@@ -139,7 +147,7 @@ int OrbExtractor::ExtractUniform(const cv::Mat& image, std::vector<cv::KeyPoint>
             [](const cv::KeyPoint& a, const cv::KeyPoint& b) { return a.response > b.response; });
 
         for (int i = 0; i < target; ++i) {
-            keypoints.push_back(sorted[i]);
+            keypoints.push_back(sorted[static_cast<size_t>(i)]);
         }
     }
 
@@ -152,8 +160,8 @@ int OrbExtractor::ExtractUniform(const cv::Mat& image, std::vector<cv::KeyPoint>
 }
 
 std::vector<cv::KeyPoint> OrbExtractor::DistributeOctTree(
-    const std::vector<cv::KeyPoint>& keypoints, int min_x, int max_x, int min_y, int max_y,
-    int num_features, int /*level*/) const {
+    const std::vector<cv::KeyPoint>& keypoints, int /*min_x*/, int /*max_x*/, int /*min_y*/,
+    int /*max_y*/, int num_features, int /*level*/) const {
     if (static_cast<int>(keypoints.size()) <= num_features) {
         return keypoints;
     }
@@ -163,8 +171,8 @@ std::vector<cv::KeyPoint> OrbExtractor::DistributeOctTree(
     std::partial_sort(
         result.begin(), result.begin() + num_features, result.end(),
         [](const cv::KeyPoint& a, const cv::KeyPoint& b) { return a.response > b.response; });
-    result.resize(num_features);
+    result.resize(static_cast<size_t>(num_features));
     return result;
 }
 
-}  // namespace litevo::features
+}  // namespace slamforge::features

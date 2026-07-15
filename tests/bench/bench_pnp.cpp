@@ -11,23 +11,23 @@
 
 #include <random>
 
-#include "litevo/core/camera.h"
-#include "litevo/geometry/pnp.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/geometry/pnp.h"
 
 namespace {
 
-litevo::Camera MakeTestCamera() {
-    return litevo::Camera(718.856, 718.856, 607.193, 185.216, 1241, 376);
+slamforge::Camera MakeTestCamera() {
+    return slamforge::Camera(718.856, 718.856, 607.193, 185.216, 1241, 376);
 }
 
 /// Generate random 3D points and their 2D projections with noise.
 struct TestData {
     std::vector<cv::Point3f> pts_3d;
     std::vector<cv::Point2f> pts_2d;
-    litevo::SE3 Tcw_gt;
+    slamforge::SE3 Tcw_gt;
 };
 
-TestData GenerateTestData(int num_points, const litevo::Camera& camera) {
+TestData GenerateTestData(int num_points, const slamforge::Camera& camera) {
     TestData data;
     std::mt19937 rng(42);
     std::uniform_real_distribution<double> pos_dist(-5.0, 5.0);
@@ -35,13 +35,13 @@ TestData GenerateTestData(int num_points, const litevo::Camera& camera) {
     std::normal_distribution<double> noise(0.0, 0.5);  // 0.5 pixel noise
 
     // Ground truth pose: looking forward
-    data.Tcw_gt = litevo::SE3::Identity();
-    data.Tcw_gt.translation() = litevo::Vec3(0, 0, 0);
+    data.Tcw_gt = slamforge::SE3::Identity();
+    data.Tcw_gt.translation() = slamforge::Vec3(0, 0, 0);
 
     for (int i = 0; i < num_points; i++) {
-        litevo::Vec3 p_w(pos_dist(rng), pos_dist(rng), z_dist(rng));
-        litevo::Vec3 p_c = data.Tcw_gt * p_w;
-        litevo::Vec2 pixel = camera.Project(p_c);
+        slamforge::Vec3 p_w(pos_dist(rng), pos_dist(rng), z_dist(rng));
+        slamforge::Vec3 p_c = data.Tcw_gt * p_w;
+        slamforge::Vec2 pixel = camera.Project(p_c);
 
         cv::Point3f pt3(static_cast<float>(p_w.x()), static_cast<float>(p_w.y()),
                         static_cast<float>(p_w.z()));

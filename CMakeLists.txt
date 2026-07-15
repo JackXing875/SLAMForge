@@ -1,12 +1,13 @@
 # =============================================================================
-# LiteVO — Industrial-Grade Monocular Visual SLAM System
+# SLAMForge — Industrial-Grade Monocular Visual SLAM System
 # =============================================================================
 cmake_minimum_required(VERSION 3.20)
 
 # ── Project identity ─────────────────────────────────────────────────────────
-project(litevo
-    VERSION 2.0.0
+project(SLAMForge
+    VERSION 3.0.0
     DESCRIPTION "Industrial-grade monocular visual SLAM system"
+    HOMEPAGE_URL "https://github.com/JackXing875/SLAMForge"
     LANGUAGES CXX
 )
 
@@ -16,24 +17,24 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ── Build options ────────────────────────────────────────────────────────────
-option(LITEVO_BUILD_TESTS   "Build unit and integration tests"     ON)
-option(LITEVO_BUILD_PYTHON_TESTS "Build Python trajectory-tool regressions" ON)
-option(LITEVO_BUILD_APPS    "Build CLI applications"               ON)
-option(LITEVO_ENABLE_SOPHUS "Enable Sophus Lie algebra support"    ON)
-option(LITEVO_ENABLE_CERES  "Enable Ceres Solver optimization"     ON)
-option(LITEVO_ENABLE_G2O    "Enable g2o pose graph optimization"   ON)
-option(LITEVO_ENABLE_FBOW   "Enable FBOW visual vocabulary"         ON)
-option(LITEVO_ENABLE_SPDLOG "Enable spdlog structured logging"     ON)
-option(LITEVO_ENABLE_YAML   "Enable YAML configuration support"    ON)
-option(LITEVO_ENABLE_IPO    "Enable inter-procedural optimization" OFF)
-option(LITEVO_BUILD_PYBIND     "Build pybind11 Python bindings"       OFF)
-option(LITEVO_BUILD_ROS2       "Build ROS2 integration"               OFF)
-option(LITEVO_BUILD_BENCHMARKS "Build performance benchmarks"        OFF)
+option(SLAMFORGE_BUILD_TESTS   "Build unit and integration tests"     ON)
+option(SLAMFORGE_BUILD_PYTHON_TESTS "Build Python trajectory-tool regressions" ON)
+option(SLAMFORGE_BUILD_APPS    "Build CLI applications"               ON)
+option(SLAMFORGE_ENABLE_SOPHUS "Enable Sophus Lie algebra support"    ON)
+option(SLAMFORGE_ENABLE_CERES  "Enable Ceres Solver optimization"     ON)
+option(SLAMFORGE_ENABLE_G2O    "Enable g2o pose graph optimization"   ON)
+option(SLAMFORGE_ENABLE_FBOW   "Enable FBOW visual vocabulary"         ON)
+option(SLAMFORGE_ENABLE_SPDLOG "Enable spdlog structured logging"     ON)
+option(SLAMFORGE_ENABLE_YAML   "Enable YAML configuration support"    ON)
+option(SLAMFORGE_ENABLE_IPO    "Enable inter-procedural optimization" OFF)
+option(SLAMFORGE_BUILD_PYBIND     "Build pybind11 Python bindings"       OFF)
+option(SLAMFORGE_BUILD_ROS2       "Build ROS2 integration"               OFF)
+option(SLAMFORGE_BUILD_BENCHMARKS "Build performance benchmarks"        OFF)
 
 # ── Inter-procedural optimization ────────────────────────────────────────────
 include(CheckIPOSupported)
 check_ipo_supported(RESULT ipo_supported OUTPUT ipo_error)
-if(ipo_supported AND LITEVO_ENABLE_IPO)
+if(ipo_supported AND SLAMFORGE_ENABLE_IPO)
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 endif()
 
@@ -50,7 +51,7 @@ find_package(OpenCV REQUIRED COMPONENTS core imgproc features2d calib3d videoio)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 # Optional: Sophus (SE3 Lie algebra — highly recommended)
-if(LITEVO_ENABLE_SOPHUS)
+if(SLAMFORGE_ENABLE_SOPHUS)
     find_package(Sophus QUIET)
     if(NOT Sophus_FOUND)
         message(STATUS "Sophus not found — will build from FetchContent")
@@ -65,16 +66,16 @@ if(LITEVO_ENABLE_SOPHUS)
 endif()
 
 # Optional: Ceres Solver (bundle adjustment)
-if(LITEVO_ENABLE_CERES)
+if(SLAMFORGE_ENABLE_CERES)
     find_package(Ceres QUIET)
     if(NOT Ceres_FOUND)
         message(WARNING "Ceres Solver not found — backend optimization disabled")
-        set(LITEVO_ENABLE_CERES OFF)
+        set(SLAMFORGE_ENABLE_CERES OFF)
     endif()
 endif()
 
 # Optional: g2o (pose graph optimization)
-if(LITEVO_ENABLE_G2O)
+if(SLAMFORGE_ENABLE_G2O)
     # g2o has used both g2oConfig.cmake and G2OConfig.cmake across releases.
     # Probe both spellings before falling back to a source build so an installed
     # dependency is not needlessly rebuilt.
@@ -95,14 +96,24 @@ if(LITEVO_ENABLE_G2O)
         FetchContent_MakeAvailable(g2o)
     endif()
 
-    if(NOT TARGET g2o::core AND NOT TARGET core)
+    # The g2o source tree uses unqualified targets (for example `core`),
+    # whereas its installed package exports `g2o::core`.  Normalize the
+    # in-tree form so SLAMForge always records portable namespaced targets in
+    # its public link interface and in its exported CMake package.
+    foreach(g2o_component core types_slam3d solver_eigen csparse_extension stuff)
+        if(TARGET ${g2o_component} AND NOT TARGET g2o::${g2o_component})
+            add_library(g2o::${g2o_component} ALIAS ${g2o_component})
+        endif()
+    endforeach()
+
+    if(NOT TARGET g2o::core)
         message(WARNING "g2o targets were not created — pose graph optimization disabled")
-        set(LITEVO_ENABLE_G2O OFF)
+        set(SLAMFORGE_ENABLE_G2O OFF)
     endif()
 endif()
 
 # Optional: spdlog (structured logging)
-if(LITEVO_ENABLE_SPDLOG)
+if(SLAMFORGE_ENABLE_SPDLOG)
     find_package(spdlog QUIET)
     if(NOT spdlog_FOUND)
         include(FetchContent)
@@ -116,7 +127,7 @@ if(LITEVO_ENABLE_SPDLOG)
 endif()
 
 # Optional: yaml-cpp (configuration files)
-if(LITEVO_ENABLE_YAML)
+if(SLAMFORGE_ENABLE_YAML)
     find_package(yaml-cpp QUIET)
     if(NOT yaml-cpp_FOUND)
         include(FetchContent)
@@ -130,7 +141,7 @@ if(LITEVO_ENABLE_YAML)
 endif()
 
 # Test framework: GoogleTest
-if(LITEVO_BUILD_TESTS)
+if(SLAMFORGE_BUILD_TESTS)
     include(FetchContent)
     FetchContent_Declare(googletest
         GIT_REPOSITORY  https://github.com/google/googletest.git
@@ -142,7 +153,7 @@ if(LITEVO_BUILD_TESTS)
 endif()
 
 # CLI library: CLI11
-if(LITEVO_BUILD_APPS)
+if(SLAMFORGE_BUILD_APPS)
     include(FetchContent)
     FetchContent_Declare(cli11
         GIT_REPOSITORY  https://github.com/CLIUtils/CLI11.git
@@ -152,7 +163,7 @@ if(LITEVO_BUILD_APPS)
 endif()
 
 # Python bindings: pybind11
-if(LITEVO_BUILD_PYBIND)
+if(SLAMFORGE_BUILD_PYBIND)
     # A PEP 517 build supplies pybind11 through its build requirements.  Keep
     # FetchContent as a convenience fallback for direct CMake users, but do
     # not download it when an installed config package is already available.
@@ -168,7 +179,7 @@ if(LITEVO_BUILD_PYBIND)
 endif()
 
 # ROS2 integration
-if(LITEVO_BUILD_ROS2)
+if(SLAMFORGE_BUILD_ROS2)
     find_package(ament_cmake QUIET)
     find_package(rclcpp QUIET)
     find_package(cv_bridge QUIET)
@@ -181,12 +192,12 @@ if(LITEVO_BUILD_ROS2)
         message(STATUS "ROS2 packages found — enabling ROS2 integration")
     else()
         message(WARNING "Required ROS2 packages not found — disabling ROS2 integration")
-        set(LITEVO_BUILD_ROS2 OFF)
+        set(SLAMFORGE_BUILD_ROS2 OFF)
     endif()
 endif()
 
 # Performance benchmarks: Google Benchmark
-if(LITEVO_BUILD_BENCHMARKS)
+if(SLAMFORGE_BUILD_BENCHMARKS)
     include(FetchContent)
     FetchContent_Declare(benchmark
         GIT_REPOSITORY  https://github.com/google/benchmark.git
@@ -198,19 +209,19 @@ endif()
 
 # ── Library target ───────────────────────────────────────────────────────────
 add_subdirectory(src)
-if(LITEVO_BUILD_APPS OR LITEVO_BUILD_ROS2)
+if(SLAMFORGE_BUILD_APPS OR SLAMFORGE_BUILD_ROS2)
     add_subdirectory(apps)
 endif()
 
-if(LITEVO_BUILD_TESTS)
+if(SLAMFORGE_BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
-if(LITEVO_BUILD_PYBIND)
+if(SLAMFORGE_BUILD_PYBIND)
     add_subdirectory(pybind)
 endif()
 
-if(LITEVO_BUILD_BENCHMARKS)
+if(SLAMFORGE_BUILD_BENCHMARKS)
     add_subdirectory(tests/bench)
 endif()
 
@@ -221,17 +232,17 @@ include(CMakePackageConfigHelpers)
 # Ship dataset presets with the installed library and CLI.  They remain
 # examples rather than hidden runtime state, so callers can copy and tune them.
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/config/"
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/litevo/config"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/slamforge/config"
     FILES_MATCHING PATTERN "*.yaml"
 )
 
-install(TARGETS litevo_core
-    EXPORT  litevoTargets
+install(TARGETS slamforge_core
+    EXPORT  SLAMForgeTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
-install(DIRECTORY include/litevo
+install(DIRECTORY include/slamforge
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
     PATTERN "version.h.in" EXCLUDE
 )
@@ -239,99 +250,106 @@ install(DIRECTORY include/litevo
 # version.h is generated into the build tree, so it is not covered by the
 # source-header directory install above.  Installing it explicitly makes the
 # public umbrella header usable from an installed prefix.
-install(FILES "${PROJECT_BINARY_DIR}/include/litevo/version.h"
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/litevo
+install(FILES "${PROJECT_BINARY_DIR}/include/slamforge/version.h"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/slamforge
 )
 
-install(EXPORT litevoTargets
-    FILE litevoTargets.cmake
-    NAMESPACE litevo::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/litevo
+# GPL distributions must carry the license text with every installed package.
+install(FILES "${PROJECT_SOURCE_DIR}/LICENSE"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/SLAMForge"
 )
 
-# Record the dependencies that are part of litevo_core's public link interface.
+install(EXPORT SLAMForgeTargets
+    FILE SLAMForgeTargets.cmake
+    NAMESPACE SLAMForge::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/SLAMForge
+)
+
+# Record the dependencies that are part of slamforge_core's public link interface.
 # The generated config file recreates those imported targets for downstream
-# projects before it includes litevoTargets.cmake.
-set(LITEVO_PACKAGE_WITH_SOPHUS OFF)
-if(LITEVO_ENABLE_SOPHUS AND TARGET Sophus::Sophus)
-    set(LITEVO_PACKAGE_WITH_SOPHUS ON)
+# projects before it includes SLAMForgeTargets.cmake.
+set(SLAMFORGE_PACKAGE_WITH_SOPHUS OFF)
+if(SLAMFORGE_ENABLE_SOPHUS AND TARGET Sophus::Sophus)
+    set(SLAMFORGE_PACKAGE_WITH_SOPHUS ON)
 endif()
 
-set(LITEVO_PACKAGE_WITH_CERES OFF)
-if(LITEVO_ENABLE_CERES AND TARGET Ceres::ceres)
-    set(LITEVO_PACKAGE_WITH_CERES ON)
+set(SLAMFORGE_PACKAGE_WITH_CERES OFF)
+if(SLAMFORGE_ENABLE_CERES AND TARGET Ceres::ceres)
+    set(SLAMFORGE_PACKAGE_WITH_CERES ON)
 endif()
 
-set(LITEVO_PACKAGE_WITH_G2O OFF)
-if(LITEVO_ENABLE_G2O AND (TARGET g2o::core OR TARGET core))
-    set(LITEVO_PACKAGE_WITH_G2O ON)
+set(SLAMFORGE_PACKAGE_WITH_G2O OFF)
+if(SLAMFORGE_ENABLE_G2O AND (TARGET g2o::core OR TARGET core))
+    set(SLAMFORGE_PACKAGE_WITH_G2O ON)
 endif()
 
-set(LITEVO_PACKAGE_WITH_FBOW OFF)
-if(LITEVO_ENABLE_FBOW AND TARGET FBOW::FBOW)
-    set(LITEVO_PACKAGE_WITH_FBOW ON)
+set(SLAMFORGE_PACKAGE_WITH_FBOW OFF)
+if(SLAMFORGE_ENABLE_FBOW AND TARGET FBOW::FBOW)
+    set(SLAMFORGE_PACKAGE_WITH_FBOW ON)
 endif()
 
-set(LITEVO_PACKAGE_WITH_SPDLOG OFF)
-if(LITEVO_ENABLE_SPDLOG AND TARGET spdlog::spdlog)
-    set(LITEVO_PACKAGE_WITH_SPDLOG ON)
+set(SLAMFORGE_PACKAGE_WITH_SPDLOG OFF)
+if(SLAMFORGE_ENABLE_SPDLOG AND TARGET spdlog::spdlog)
+    set(SLAMFORGE_PACKAGE_WITH_SPDLOG ON)
 endif()
 
-set(LITEVO_PACKAGE_WITH_YAML OFF)
-if(LITEVO_ENABLE_YAML AND (TARGET yaml-cpp::yaml-cpp OR TARGET yaml-cpp))
-    set(LITEVO_PACKAGE_WITH_YAML ON)
+set(SLAMFORGE_PACKAGE_WITH_YAML OFF)
+if(SLAMFORGE_ENABLE_YAML AND (TARGET yaml-cpp::yaml-cpp OR TARGET yaml-cpp))
+    set(SLAMFORGE_PACKAGE_WITH_YAML ON)
 endif()
 
 configure_package_config_file(
-    "${PROJECT_SOURCE_DIR}/cmake/litevoConfig.cmake.in"
-    "${PROJECT_BINARY_DIR}/litevoConfig.cmake"
-    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/litevo"
+    "${PROJECT_SOURCE_DIR}/cmake/SLAMForgeConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/SLAMForgeConfig.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/SLAMForge"
 )
 
 write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/litevoConfigVersion.cmake"
+    "${PROJECT_BINARY_DIR}/SLAMForgeConfigVersion.cmake"
     VERSION "${PROJECT_VERSION}"
     COMPATIBILITY SameMajorVersion
 )
 
 install(FILES
-    "${PROJECT_BINARY_DIR}/litevoConfig.cmake"
-    "${PROJECT_BINARY_DIR}/litevoConfigVersion.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/litevo"
+    "${PROJECT_BINARY_DIR}/SLAMForgeConfig.cmake"
+    "${PROJECT_BINARY_DIR}/SLAMForgeConfigVersion.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/SLAMForge"
 )
 
 # These fallback find modules are needed only when a dependency does not ship a
-# CMake package config (notably FBOW), but shipping them keeps a LiteVO package
+# CMake package config (notably FBOW), but shipping them keeps a SLAMForge package
 # self-contained for consumers using a conventional system installation.
 install(FILES
     "${PROJECT_SOURCE_DIR}/cmake/FindSophus.cmake"
     "${PROJECT_SOURCE_DIR}/cmake/FindFBOW.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/litevo/modules"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/SLAMForge/modules"
 )
 
 # ── Packaging (CPack) ────────────────────────────────────────────────────────
-set(CPACK_PACKAGE_NAME "litevo")
+set(CPACK_PACKAGE_NAME "SLAMForge")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Industrial-grade monocular visual SLAM system")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "LiteVO Team")
+set(CPACK_PACKAGE_HOMEPAGE_URL "${PROJECT_HOMEPAGE_URL}")
+set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "SLAMForge Team")
 include(CPack)
 
 # ── Feature summary ──────────────────────────────────────────────────────────
 message(STATUS "")
 message(STATUS "═══════════════════════════════════════════════════════════════")
-message(STATUS "  LiteVO ${PROJECT_VERSION} — Configuration Summary")
+message(STATUS "  SLAMForge ${PROJECT_VERSION} — Configuration Summary")
 message(STATUS "═══════════════════════════════════════════════════════════════")
 message(STATUS "  C++ Standard:       ${CMAKE_CXX_STANDARD}")
-message(STATUS "  Build tests:        ${LITEVO_BUILD_TESTS}")
-message(STATUS "  Build apps:         ${LITEVO_BUILD_APPS}")
-message(STATUS "  Sophus (SE3):       ${LITEVO_ENABLE_SOPHUS}")
-message(STATUS "  Ceres (BA):         ${LITEVO_ENABLE_CERES}")
-message(STATUS "  g2o (Pose Graph):   ${LITEVO_ENABLE_G2O}")
-message(STATUS "  FBOW (Vocabulary):  ${LITEVO_ENABLE_FBOW}")
-message(STATUS "  spdlog (Logging):   ${LITEVO_ENABLE_SPDLOG}")
-message(STATUS "  yaml-cpp (Config):  ${LITEVO_ENABLE_YAML}")
-message(STATUS "  Python bindings:    ${LITEVO_BUILD_PYBIND}")
-message(STATUS "  ROS2 integration:   ${LITEVO_BUILD_ROS2}")
-message(STATUS "  Benchmarks:         ${LITEVO_BUILD_BENCHMARKS}")
+message(STATUS "  Build tests:        ${SLAMFORGE_BUILD_TESTS}")
+message(STATUS "  Build apps:         ${SLAMFORGE_BUILD_APPS}")
+message(STATUS "  Sophus (SE3):       ${SLAMFORGE_ENABLE_SOPHUS}")
+message(STATUS "  Ceres (BA):         ${SLAMFORGE_ENABLE_CERES}")
+message(STATUS "  g2o (Pose Graph):   ${SLAMFORGE_ENABLE_G2O}")
+message(STATUS "  FBOW (Vocabulary):  ${SLAMFORGE_ENABLE_FBOW}")
+message(STATUS "  spdlog (Logging):   ${SLAMFORGE_ENABLE_SPDLOG}")
+message(STATUS "  yaml-cpp (Config):  ${SLAMFORGE_ENABLE_YAML}")
+message(STATUS "  Python bindings:    ${SLAMFORGE_BUILD_PYBIND}")
+message(STATUS "  ROS2 integration:   ${SLAMFORGE_BUILD_ROS2}")
+message(STATUS "  Benchmarks:         ${SLAMFORGE_BUILD_BENCHMARKS}")
 message(STATUS "═══════════════════════════════════════════════════════════════")
 message(STATUS "")

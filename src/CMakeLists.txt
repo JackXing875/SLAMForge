@@ -1,14 +1,14 @@
-# ── LiteVO core library ─────────────────────────────────────────────────────
+# ── SLAMForge core library ─────────────────────────────────────────────────────
 
 # Configure the version header from template
 configure_file(
-    "${PROJECT_SOURCE_DIR}/include/litevo/version.h.in"
-    "${PROJECT_BINARY_DIR}/include/litevo/version.h"
+    "${PROJECT_SOURCE_DIR}/include/slamforge/version.h.in"
+    "${PROJECT_BINARY_DIR}/include/slamforge/version.h"
 )
 
 # ── Collect all library sources ──────────────────────────────────────────────
 
-set(LITEVO_CORE_SOURCES
+set(SLAMFORGE_CORE_SOURCES
     # Core
     version.cpp
     core/camera.cpp
@@ -50,51 +50,51 @@ set(LITEVO_CORE_SOURCES
     optimization/ba.cpp
 )
 
-set(LITEVO_CORE_HEADERS
-    ${PROJECT_SOURCE_DIR}/include/litevo/litevo.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/core/types.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/core/config.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/core/camera.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/core/feature_grid.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/core/frame.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/core/keyframe.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/core/map_point.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/core/map.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/base/exception.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/geometry/se3.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/geometry/triangulation.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/geometry/epipolar.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/geometry/pnp.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/geometry/sim3.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/features/orb_extractor.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/tracking/matcher.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/tracking/initializer.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/tracking/tracker.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/mapping/local_mapper.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/vocabulary.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/detector.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/verifier.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/corrector.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/pose_graph.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/global_ba.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/loop_closing/loop_closing.h
-    ${PROJECT_SOURCE_DIR}/include/litevo/optimization/ba.h
+set(SLAMFORGE_CORE_HEADERS
+    ${PROJECT_SOURCE_DIR}/include/slamforge/slamforge.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/core/types.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/core/config.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/core/camera.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/core/feature_grid.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/core/frame.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/core/keyframe.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/core/map_point.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/core/map.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/base/exception.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/geometry/se3.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/geometry/triangulation.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/geometry/epipolar.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/geometry/pnp.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/geometry/sim3.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/features/orb_extractor.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/tracking/matcher.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/tracking/initializer.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/tracking/tracker.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/mapping/local_mapper.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/vocabulary.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/detector.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/verifier.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/corrector.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/pose_graph.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/global_ba.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/loop_closing.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/optimization/ba.h
 )
 
 # Create the core library target
-add_library(litevo_core STATIC
-    ${LITEVO_CORE_SOURCES}
-    ${LITEVO_CORE_HEADERS}
+add_library(slamforge_core STATIC
+    ${SLAMFORGE_CORE_SOURCES}
+    ${SLAMFORGE_CORE_HEADERS}
 )
 
-# The Python extension links litevo_core into a shared module.  Building the
+# The Python extension links slamforge_core into a shared module.  Building the
 # archive as PIC keeps that link valid on ELF and Mach-O platforms.
-if(LITEVO_BUILD_PYBIND)
-    set_target_properties(litevo_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(SLAMFORGE_BUILD_PYBIND)
+    set_target_properties(slamforge_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
 # Include directories
-target_include_directories(litevo_core
+target_include_directories(slamforge_core
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
@@ -106,67 +106,62 @@ target_include_directories(litevo_core
 # This is part of the installed target's public build contract.  Setting only
 # CMAKE_CXX_STANDARD at the top level does not tell downstream consumers that
 # the public headers require C++20 facilities.
-target_compile_features(litevo_core PUBLIC cxx_std_20)
+target_compile_features(slamforge_core PUBLIC cxx_std_20)
 
 # Compiler warnings
-set_project_warnings(litevo_core)
+set_project_warnings(slamforge_core)
 
 # Link libraries
-target_link_libraries(litevo_core
+target_link_libraries(slamforge_core
     PUBLIC
         Eigen3::Eigen
         ${OpenCV_LIBS}
 )
 
 # Optional dependencies
-if(LITEVO_ENABLE_SOPHUS AND TARGET Sophus::Sophus)
-    target_link_libraries(litevo_core PUBLIC Sophus::Sophus)
-    target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_SOPHUS)
+if(SLAMFORGE_ENABLE_SOPHUS AND TARGET Sophus::Sophus)
+    target_link_libraries(slamforge_core PUBLIC Sophus::Sophus)
+    target_compile_definitions(slamforge_core PUBLIC SLAMFORGE_HAS_SOPHUS)
 endif()
 
-if(LITEVO_ENABLE_SPDLOG AND TARGET spdlog::spdlog)
-    target_link_libraries(litevo_core PUBLIC spdlog::spdlog)
-    target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_SPDLOG)
+if(SLAMFORGE_ENABLE_SPDLOG AND TARGET spdlog::spdlog)
+    target_link_libraries(slamforge_core PUBLIC spdlog::spdlog)
+    target_compile_definitions(slamforge_core PUBLIC SLAMFORGE_HAS_SPDLOG)
 endif()
 
-if(LITEVO_ENABLE_YAML)
+if(SLAMFORGE_ENABLE_YAML)
     # yaml-cpp 0.7 packages commonly export `yaml-cpp`, while newer builds
     # export `yaml-cpp::yaml-cpp`.  Support both so distro packages enable the
     # configuration system instead of silently compiling its fallback path.
     if(TARGET yaml-cpp::yaml-cpp)
-        target_link_libraries(litevo_core PUBLIC yaml-cpp::yaml-cpp)
-        target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_YAML_CPP)
+        target_link_libraries(slamforge_core PUBLIC yaml-cpp::yaml-cpp)
+        target_compile_definitions(slamforge_core PUBLIC SLAMFORGE_HAS_YAML_CPP)
     elseif(TARGET yaml-cpp)
-        target_link_libraries(litevo_core PUBLIC yaml-cpp)
-        target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_YAML_CPP)
+        target_link_libraries(slamforge_core PUBLIC yaml-cpp)
+        target_compile_definitions(slamforge_core PUBLIC SLAMFORGE_HAS_YAML_CPP)
     endif()
 endif()
 
-if(LITEVO_ENABLE_CERES AND TARGET Ceres::ceres)
-    target_link_libraries(litevo_core PUBLIC Ceres::ceres)
-    target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_CERES)
+if(SLAMFORGE_ENABLE_CERES AND TARGET Ceres::ceres)
+    target_link_libraries(slamforge_core PUBLIC Ceres::ceres)
+    target_compile_definitions(slamforge_core PUBLIC SLAMFORGE_HAS_CERES)
 endif()
 
-if(LITEVO_ENABLE_G2O)
-    # Installed g2o exports namespaced targets, while its FetchContent build
-    # exposes the unqualified target names.  Link actual CMake targets rather
-    # than their libg2o_ output filenames so transitive dependencies (notably
-    # g2o_stuff) are retained on the final application link line.
+if(SLAMFORGE_ENABLE_G2O)
+    # The top-level build normalizes installed and FetchContent g2o targets to
+    # the package's g2o:: namespace.  Linking real targets preserves transitive
+    # dependencies (notably g2o::stuff) in applications and exported packages.
     if(TARGET g2o::core)
-        target_link_libraries(litevo_core PUBLIC
+        target_link_libraries(slamforge_core PUBLIC
             g2o::core g2o::types_slam3d g2o::solver_eigen g2o::csparse_extension g2o::stuff
         )
-    elseif(TARGET core)
-        target_link_libraries(litevo_core PUBLIC
-            core types_slam3d solver_eigen csparse_extension stuff
-        )
     else()
-        message(FATAL_ERROR "LITEVO_ENABLE_G2O is ON but no usable g2o targets were found")
+        message(FATAL_ERROR "SLAMFORGE_ENABLE_G2O is ON but no usable g2o targets were found")
     endif()
-    target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_G2O)
+    target_compile_definitions(slamforge_core PUBLIC SLAMFORGE_HAS_G2O)
 endif()
 
-if(LITEVO_ENABLE_FBOW)
+if(SLAMFORGE_ENABLE_FBOW)
     find_package(FBOW QUIET)
     if(NOT FBOW_FOUND)
         include(FetchContent)
@@ -177,7 +172,7 @@ if(LITEVO_ENABLE_FBOW)
         FetchContent_MakeAvailable(fbow)
     endif()
     if(TARGET FBOW::FBOW)
-        target_link_libraries(litevo_core PUBLIC FBOW::FBOW)
-        target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_FBOW)
+        target_link_libraries(slamforge_core PUBLIC FBOW::FBOW)
+        target_compile_definitions(slamforge_core PUBLIC SLAMFORGE_HAS_FBOW)
     endif()
 endif()

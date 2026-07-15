@@ -1,5 +1,5 @@
 # =============================================================================
-# LiteVO — KITTI odometry dataset configuration
+# SLAMForge — KITTI odometry dataset configuration
 # =============================================================================
 # KITTI odometry benchmark: stereo camera, grayscale images at 10 Hz.
 # Image resolution: 1241x376 (after rectification).

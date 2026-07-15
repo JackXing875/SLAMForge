@@ -1,17 +1,17 @@
 // =============================================================================
-// LiteVO triangulation — implementation
+// SLAMForge triangulation — implementation
 // =============================================================================
 
-#include "litevo/geometry/triangulation.h"
+#include "slamforge/geometry/triangulation.h"
 
 #include <Eigen/SVD>
 
 #include <cmath>
 #include <limits>
 
-#include "litevo/geometry/se3.h"
+#include "slamforge/geometry/se3.h"
 
-namespace litevo::geometry {
+namespace slamforge::geometry {
 
 TriangulationResult TriangulatePoint(const Vec2& pt1, const Vec2& pt2, const Mat34& P1,
                                      const Mat34& P2, const Vec3& C1, const Vec3& C2,
@@ -109,4 +109,4 @@ double ParallaxAngle(const Vec3& C1, const Vec3& C2, const Vec3& point_w) {
     return std::acos(cos_angle) * 180.0 / M_PI;
 }
 
-}  // namespace litevo::geometry
+}  // namespace slamforge::geometry
