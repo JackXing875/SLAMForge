@@ -19,6 +19,9 @@ set(SLAMFORGE_CORE_SOURCES
     core/map_point.cpp
     core/map.cpp
 
+    # Input / Output
+    io/map_export.cpp
+
     # Features
     features/orb_extractor.cpp
 
@@ -61,6 +64,7 @@ set(SLAMFORGE_CORE_HEADERS
     ${PROJECT_SOURCE_DIR}/include/slamforge/core/map_point.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/core/map.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/base/exception.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/io/map_export.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/geometry/se3.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/geometry/triangulation.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/geometry/epipolar.h

@@ -1,0 +1,202 @@
+name: Desktop
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/desktop.yml'
+      - '.github/workflows/release.yml'
+      - 'CMakeLists.txt'
+      - 'apps/**'
+      - 'cmake/**'
+      - 'config/**'
+      - 'docs/desktop.md'
+      - 'include/**'
+      - 'packaging/**'
+      - 'src/**'
+      - 'tests/data/desktop-result/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/desktop.yml'
+      - '.github/workflows/release.yml'
+      - 'CMakeLists.txt'
+      - 'apps/**'
+      - 'cmake/**'
+      - 'config/**'
+      - 'docs/desktop.md'
+      - 'include/**'
+      - 'packaging/**'
+      - 'src/**'
+      - 'tests/data/desktop-result/**'
+
+permissions:
+  contents: read
+
+jobs:
+  linux-desktop:
+    name: "Ubuntu 24.04 / Qt 6"
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            appstream build-essential cmake curl file libfuse2 \
+            libceres-dev libeigen3-dev libopencv-dev libspdlog-dev libyaml-cpp-dev \
+            qt6-base-dev
+
+      - name: Configure desktop build
+        run: |
+          cmake -B build-desktop \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DSLAMFORGE_BUILD_TESTS=OFF \
+            -DSLAMFORGE_BUILD_APPS=ON \
+            -DSLAMFORGE_BUILD_DESKTOP=ON \
+            -DSLAMFORGE_ENABLE_SOPHUS=OFF \
+            -DSLAMFORGE_ENABLE_CERES=ON \
+            -DSLAMFORGE_ENABLE_G2O=OFF \
+            -DSLAMFORGE_ENABLE_FBOW=OFF
+
+      - name: Build desktop application
+        run: >-
+          cmake --build build-desktop
+          --target slamforge_desktop slamforge_cli --parallel 2
+
+      - name: Install desktop staging tree
+        run: cmake --install build-desktop --prefix "${{ runner.temp }}/slamforge"
+
+      - name: Smoke test installed desktop application
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          test -x "${{ runner.temp }}/slamforge/bin/slamforge_cli"
+          test -f "${{ runner.temp }}/slamforge/share/slamforge/config/kitti.yaml"
+          "${{ runner.temp }}/slamforge/bin/slamforge_desktop" \
+            --smoke-result tests/data/desktop-result
+
+      - name: Download pinned AppImage deployment tools
+        run: |
+          mkdir -p deployment-tools
+          curl --fail --location --retry 3 \
+            --output deployment-tools/linuxdeploy-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-x86_64.AppImage
+          curl --fail --location --retry 3 \
+            --output deployment-tools/linuxdeploy-plugin-qt-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-qt-x86_64.AppImage
+          curl --fail --location --retry 3 \
+            --output deployment-tools/runtime-x86_64 \
+            https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64
+          echo "2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d  deployment-tools/runtime-x86_64" \
+            | sha256sum --check -
+          chmod +x deployment-tools/*.AppImage packaging/linux/package-appimage.sh
+
+      - name: Validate AppStream metadata
+        run: >-
+          appstreamcli validate --no-net
+          packaging/linux/org.slamforge.SLAMForge.appdata.xml
+
+      - name: Package AppImage
+        run: |
+          ./packaging/linux/package-appimage.sh \
+            build-desktop dist 3.1.0-beta.1 \
+            deployment-tools/linuxdeploy-x86_64.AppImage \
+            deployment-tools/runtime-x86_64
+
+      - name: Smoke test packaged AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          dist/SLAMForge-Desktop-3.1.0-beta.1-Linux-x86_64.AppImage \
+            --smoke-result tests/data/desktop-result
+
+      - name: Upload Linux beta artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: slamforge-desktop-linux-x86-64
+          path: dist/SLAMForge-Desktop-3.1.0-beta.1-Linux-x86_64.AppImage
+          if-no-files-found: error
+
+  windows-desktop:
+    name: "Windows x64 / Qt 6"
+    runs-on: windows-2022
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-binary-cache
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          arch: 'win64_msvc2022_64'
+          cache: true
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: windows-vcpkg-desktop-${{ hashFiles('packaging/windows/vcpkg.json') }}
+          restore-keys: windows-vcpkg-desktop-
+
+      - name: Configure desktop build
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:VCPKG_DEFAULT_BINARY_CACHE | Out-Null
+          cmake -S . -B build-desktop -A x64 `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_MANIFEST_DIR="${{ github.workspace }}/packaging/windows" `
+            -DVCPKG_INSTALLED_DIR="${{ github.workspace }}/vcpkg_installed" `
+            -DVCPKG_OVERLAY_TRIPLETS="${{ github.workspace }}/packaging/windows/triplets" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-release `
+            -DSLAMFORGE_BUILD_TESTS=OFF `
+            -DSLAMFORGE_BUILD_APPS=ON `
+            -DSLAMFORGE_BUILD_DESKTOP=ON `
+            -DSLAMFORGE_ENABLE_SOPHUS=OFF `
+            -DSLAMFORGE_ENABLE_CERES=ON `
+            -DSLAMFORGE_ENABLE_G2O=OFF `
+            -DSLAMFORGE_ENABLE_FBOW=OFF
+
+      - name: Build desktop application
+        run: >-
+          cmake --build build-desktop --config Release
+          --target slamforge_desktop slamforge_cli --parallel 2
+
+      - name: Package portable application
+        shell: pwsh
+        run: |
+          ./packaging/windows/package.ps1 `
+            -BuildDirectory build-desktop `
+            -VcpkgInstalledDirectory vcpkg_installed `
+            -OutputDirectory dist `
+            -Version 3.1.0-beta.1
+
+      - name: Smoke test packaged application
+        shell: pwsh
+        run: |
+          $package = "dist/SLAMForge-Desktop-3.1.0-beta.1-Windows-x64"
+          $process = Start-Process `
+            -FilePath "$package/SLAMForge Desktop.exe" `
+            -ArgumentList "--smoke-result", "tests/data/desktop-result" `
+            -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "Desktop result smoke test failed with exit code $($process.ExitCode)"
+          }
+          & "$package/slamforge_cli.exe" --help
+          if ($LASTEXITCODE -ne 0) {
+            throw "Packaged CLI smoke test failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Upload Windows beta artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: slamforge-desktop-windows-x64
+          path: dist/SLAMForge-Desktop-3.1.0-beta.1-Windows-x64.zip
+          if-no-files-found: error

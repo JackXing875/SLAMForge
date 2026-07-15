@@ -2,6 +2,25 @@
 
 All notable changes to SLAMForge will be documented in this file.
 
+## [3.1.0-beta.1] — 2026-07-15
+
+### Added
+
+- First public SLAMForge Desktop beta for Windows x64 and Linux x86_64.
+- Drag-and-drop video workflow with camera configuration and local result directory selection.
+- Interactive sparse-map and camera-trajectory result viewer with relative-scale disclosure.
+- Thread-safe ASCII PLY sparse-map export through the C++ API and `--map-output` CLI option.
+- Cancellable isolated SLAM worker process, progress reporting, persistent run logs, and result
+  export.
+- Cross-platform release automation for a Windows portable ZIP and Linux AppImage.
+
+### Known limitations
+
+- Camera intrinsics must be supplied through a calibrated SLAMForge YAML file.
+- Monocular results have an unknown absolute scale.
+- This beta renders completed results; live per-frame 3D updates remain planned.
+- Release packages do not currently enable the optional g2o/FBOW loop-closing backend.
+
 ## [3.0.0] — 2026-07-15
 
 ### Breaking changes

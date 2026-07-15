@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=SLAMForge Desktop
+GenericName=Visual SLAM Mapper
+Comment=Build a sparse 3D map and camera trajectory from monocular video
+Exec=slamforge_desktop
+Icon=org.slamforge.SLAMForge
+Terminal=false
+Categories=Science;Engineering;
+Keywords=SLAM;mapping;trajectory;computer vision;video;
+MimeType=video/mp4;video/quicktime;video/x-matroska;video/x-msvideo;
+StartupNotify=true

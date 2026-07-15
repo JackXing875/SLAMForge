@@ -37,7 +37,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential cmake clang-tidy \
-            libopencv-dev libeigen3-dev libspdlog-dev libyaml-cpp-dev
+            libopencv-dev libeigen3-dev libspdlog-dev libyaml-cpp-dev \
+            qt6-base-dev
 
       - name: Generate compile_commands.json
         run: |
@@ -45,6 +46,7 @@ jobs:
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DSLAMFORGE_BUILD_TESTS=ON \
             -DSLAMFORGE_BUILD_APPS=ON \
+            -DSLAMFORGE_BUILD_DESKTOP=ON \
             -DSLAMFORGE_ENABLE_SOPHUS=OFF \
             -DSLAMFORGE_ENABLE_CERES=OFF \
             -DSLAMFORGE_ENABLE_G2O=OFF

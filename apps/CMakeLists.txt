@@ -33,14 +33,82 @@ if(SLAMFORGE_BUILD_APPS)
 
     # Install the CLI application
     install(TARGETS slamforge_cli
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Desktop
     )
     install(DIRECTORY "${PROJECT_SOURCE_DIR}/tools/"
         DESTINATION "${CMAKE_INSTALL_DATADIR}/slamforge/tools"
+        COMPONENT Desktop
         FILES_MATCHING
         PATTERN "*.py"
         PATTERN "__pycache__" EXCLUDE
     )
+endif()
+
+# ── SLAMForge Desktop (Qt 6) ────────────────────────────────────────────────
+if(SLAMFORGE_BUILD_DESKTOP)
+    add_executable(slamforge_desktop WIN32 MACOSX_BUNDLE
+        desktop/main.cpp
+        desktop/map_view.cpp
+        desktop/map_view.h
+        desktop/main_window.cpp
+        desktop/main_window.h
+    )
+    set_source_files_properties(
+        "${PROJECT_SOURCE_DIR}/packaging/linux/org.slamforge.SLAMForge.svg"
+        PROPERTIES QT_RESOURCE_ALIAS "app-icon.svg"
+    )
+    qt_add_resources(slamforge_desktop "slamforge_desktop_assets"
+        PREFIX "/slamforge"
+        FILES "${PROJECT_SOURCE_DIR}/packaging/linux/org.slamforge.SLAMForge.svg"
+    )
+
+    target_link_libraries(slamforge_desktop PRIVATE Qt6::Widgets)
+    target_compile_definitions(slamforge_desktop PRIVATE
+        "SLAMFORGE_DESKTOP_VERSION=\"${SLAMFORGE_VERSION_STRING}\""
+    )
+    set_project_warnings(slamforge_desktop)
+    add_dependencies(slamforge_desktop slamforge_cli)
+
+    if(WIN32)
+        set_target_properties(slamforge_desktop PROPERTIES
+            OUTPUT_NAME "SLAMForge Desktop"
+        )
+    endif()
+
+    install(TARGETS slamforge_desktop
+        BUNDLE  DESTINATION .
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Desktop
+    )
+    install(FILES "${PROJECT_SOURCE_DIR}/docs/desktop.md"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/doc/slamforge"
+        COMPONENT Desktop
+    )
+    if(UNIX AND NOT APPLE)
+        install(FILES "${PROJECT_SOURCE_DIR}/packaging/linux/org.slamforge.SLAMForge.desktop"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/applications"
+            COMPONENT Desktop
+        )
+        install(FILES "${PROJECT_SOURCE_DIR}/packaging/linux/org.slamforge.SLAMForge.svg"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps"
+            COMPONENT Desktop
+        )
+        install(FILES "${PROJECT_SOURCE_DIR}/packaging/linux/org.slamforge.SLAMForge.appdata.xml"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/metainfo"
+            COMPONENT Desktop
+        )
+    endif()
+
+    if(SLAMFORGE_BUILD_TESTS)
+        add_test(NAME test_desktop_result_view
+            COMMAND slamforge_desktop
+                --smoke-result "${PROJECT_SOURCE_DIR}/tests/data/desktop-result"
+        )
+        if(UNIX AND NOT APPLE)
+            set_tests_properties(test_desktop_result_view PROPERTIES
+                ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+            )
+        endif()
+    endif()
 endif()
 
 # ── ROS2 node (optional) ────────────────────────────────────────────────────

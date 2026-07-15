@@ -13,6 +13,23 @@
 
 ## Quick Start
 
+### Desktop beta — no development environment required
+
+Download `SLAMForge Desktop 3.1.0-beta.1` from the
+[GitHub Releases page](https://github.com/JackXing875/SLAMForge/releases/tag/v3.1.0-beta.1):
+
+- **Windows x64:** extract the ZIP, then run `SLAMForge Desktop.exe`.
+- **Linux x86_64:** make the AppImage executable, then launch it.
+
+Drop a video into the window, select a YAML file calibrated for that camera, choose a results
+directory, and start mapping. Processing is local; the application displays the completed sparse
+map and trajectory and exports `map.ply`, `trajectory.txt`, and `run.log`.
+
+> Monocular SLAM has an unknown absolute scale and requires accurate camera intrinsics. The first
+> beta does not infer calibration from arbitrary videos.
+
+### Developer and container usage
+
 ```bash
 # Build with Docker (zero host dependencies)
 docker build -t slamforge -f docker/Dockerfile .
@@ -68,13 +85,14 @@ python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
 | Loop Closing  | ✅      | FBOW vocabulary, Sim(3) verification, pose graph (g2o), global BA |
 | ORB Features  | ✅      | Multi-scale pyramid, quadtree distribution, adaptive threshold    |
 | Configuration | ✅      | YAML-based with schema validation (camera, algorithm parameters)  |
+| Desktop Beta  | 🧪      | Windows/Linux video workflow, result viewer, PLY/trajectory export |
 | CLI           | ✅      | `run`, `eval`, `benchmark` subcommands                            |
 | ROS2 Node     | ✅      | Real-time SLAM with PoseStamped, PointCloud2, TF                  |
 | Python API    | ✅      | pybind11 bindings with numpy interop                              |
 | Evaluation    | ✅      | ATE, RPE, trajectory plotting, batch benchmarking                 |
 | Docker        | ✅      | One-command build + run                                           |
 | Documentation | ✅      | Doxygen API docs, architecture, quick start, tuning guide         |
-| Unit Tests    | ✅      | 12 test suites with GoogleTest                                    |
+| Unit Tests    | ✅      | 19 core/CLI tests plus a desktop result-viewer smoke test          |
 | CI/CD         | ✅      | GitHub Actions: build, test, lint, docs, Docker                   |
 | Benchmarks    | ✅      | Google Benchmark: ORB, PnP, triangulation                         |
 
@@ -122,7 +140,7 @@ SLAMForge/
 ├── src/                    # Implementation files
 ├── apps/                   # CLI and ROS2 applications
 ├── tests/
-│   ├── unit/               # GoogleTest unit tests (12 suites)
+│   ├── unit/               # GoogleTest core and CLI regression tests
 │   └── bench/              # Google Benchmark micro-benchmarks
 ├── tools/                  # Python evaluation scripts
 ├── pybind/                 # Python bindings
@@ -142,7 +160,8 @@ slamforge_cli run --config config/euroc.yaml --input /data/images \
     --timestamps /data/timestamps.txt --output traj.txt
 
 # Run SLAM on a video file
-slamforge_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30
+slamforge_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30 \
+    --map-output map.ply
 
 # Evaluate trajectory against ground truth
 slamforge_cli eval --estimated traj.txt --groundtruth gt.txt --format kitti
@@ -222,6 +241,7 @@ cd build && ctest --output-on-failure
 - [Quick Start Guide](docs/quick_start.md) — Get running in 5 minutes
 - [Architecture Overview](docs/architecture.md) — System design and data flow
 - [Tuning Guide](docs/tuning_guide.md) — Parameter optimization for your scene
+- [Desktop Preview](docs/desktop.md) — Build and try the drag-and-drop Qt application
 - [API Documentation](https://JackXing875.github.io/SLAMForge/) — Doxygen-generated class reference
 
 ## Contributing

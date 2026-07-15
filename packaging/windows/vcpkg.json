@@ -1,0 +1,11 @@
+{
+  "name": "slamforge-desktop-dependencies",
+  "version-string": "3.1.0-beta.1",
+  "dependencies": [
+    "ceres",
+    "eigen3",
+    "opencv4",
+    "spdlog",
+    "yaml-cpp"
+  ]
+}

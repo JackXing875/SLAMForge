@@ -10,6 +10,7 @@ set(UNIT_TEST_SOURCES
     test_feature_grid.cpp
     test_frame.cpp
     test_map.cpp
+    test_map_export.cpp
     test_matcher.cpp
     test_tracking_initialization.cpp
     test_keyframe.cpp
