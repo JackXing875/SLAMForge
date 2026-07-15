@@ -28,7 +28,6 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build:
@@ -40,6 +39,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Normalize container image name
+        id: image
+        shell: bash
+        run: echo "name=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -56,7 +60,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -79,4 +83,4 @@ jobs:
 
       - name: Smoke test CLI in image
         if: github.event_name == 'pull_request'
-        run: docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:slamforge-ci --help
+        run: docker run --rm ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:slamforge-ci --help
