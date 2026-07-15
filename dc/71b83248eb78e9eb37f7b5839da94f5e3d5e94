@@ -1,0 +1,300 @@
+pybind/README.md
+  s_b39884776f0393::t_abfca70de7ac78 1,3-4,7
+tests/packaging/consumer/CMakeLists.txt
+  s_b39884776f0393::t_77730d39ab71bd 5,8
+  s_b39884776f0393::t_abfca70de7ac78 3,7
+requirements.txt
+  s_b39884776f0393::t_abfca70de7ac78 1
+cmake/CompilerWarnings.cmake
+  s_b39884776f0393::t_abfca70de7ac78 2,66
+  s_b39884776f0393::t_386be8380b4ec1 55
+src/CMakeLists.txt
+  s_b39884776f0393::t_abfca70de7ac78 1,5-6,11,53-81,85-87,90,92-93,97,109,112,115,122-124,127-129,132,137-138,140-141,145-147,150,155,159,161,164,175-176
+  s_b39884776f0393::t_2c72fffd6feb4c 151-153
+CONTRIBUTING.md
+  s_b39884776f0393::t_abfca70de7ac78 1,3,9,12,26,60
+  s_b39884776f0393::t_2da9cb940f5f99 8
+.clang-tidy
+  s_b39884776f0393::t_abfca70de7ac78 2
+include/slamforge/tracking/matcher.h
+  s_b39884776f0393::t_cccb34381edcd4 1-88
+src/loop_closing/vocabulary.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,13,17,19,27,54,115
+  s_b39884776f0393::t_386be8380b4ec1 83
+apps/slamforge_cli.cpp
+  s_b39884776f0393::t_cccb34381edcd4 1-280,283-621,625-640,642-649,652-1217
+  s_b39884776f0393::t_ed15c40fabf3b5 281-282,622-624,641,650-651
+include/slamforge/geometry/sim3.h
+  s_b39884776f0393::t_cccb34381edcd4 1-126
+src/geometry/epipolar.cpp
+  s_b39884776f0393::t_abfca70de7ac78 2,5,10,76
+.github/workflows/docs.yml
+  s_b39884776f0393::t_abfca70de7ac78 7
+tests/unit/test_feature_grid.cpp
+  s_b39884776f0393::t_abfca70de7ac78 7,9
+src/loop_closing/detector.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,12-13,15,179
+tests/unit/test_local_mapper.cpp
+  s_b39884776f0393::t_abfca70de7ac78 12-21
+include/slamforge/optimization/ba.h
+  s_b39884776f0393::t_cccb34381edcd4 1-50
+src/core/config.cpp
+  s_b39884776f0393::t_abfca70de7ac78 2,5,10,14,60,168
+include/slamforge/core/frame.h
+  s_b39884776f0393::t_cccb34381edcd4 1-145
+src/version.cpp
+  s_b39884776f0393::t_abfca70de7ac78 2,5,7,13
+include/slamforge/version.h.in
+  s_b39884776f0393::t_cccb34381edcd4 1-6,11-14,16-17,19-20,22,25-26
+  s_b39884776f0393::t_77730d39ab71bd 7-10,15,18,21,24
+  s_b39884776f0393::t_f5c139d7694fab 23
+src/core/map.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,9-10,12,125
+tests/unit/test_ba.cpp
+  s_b39884776f0393::t_abfca70de7ac78 9-14,16
+tools/plot_trajectory.py
+  s_b39884776f0393::t_abfca70de7ac78 2,42
+config/kitti.yaml
+  s_b39884776f0393::t_abfca70de7ac78 2
+include/slamforge/loop_closing/pose_graph.h
+  s_b39884776f0393::t_cccb34381edcd4 1-62
+pybind/CMakeLists.txt
+  s_b39884776f0393::t_386be8380b4ec1 7-8
+  s_b39884776f0393::t_6161cf1a973c90 79-80
+  s_b39884776f0393::t_abfca70de7ac78 2,5-6,9,12,14-18,20,45-46,49-50,54,58,60,65,72-74,76-77
+  s_b39884776f0393::t_c563013c11e9f5 78
+include/slamforge/geometry/epipolar.h
+  s_b39884776f0393::t_cccb34381edcd4 1-68
+tests/unit/test_keyframe.cpp
+  s_b39884776f0393::t_abfca70de7ac78 9-14,16
+CHANGELOG.md
+  s_b39884776f0393::t_3b37319bdeea76 5-16
+  s_b39884776f0393::t_abfca70de7ac78 3
+  s_b39884776f0393::t_9f9405bcb46cab 4
+tests/unit/CMakeLists.txt
+  s_b39884776f0393::t_abfca70de7ac78 1,24
+docs/tuning_guide.md
+  s_b39884776f0393::t_abfca70de7ac78 1,3,118
+tests/unit/test_config.cpp
+  s_b39884776f0393::t_abfca70de7ac78 7,9,22
+src/loop_closing/verifier.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,10-15,17,182
+  s_b39884776f0393::t_257b0c1e3a5bb8 134-135
+  s_b39884776f0393::t_7a20b5ac2fe015 77-80
+include/slamforge/core/camera.h
+  s_b39884776f0393::t_cccb34381edcd4 1-110
+include/slamforge/loop_closing/vocabulary.h
+  s_b39884776f0393::t_cccb34381edcd4 1-70
+tests/unit/test_sim3.cpp
+  s_b39884776f0393::t_abfca70de7ac78 9-10,12-13
+config/euroc.yaml
+  s_b39884776f0393::t_abfca70de7ac78 2
+include/slamforge/core/map_point.h
+  s_b39884776f0393::t_cccb34381edcd4 1-184
+tests/bench/bench_pnp.cpp
+  s_b39884776f0393::t_abfca70de7ac78 14-15,19-20,27,30,38-39,42-44
+README.md
+  s_b39884776f0393::t_3b37319bdeea76 3,233
+  s_b39884776f0393::t_2da9cb940f5f99 6,225
+  s_b39884776f0393::t_abfca70de7ac78 1,10,18,20,25,113-114,138,141,145,148,151,158,161,164-165,183,187,210,212-213
+include/slamforge/core/keyframe.h
+  s_b39884776f0393::t_cccb34381edcd4 1-98
+include/slamforge/features/orb_extractor.h
+  s_b39884776f0393::t_cccb34381edcd4 1-86
+src/tracking/initializer.cpp
+  s_b39884776f0393::t_386be8380b4ec1 195-198
+  s_b39884776f0393::t_abfca70de7ac78 5,14-19,21,498
+include/slamforge/geometry/triangulation.h
+  s_b39884776f0393::t_cccb34381edcd4 1-77
+pybind/slamforge/__init__.py
+  s_b39884776f0393::t_cccb34381edcd4 1-4
+.github/workflows/lint.yml
+  s_b39884776f0393::t_abfca70de7ac78 46-50
+src/features/orb_extractor.cpp
+  s_b39884776f0393::t_447a4b38a03faf 48,121-122
+  s_b39884776f0393::t_abfca70de7ac78 2,5,12,178
+  s_b39884776f0393::t_386be8380b4ec1 34-38,46-47,49-51,69,88,104-105,107-109,113,116,120,123,133-134,138,150,163-164,174
+tests/packaging/consumer/main.cpp
+  s_b39884776f0393::t_abfca70de7ac78 1,4-5
+  s_b39884776f0393::t_77730d39ab71bd 7
+src/core/camera.cpp
+  s_b39884776f0393::t_abfca70de7ac78 2,5,9,142
+include/slamforge/core/feature_grid.h
+  s_b39884776f0393::t_cccb34381edcd4 1-67
+include/slamforge/loop_closing/loop_closing.h
+  s_b39884776f0393::t_cccb34381edcd4 1-148
+src/optimization/ba.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,7,16-19,21,238,240,243-244,246,258,260
+tests/unit/test_triangulation.cpp
+  s_b39884776f0393::t_abfca70de7ac78 7-9,11-12
+tests/unit/test_core_types.cpp
+  s_b39884776f0393::t_abfca70de7ac78 2,7,12,17,24-25,39,46,54-56,59,69-71,78-80,82-83,89-90,99-100,102,111-112,114-115,118,127-128,131
+src/core/keyframe.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,9-10,12,169
+src/core/feature_grid.cpp
+  s_b39884776f0393::t_386be8380b4ec1 66,70
+  s_b39884776f0393::t_447a4b38a03faf 14-17
+  s_b39884776f0393::t_abfca70de7ac78 5,10,77
+tests/bench/CMakeLists.txt
+  s_b39884776f0393::t_abfca70de7ac78 1,4,8,12
+src/core/frame.cpp
+  s_b39884776f0393::t_386be8380b4ec1 58-59
+  s_b39884776f0393::t_abfca70de7ac78 5,9,11,122
+docs/architecture.md
+  s_b39884776f0393::t_abfca70de7ac78 1,7
+include/slamforge/loop_closing/corrector.h
+  s_b39884776f0393::t_cccb34381edcd4 1-64
+src/geometry/sim3.cpp
+  s_b39884776f0393::t_386be8380b4ec1 34,133,137,211,366
+  s_b39884776f0393::t_abfca70de7ac78 5,13,394
+tests/unit/test_map.cpp
+  s_b39884776f0393::t_abfca70de7ac78 7-10,12
+src/loop_closing/pose_graph.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,7,19-21,23,208,210,212-213,215,226,228
+tests/unit/test_se3.cpp
+  s_b39884776f0393::t_abfca70de7ac78 7,9-10
+include/slamforge/core/types.h
+  s_b39884776f0393::t_cccb34381edcd4 1-121
+.gitignore
+  s_b39884776f0393::t_abfca70de7ac78 1
+tests/unit/test_camera.cpp
+  s_b39884776f0393::t_abfca70de7ac78 7,9
+tests/CMakeLists.txt
+  s_b39884776f0393::t_abfca70de7ac78 1,9,14,18,34-35,40,53
+.clang-format
+  s_b39884776f0393::t_abfca70de7ac78 2
+.github/workflows/docker.yml
+  s_b39884776f0393::t_abfca70de7ac78 66,82
+src/tracking/matcher.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,13-15,17,280
+tests/bench/bench_orb.cpp
+  s_b39884776f0393::t_abfca70de7ac78 9,21,27,44,48,65,69
+src/loop_closing/corrector.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,10-14,16,210
+tests/unit/test_frame.cpp
+  s_b39884776f0393::t_abfca70de7ac78 9-10,12
+CMakeLists.txt
+  s_b39884776f0393::t_abfca70de7ac78 2,20-32,37,54,69,73,78,111,116,130,144,156,166,182,195,200,212,216,220,224,235,239,245,253-254,268,271-273,276-278,281-283,286-288,291-293,296-298,320,334,340,343-353
+  s_b39884776f0393::t_2c72fffd6feb4c 99-109
+  s_b39884776f0393::t_77730d39ab71bd 7-8,240,262-265,302-304,308,314-316,325,329
+  s_b39884776f0393::t_3b37319bdeea76 270
+  s_b39884776f0393::t_6161cf1a973c90 10,257-259,332-333
+  s_b39884776f0393::t_9f78a546eb7c33 255-256
+include/slamforge/loop_closing/verifier.h
+  s_b39884776f0393::t_cccb34381edcd4 1-92
+build.sh
+  s_b39884776f0393::t_e083584ce0db40 1-11
+include/slamforge/core/config.h
+  s_b39884776f0393::t_cccb34381edcd4 1-103
+apps/slamforge_ros_node.cpp
+  s_b39884776f0393::t_cccb34381edcd4 1-68,73-429
+  s_b39884776f0393::t_ed15c40fabf3b5 69-72
+docker/Dockerfile
+  s_b39884776f0393::t_abfca70de7ac78 2,5,9,87-88,90-91,94-101,109
+cmake/SLAMForgeConfig.cmake.in
+  s_b39884776f0393::t_77730d39ab71bd 41-42
+  s_b39884776f0393::t_cccb34381edcd4 1-40
+pybind/__init__.py
+  s_b39884776f0393::t_abfca70de7ac78 1,6,34
+docker/devcontainer.json
+  s_b39884776f0393::t_abfca70de7ac78 2,17-18
+tools/benchmark.py
+  s_b39884776f0393::t_abfca70de7ac78 2,4,40,46,48,67,112,151-153,198,224,260
+include/slamforge/geometry/pnp.h
+  s_b39884776f0393::t_cccb34381edcd4 1-65
+tests/bench/bench_triangulation.cpp
+  s_b39884776f0393::t_abfca70de7ac78 14-15,21,23,26,30,33-34,42,45-46
+docs/quick_start.md
+  s_b39884776f0393::t_abfca70de7ac78 1,3,15,19,37-38,43,47,90
+  s_b39884776f0393::t_2da9cb940f5f99 14
+tests/unit/test_matcher.cpp
+  s_b39884776f0393::t_abfca70de7ac78 7,9
+include/slamforge/geometry/se3.h
+  s_b39884776f0393::t_cccb34381edcd4 1-126
+include/slamforge/mapping/local_mapper.h
+  s_b39884776f0393::t_cccb34381edcd4 1-137
+pybind/pyproject.toml
+  s_b39884776f0393::t_abfca70de7ac78 6,14,38,45-54
+  s_b39884776f0393::t_77730d39ab71bd 7
+  s_b39884776f0393::t_386be8380b4ec1 12
+  s_b39884776f0393::t_b67845465f20db 29-32
+  s_b39884776f0393::t_3e8ec17118fc1f 33
+include/slamforge/tracking/initializer.h
+  s_b39884776f0393::t_cccb34381edcd4 1-119
+src/mapping/local_mapper.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,11-18,20,434
+include/slamforge/tracking/tracker.h
+  s_b39884776f0393::t_cccb34381edcd4 1-176
+tests/unit/test_loop_closing.cpp
+  s_b39884776f0393::t_abfca70de7ac78 11-22,214
+conanfile.py
+  s_b39884776f0393::t_abfca70de7ac78 1,8-9,57-66,80
+  s_b39884776f0393::t_77730d39ab71bd 10,12-13
+include/slamforge/loop_closing/global_ba.h
+  s_b39884776f0393::t_cccb34381edcd4 1-87
+docker/docker-compose.yaml
+  s_b39884776f0393::t_abfca70de7ac78 2,6-7,16
+src/geometry/se3.cpp
+  s_b39884776f0393::t_abfca70de7ac78 2,5,10,124
+  s_b39884776f0393::t_386be8380b4ec1 24,40,89,94,99
+tests/unit/test_tracking_initialization.cpp
+  s_b39884776f0393::t_abfca70de7ac78 9-18
+apps/CMakeLists.txt
+  s_b39884776f0393::t_abfca70de7ac78 1,5-7,10-11,18,20,22-23,29,32,35,39,47-49,51-52,60-61,63
+config/default.yaml
+  s_b39884776f0393::t_abfca70de7ac78 2,4
+src/geometry/pnp.cpp
+  s_b39884776f0393::t_386be8380b4ec1 42
+  s_b39884776f0393::t_abfca70de7ac78 2,5,10,12,95
+README_ch.md
+  s_b39884776f0393::t_abfca70de7ac78 1,10,18,20,25,112,115,119,122,125,132,134-136,153
+  s_b39884776f0393::t_3b37319bdeea76 4,171
+  s_b39884776f0393::t_2da9cb940f5f99 6,163
+src/tracking/tracker.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,9-19,21,668
+src/geometry/triangulation.cpp
+  s_b39884776f0393::t_abfca70de7ac78 2,5,12,14,112
+src/loop_closing/loop_closing.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,10-14,16,201
+include/slamforge/base/exception.h
+  s_b39884776f0393::t_cccb34381edcd4 1-91
+tools/trajectory_io.py
+  s_b39884776f0393::t_abfca70de7ac78 2,73,84
+include/slamforge/loop_closing/detector.h
+  s_b39884776f0393::t_cccb34381edcd4 1-80
+Doxyfile
+  s_b39884776f0393::t_3b37319bdeea76 5
+  s_b39884776f0393::t_abfca70de7ac78 1,3,19,23,84
+include/slamforge/core/map.h
+  s_b39884776f0393::t_cccb34381edcd4 1-98
+src/loop_closing/global_ba.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,7,17-21,23,298,300,302,328,330
+src/core/map_point.cpp
+  s_b39884776f0393::t_abfca70de7ac78 5,9,265
+pybind/slamforge_bindings.cpp
+  s_b39884776f0393::t_386be8380b4ec1 309-311,360-362,367-369,416-418,566-568
+  s_b39884776f0393::t_f5c139d7694fab 91
+  s_b39884776f0393::t_447a4b38a03faf 333
+  s_b39884776f0393::t_cccb34381edcd4 1-13,17-18,21-41,44,47-55,58-90,92-98,102-111,121-125,134-143,145,155,158-161,165-166,168-174,181-183,186-189,199-201,208,216-224,233,292-296,299,301-303,313-314,316-323,426-431,433-436,447-449,494-498,503,507,509,517-518,520-527,531-533,536-542,544,547-558,563,565,569-574,577-581,585-591,594,600-602,604-609,612-613,616,620,623-624,630-631,634-635,637-646,649-651,655-656,658-659,664-670,673-674,683-687,690-698,720-721,732,737,741-743,756-765,768-776,778,780-784,786-789,792-793,796-800
+  s_b39884776f0393::t_ed15c40fabf3b5 14-16,19-20,42-43,45-46,56-57,99-101,112-120,126-133,144,146-154,156-157,162-164,167,175-180,184-185,190-198,202-207,209-215,225-232,234-291,297-298,300,304-308,312,315,324-332,334-359,363-366,370-415,419-425,432,437-446,450-493,499-502,504-506,508,510-516,519,528-530,534-535,543,545-546,559-562,564,575-576,582-584,592-593,595-599,603,610-611,614-615,617-619,621-622,625-629,632-633,636,647-648,652-654,657,660-663,671-672,675-682,688-689,699-719,722-731,733-736,738-740,744-755,766-767,777,779,785,790-791,794-795
+include/slamforge/slamforge.h
+  s_b39884776f0393::t_cccb34381edcd4 1-54
+.github/workflows/build.yml
+  s_b39884776f0393::t_abfca70de7ac78 67-72,89,98,131-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "dc71b83248eb78e9eb37f7b5839da94f5e3d5e94",
+  "prompts": {},
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
