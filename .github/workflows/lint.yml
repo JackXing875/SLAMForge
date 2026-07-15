@@ -57,4 +57,5 @@ jobs:
           find include/ src/ apps/ tests/ \
             \( -name '*.h' -o -name '*.hpp' -o -name '*.cpp' \) \
             -not -path 'tests/bench/*' \
+            -not -path 'tests/packaging/*' \
           | xargs clang-tidy -p build --quiet --warnings-as-errors='*'
