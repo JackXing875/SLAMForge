@@ -38,7 +38,7 @@ struct InitializationResult {
     /// length.
     std::vector<int> match_indices_ref;
     std::vector<int> match_indices_cur;
-    std::string model_used;                             ///< "Homography" or "Fundamental"
+    std::string model_used;  ///< "Homography" or "Fundamental"
 };
 
 /// @brief Monocular two-view initialization using H/F model scoring.

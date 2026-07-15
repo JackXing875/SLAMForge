@@ -157,9 +157,8 @@ void LoopClosing::Run() {
                 }
 
                 std::cout << "[LoopClosing] Loop detected! "
-                          << "Current KF #" << kf->Id().id << " matches KF #"
-                          << candidate->Id().id << " with " << verification.num_inliers
-                          << " inliers"
+                          << "Current KF #" << kf->Id().id << " matches KF #" << candidate->Id().id
+                          << " with " << verification.num_inliers << " inliers"
                           << " (scale=" << verification.S_cw.s << ")\n";
 
                 // Preserve the pre-correction loop constraint for the pose
@@ -197,7 +196,6 @@ void LoopClosing::Run() {
 
     // Do not leave a BA worker mutating the map after loop closing stops.
     global_ba_.Stop();
-
 }
 
 }  // namespace litevo::loop_closing

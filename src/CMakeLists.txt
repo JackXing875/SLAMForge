@@ -103,6 +103,11 @@ target_include_directories(litevo_core
         ${PROJECT_SOURCE_DIR}/src
 )
 
+# This is part of the installed target's public build contract.  Setting only
+# CMAKE_CXX_STANDARD at the top level does not tell downstream consumers that
+# the public headers require C++20 facilities.
+target_compile_features(litevo_core PUBLIC cxx_std_20)
+
 # Compiler warnings
 set_project_warnings(litevo_core)
 
@@ -143,9 +148,21 @@ if(LITEVO_ENABLE_CERES AND TARGET Ceres::ceres)
 endif()
 
 if(LITEVO_ENABLE_G2O)
-    target_link_libraries(litevo_core PUBLIC
-        g2o_core g2o_types_slam3d g2o_solver_eigen g2o_csparse_extension
-    )
+    # Installed g2o exports namespaced targets, while its FetchContent build
+    # exposes the unqualified target names.  Link actual CMake targets rather
+    # than their libg2o_ output filenames so transitive dependencies (notably
+    # g2o_stuff) are retained on the final application link line.
+    if(TARGET g2o::core)
+        target_link_libraries(litevo_core PUBLIC
+            g2o::core g2o::types_slam3d g2o::solver_eigen g2o::csparse_extension g2o::stuff
+        )
+    elseif(TARGET core)
+        target_link_libraries(litevo_core PUBLIC
+            core types_slam3d solver_eigen csparse_extension stuff
+        )
+    else()
+        message(FATAL_ERROR "LITEVO_ENABLE_G2O is ON but no usable g2o targets were found")
+    endif()
     target_compile_definitions(litevo_core PUBLIC LITEVO_HAS_G2O)
 endif()
 

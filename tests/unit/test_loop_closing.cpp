@@ -2,9 +2,9 @@
 // Loop-closing worker lifecycle tests
 // =============================================================================
 
-#include <gtest/gtest.h>
-
 #include <opencv2/imgproc.hpp>
+
+#include <gtest/gtest.h>
 
 #include <memory>
 
@@ -23,13 +23,11 @@ namespace litevo {
 namespace {
 
 Camera MakeCamera() {
-    Camera::CameraParams params{500.0, 500.0, 320.0, 240.0, 0.0, 0.0, 0.0, 0.0,
-                                0.0,   640,   480};
+    Camera::CameraParams params{500.0, 500.0, 320.0, 240.0, 0.0, 0.0, 0.0, 0.0, 0.0, 640, 480};
     return Camera::FromParams(params);
 }
 
-std::shared_ptr<KeyFrame> MakeKeyFrame(const Camera& camera,
-                                       features::OrbExtractor& extractor) {
+std::shared_ptr<KeyFrame> MakeKeyFrame(const Camera& camera, features::OrbExtractor& extractor) {
     cv::Mat image(480, 640, CV_8UC1, cv::Scalar(128));
     cv::rectangle(image, cv::Rect(80, 80, 160, 160), cv::Scalar(255), -1);
     cv::circle(image, cv::Point(420, 260), 70, cv::Scalar(0), -1);
@@ -61,12 +59,9 @@ TEST(LoopClosingTest, QueuesKeyframesAndCanRestartAfterStop) {
     EXPECT_FALSE(loop_closing.IsRunning());
     EXPECT_FALSE(loop_closing.IsFinished());
     EXPECT_FALSE(loop_closing.LoadVocabulary(""));
-    EXPECT_DOUBLE_EQ(loop_closing.DetectorSettings().min_score,
-                     config.min_similarity_score);
-    EXPECT_EQ(loop_closing.DetectorSettings().min_consecutive,
-              config.min_consecutive_loops);
-    EXPECT_EQ(loop_closing.PoseGraphSettings().max_iterations,
-              config.pose_graph_iterations);
+    EXPECT_DOUBLE_EQ(loop_closing.DetectorSettings().min_score, config.min_similarity_score);
+    EXPECT_EQ(loop_closing.DetectorSettings().min_consecutive, config.min_consecutive_loops);
+    EXPECT_EQ(loop_closing.PoseGraphSettings().max_iterations, config.pose_graph_iterations);
 
     loop_closing.InsertKeyFrame(keyframe);
     EXPECT_EQ(loop_closing.QueueSize(), 1);
@@ -206,8 +201,8 @@ TEST(LoopCorrectorTest, FusionRedirectsEveryKeyFrameToSurvivingPoint) {
     unrelated->SetMapPointId(0, absorbed->Id());
 
     loop_closing::LoopCorrector corrector;
-    corrector.CorrectLoop(current, matched, geometry::Sim3::Identity(), {},
-                          {absorbed->Id()}, {}, map);
+    corrector.CorrectLoop(current, matched, geometry::Sim3::Identity(), {}, {absorbed->Id()}, {},
+                          map);
 
     EXPECT_TRUE(absorbed->IsBad());
     EXPECT_FALSE(survivor->IsBad());

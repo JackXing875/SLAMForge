@@ -97,9 +97,7 @@ public:
 
     /// @brief Set the loop-closure worker to receive newly created keyframes.
     /// The worker remains externally owned.
-    void SetLoopClosing(loop_closing::LoopClosing* loop_closing) {
-        loop_closing_ = loop_closing;
-    }
+    void SetLoopClosing(loop_closing::LoopClosing* loop_closing) { loop_closing_ = loop_closing; }
     loop_closing::LoopClosing* GetLoopClosing() const { return loop_closing_; }
 
 private:

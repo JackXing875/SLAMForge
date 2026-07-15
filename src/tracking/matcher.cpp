@@ -30,8 +30,8 @@ int RotationHistogramBin(float angle_diff_degrees) {
         normalized += 360.0f;
     }
 
-    int bin = static_cast<int>(std::lround(
-        normalized * static_cast<float>(kRotationHistogramBins) / 360.0f));
+    int bin = static_cast<int>(
+        std::lround(normalized * static_cast<float>(kRotationHistogramBins) / 360.0f));
     bin %= kRotationHistogramBins;
     return bin < 0 ? bin + kRotationHistogramBins : bin;
 }

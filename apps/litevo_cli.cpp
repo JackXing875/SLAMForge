@@ -16,8 +16,8 @@
 
 #include <algorithm>
 #include <cmath>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -98,8 +98,8 @@ bool GetImagePaths(const std::string& dir_path, std::vector<std::string>& paths,
     paths.clear();
     std::error_code filesystem_error;
     if (!fs::is_directory(dir_path, filesystem_error)) {
-        error = filesystem_error ? "cannot access input directory '" + dir_path + "': " +
-                                       filesystem_error.message()
+        error = filesystem_error ? "cannot access input directory '" + dir_path +
+                                       "': " + filesystem_error.message()
                                  : "input must be an image directory or video file";
         return false;
     }
@@ -107,8 +107,8 @@ bool GetImagePaths(const std::string& dir_path, std::vector<std::string>& paths,
     fs::directory_iterator iterator(dir_path, filesystem_error);
     const fs::directory_iterator end;
     if (filesystem_error) {
-        error = "cannot enumerate input directory '" + dir_path + "': " +
-                filesystem_error.message();
+        error =
+            "cannot enumerate input directory '" + dir_path + "': " + filesystem_error.message();
         return false;
     }
 
@@ -116,15 +116,15 @@ bool GetImagePaths(const std::string& dir_path, std::vector<std::string>& paths,
         const fs::directory_entry entry = *iterator;
         const bool is_regular = entry.is_regular_file(filesystem_error);
         if (filesystem_error) {
-            error = "cannot inspect input entry '" + entry.path().string() + "': " +
-                    filesystem_error.message();
+            error = "cannot inspect input entry '" + entry.path().string() +
+                    "': " + filesystem_error.message();
             return false;
         }
         if (!is_regular) {
             iterator.increment(filesystem_error);
             if (filesystem_error) {
-                error = "cannot enumerate input directory '" + dir_path + "': " +
-                        filesystem_error.message();
+                error = "cannot enumerate input directory '" + dir_path +
+                        "': " + filesystem_error.message();
                 return false;
             }
             continue;
@@ -136,8 +136,8 @@ bool GetImagePaths(const std::string& dir_path, std::vector<std::string>& paths,
         }
         iterator.increment(filesystem_error);
         if (filesystem_error) {
-            error = "cannot enumerate input directory '" + dir_path + "': " +
-                    filesystem_error.message();
+            error = "cannot enumerate input directory '" + dir_path +
+                    "': " + filesystem_error.message();
             return false;
         }
     }
@@ -217,7 +217,11 @@ bool LoadImageTimestamps(const std::string& path, const std::vector<std::string>
         for (const auto& image_path : image_paths) {
             const auto it = timestamps_by_name.find(fs::path(image_path).filename().string());
             if (it == timestamps_by_name.end()) {
-                error = "no timestamp for image '" + image_path + "' in '" + path + "'";
+                error = "no timestamp for image '";
+                error += image_path;
+                error += "' in '";
+                error += path;
+                error += "'";
                 return false;
             }
             timestamps.push_back(it->second);
@@ -274,8 +278,8 @@ static int RunPythonTool(const std::string& tool_name, const std::vector<std::st
     std::vector<fs::path> tool_candidates = {fs::path("tools") / tool_name};
 #ifdef LITEVO_TOOLS_RELATIVE_TO_BINDIR
     if (!executable_directory.empty()) {
-        tool_candidates.push_back(executable_directory /
-                                  fs::path(LITEVO_TOOLS_RELATIVE_TO_BINDIR) / tool_name);
+        tool_candidates.push_back(executable_directory / fs::path(LITEVO_TOOLS_RELATIVE_TO_BINDIR) /
+                                  tool_name);
     }
 #endif
 
@@ -525,8 +529,7 @@ static double ComputeRPE(const TrajectoryData& est, const TrajectoryData& gt, in
     size_t count = 0;
     for (size_t i = 0; i + step < N; ++i) {
         litevo::Vec3 est_delta = est_aligned[i + step] - est_aligned[i];
-        litevo::Vec3 gt_delta =
-            associated_gt.positions[i + step] - associated_gt.positions[i];
+        litevo::Vec3 gt_delta = associated_gt.positions[i + step] - associated_gt.positions[i];
         sum_sq += (est_delta - gt_delta).squaredNorm();
         ++count;
     }
@@ -560,9 +563,8 @@ static bool WriteTrajectoryPose(std::ostream& stream, const litevo::SE3& Tcw, do
         const litevo::Pose pose = litevo::Pose::FromSE3(Twc);
         const long long timestamp_ns = std::llround(timestamp * 1e9);
         stream << timestamp_ns << "," << pose.position.x() << "," << pose.position.y() << ","
-               << pose.position.z() << "," << pose.orientation.w() << ","
-               << pose.orientation.x() << "," << pose.orientation.y() << ","
-               << pose.orientation.z() << "\n";
+               << pose.position.z() << "," << pose.orientation.w() << "," << pose.orientation.x()
+               << "," << pose.orientation.y() << "," << pose.orientation.z() << "\n";
         return static_cast<bool>(stream);
     }
 
@@ -593,8 +595,8 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
                    const std::string& output_path, bool verbose, double fps,
                    const std::string& output_format_override = "",
                    const std::string& timestamp_path = "", const std::string& gt_path = "",
-                   const std::string& gt_format = "tum",
-                   int* out_keyframes = nullptr, int* out_mappoints = nullptr) {
+                   const std::string& gt_format = "tum", int* out_keyframes = nullptr,
+                   int* out_mappoints = nullptr) {
     // ── Load configuration ──────────────────────────────────────────────────
     auto cfg_opt = litevo::SystemConfig::LoadFromYAML(config_path);
     if (!cfg_opt) {
@@ -645,8 +647,8 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     // session and ends before the mapper/map are torn down.
     std::unique_ptr<litevo::loop_closing::LoopClosing> loop_closing;
     if (cfg.loop_closing.enabled) {
-        loop_closing = std::make_unique<litevo::loop_closing::LoopClosing>(
-            tracker.GetMap(), camera, cfg.loop_closing);
+        loop_closing = std::make_unique<litevo::loop_closing::LoopClosing>(tracker.GetMap(), camera,
+                                                                           cfg.loop_closing);
 
         if (!cfg.loop_closing.vocab_path.empty()) {
             if (!loop_closing->LoadVocabulary(cfg.loop_closing.vocab_path)) {
@@ -887,18 +889,21 @@ static int RunSubcommand(CLI::App* run_cmd) {
     run_cmd
         ->add_option("--input", input, "Image directory or video file (.mp4/.avi/.mov/.mkv/.m4v)")
         ->required();
-    run_cmd->add_option("--output", output,
-                        "Output trajectory (format from config unless --output-format is set)")
+    run_cmd
+        ->add_option("--output", output,
+                     "Output trajectory (format from config unless --output-format is set)")
         ->default_val("trajectory.txt");
-    run_cmd->add_option("--output-format", output_format,
-                        "Output trajectory format override (tum|kitti|euroc)")
+    run_cmd
+        ->add_option("--output-format", output_format,
+                     "Output trajectory format override (tum|kitti|euroc)")
         ->check(CLI::IsMember({"tum", "kitti", "euroc"}));
-    run_cmd->add_option("--timestamps", timestamps,
-                        "Timestamp file for an image sequence (TUM rgb.txt, EuRoC data.csv, or one value per image)")
+    run_cmd
+        ->add_option("--timestamps", timestamps,
+                     "Timestamp file for an image sequence (TUM rgb.txt, EuRoC data.csv, or one "
+                     "value per image)")
         ->check(CLI::ExistingFile);
     run_cmd->add_flag("--verbose", verbose, "Verbose per-frame output");
-    run_cmd->add_option("--fps", fps, "Frame rate override for image sequences")
-        ->default_val(30.0);
+    run_cmd->add_option("--fps", fps, "Frame rate override for image sequences")->default_val(30.0);
 
     // Options are added; actual parsing happens in main() via CLI11_PARSE.
     // We return immediately — main() will call RunSlam after parsing.
@@ -925,14 +930,17 @@ static int EvalSubcommand(CLI::App* eval_cmd) {
     eval_cmd->add_option("--groundtruth", groundtruth, "Ground truth trajectory file")
         ->required()
         ->check(CLI::ExistingFile);
-    eval_cmd->add_option("--format", format, "Default format for both trajectories (tum|kitti|euroc)")
+    eval_cmd
+        ->add_option("--format", format, "Default format for both trajectories (tum|kitti|euroc)")
         ->default_val("tum")
         ->check(CLI::IsMember({"tum", "kitti", "euroc"}));
-    eval_cmd->add_option("--estimated-format", estimated_format,
-                         "Estimated trajectory format override (tum|kitti|euroc)")
+    eval_cmd
+        ->add_option("--estimated-format", estimated_format,
+                     "Estimated trajectory format override (tum|kitti|euroc)")
         ->check(CLI::IsMember({"tum", "kitti", "euroc"}));
-    eval_cmd->add_option("--groundtruth-format", groundtruth_format,
-                         "Ground-truth trajectory format override (tum|kitti|euroc)")
+    eval_cmd
+        ->add_option("--groundtruth-format", groundtruth_format,
+                     "Ground-truth trajectory format override (tum|kitti|euroc)")
         ->check(CLI::IsMember({"tum", "kitti", "euroc"}));
     eval_cmd->add_flag("--rpe", rpe, "Also compute Relative Pose Error");
     eval_cmd->add_flag("--plot", plot, "Plot trajectories (requires matplotlib)");
@@ -1014,8 +1022,11 @@ int main(int argc, char* argv[]) {
         const bool do_plot = eval->get_option("--plot")->as<bool>();
 
         // Build ATE args
-        std::vector<std::string> ate_args = {estimated, groundtruth, "--estimated-format",
-                                             estimated_format, "--groundtruth-format",
+        std::vector<std::string> ate_args = {estimated,
+                                             groundtruth,
+                                             "--estimated-format",
+                                             estimated_format,
+                                             "--groundtruth-format",
                                              groundtruth_format};
         if (do_plot)
             ate_args.push_back("--plot");
@@ -1024,8 +1035,11 @@ int main(int argc, char* argv[]) {
 
         // Optionally run RPE
         if (do_rpe) {
-            std::vector<std::string> rpe_args = {estimated, groundtruth, "--estimated-format",
-                                                 estimated_format, "--groundtruth-format",
+            std::vector<std::string> rpe_args = {estimated,
+                                                 groundtruth,
+                                                 "--estimated-format",
+                                                 estimated_format,
+                                                 "--groundtruth-format",
                                                  groundtruth_format};
             const int rpe_ret = RunPythonTool("evaluate_rpe.py", rpe_args);
             if (ret == EXIT_SUCCESS) {
@@ -1138,7 +1152,8 @@ int main(int argc, char* argv[]) {
             if (fs::exists(seq_path / "poses.txt", filesystem_error) && !filesystem_error) {
                 gt_path = (seq_path / "poses.txt").string();
                 gt_format = "kitti";
-            } else if (!filesystem_error && fs::exists(seq_path / "groundtruth.txt", filesystem_error) &&
+            } else if (!filesystem_error &&
+                       fs::exists(seq_path / "groundtruth.txt", filesystem_error) &&
                        !filesystem_error) {
                 gt_path = (seq_path / "groundtruth.txt").string();
                 gt_format = "tum";
@@ -1150,9 +1165,8 @@ int main(int argc, char* argv[]) {
             int run_kfs = 0, run_mps = 0;
             int ret =
                 RunSlam(config_path, image_path.string(), out_traj.string(), /*verbose=*/false,
-                        /*fps=*/30.0, /*output_format_override=*/"", /*timestamp_path=*/"",
-                        gt_path, gt_format,
-                        &run_kfs, &run_mps);
+                        /*fps=*/30.0, /*output_format_override=*/"", /*timestamp_path=*/"", gt_path,
+                        gt_format, &run_kfs, &run_mps);
 
             r.success = (ret == EXIT_SUCCESS);
             r.keyframes = run_kfs;

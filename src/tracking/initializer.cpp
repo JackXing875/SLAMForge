@@ -102,10 +102,8 @@ bool MonocularInitializer::SelectModel(const cv::Mat& H, const cv::Mat& F,
                 const double forward_w = proj_fwd.at<double>(2);
                 if (std::abs(forward_w) > 1e-12) {
                     proj_fwd /= forward_w;
-                    const double dx1 =
-                        proj_fwd.at<double>(0) - static_cast<double>(pts2[i].x);
-                    const double dy1 =
-                        proj_fwd.at<double>(1) - static_cast<double>(pts2[i].y);
+                    const double dx1 = proj_fwd.at<double>(0) - static_cast<double>(pts2[i].x);
+                    const double dy1 = proj_fwd.at<double>(1) - static_cast<double>(pts2[i].y);
                     score_h += score_residual(dx1 * dx1 + dy1 * dy1);
                 }
 
@@ -113,10 +111,8 @@ bool MonocularInitializer::SelectModel(const cv::Mat& H, const cv::Mat& F,
                 const double backward_w = proj_bwd.at<double>(2);
                 if (std::abs(backward_w) > 1e-12) {
                     proj_bwd /= backward_w;
-                    const double dx2 =
-                        proj_bwd.at<double>(0) - static_cast<double>(pts1[i].x);
-                    const double dy2 =
-                        proj_bwd.at<double>(1) - static_cast<double>(pts1[i].y);
+                    const double dx2 = proj_bwd.at<double>(0) - static_cast<double>(pts1[i].x);
+                    const double dy2 = proj_bwd.at<double>(1) - static_cast<double>(pts1[i].y);
                     score_h += score_residual(dx2 * dx2 + dy2 * dy2);
                 }
             }
@@ -139,8 +135,8 @@ bool MonocularInitializer::SelectModel(const cv::Mat& H, const cv::Mat& F,
                 cv::Mat Ftp2 = F.t() * p2;
 
                 double num = std::pow(p2.dot(Fp1), 2);
-                const double den_forward = Fp1.at<double>(0) * Fp1.at<double>(0) +
-                                           Fp1.at<double>(1) * Fp1.at<double>(1);
+                const double den_forward =
+                    Fp1.at<double>(0) * Fp1.at<double>(0) + Fp1.at<double>(1) * Fp1.at<double>(1);
                 const double den_backward = Ftp2.at<double>(0) * Ftp2.at<double>(0) +
                                             Ftp2.at<double>(1) * Ftp2.at<double>(1);
 

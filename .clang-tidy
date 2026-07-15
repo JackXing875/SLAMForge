@@ -21,4 +21,5 @@ Checks: >
   -misc-include-cleaner,
   -misc-const-correctness,
   -misc-no-recursion,
+  -misc-use-anonymous-namespace,
   -misc-unused-parameters

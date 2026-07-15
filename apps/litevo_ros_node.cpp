@@ -96,8 +96,7 @@ public:
 
             if (!cfg.loop_closing.vocab_path.empty()) {
                 if (!loop_closing_->LoadVocabulary(cfg.loop_closing.vocab_path)) {
-                    RCLCPP_ERROR(this->get_logger(),
-                                 "Failed to load loop-closing vocabulary: %s",
+                    RCLCPP_ERROR(this->get_logger(), "Failed to load loop-closing vocabulary: %s",
                                  cfg.loop_closing.vocab_path.c_str());
                     loop_closing_.reset();
                     rclcpp::shutdown();

@@ -293,7 +293,6 @@ void GlobalBundleAdjuster::Run() {
         const auto& pt = it->second->point;
         mp->SetPosition(Vec3(pt[0], pt[1], pt[2]));
     }
-
 }
 
 }  // namespace litevo::loop_closing

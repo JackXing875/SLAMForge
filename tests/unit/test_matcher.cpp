@@ -25,8 +25,7 @@ TEST(FeatureMatcherTest, RotationHistogramWrapsDegreeAnglesAtFullTurn) {
         matches.emplace_back(index, index);
     }
 
-    const auto filtered =
-        FeatureMatcher::FilterByRotationHistogram(matches, reference, current);
+    const auto filtered = FeatureMatcher::FilterByRotationHistogram(matches, reference, current);
 
     EXPECT_EQ(filtered.size(), matches.size());
 }

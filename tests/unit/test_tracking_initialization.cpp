@@ -33,8 +33,7 @@ cv::Mat MakeReferenceImage() {
     for (int y = 40; y < image.rows - 40; y += 80) {
         for (int x = 40; x < image.cols - 40; x += 80) {
             cv::rectangle(image, cv::Rect(x, y, 22, 22), cv::Scalar((x + y) % 256), -1);
-            cv::circle(image, cv::Point(x + 35, y + 35), 8,
-                       cv::Scalar((2 * x + y) % 256), -1);
+            cv::circle(image, cv::Point(x + 35, y + 35), 8, cv::Scalar((2 * x + y) % 256), -1);
         }
     }
     return image;
@@ -42,8 +41,7 @@ cv::Mat MakeReferenceImage() {
 
 cv::Mat TranslateView(const cv::Mat& reference, double x_translation) {
     cv::Mat current;
-    const cv::Mat affine =
-        (cv::Mat_<double>(2, 3) << 1.0, 0.0, x_translation, 0.0, 1.0, 0.0);
+    const cv::Mat affine = (cv::Mat_<double>(2, 3) << 1.0, 0.0, x_translation, 0.0, 1.0, 0.0);
     cv::warpAffine(reference, current, affine, reference.size(), cv::INTER_NEAREST,
                    cv::BORDER_CONSTANT, cv::Scalar(0));
     return current;

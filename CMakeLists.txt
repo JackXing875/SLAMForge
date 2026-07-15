@@ -75,8 +75,15 @@ endif()
 
 # Optional: g2o (pose graph optimization)
 if(LITEVO_ENABLE_G2O)
-    find_package(g2o QUIET)
-    if(NOT g2o_FOUND)
+    # g2o has used both g2oConfig.cmake and G2OConfig.cmake across releases.
+    # Probe both spellings before falling back to a source build so an installed
+    # dependency is not needlessly rebuilt.
+    find_package(g2o CONFIG QUIET)
+    if(NOT TARGET g2o::core AND NOT TARGET core)
+        find_package(G2O CONFIG QUIET)
+    endif()
+
+    if(NOT TARGET g2o::core AND NOT TARGET core)
         message(STATUS "g2o not found — trying FetchContent fallback")
         include(FetchContent)
         FetchContent_Declare(g2o
@@ -86,6 +93,11 @@ if(LITEVO_ENABLE_G2O)
         set(G2O_BUILD_APPS OFF CACHE BOOL "" FORCE)
         set(G2O_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
         FetchContent_MakeAvailable(g2o)
+    endif()
+
+    if(NOT TARGET g2o::core AND NOT TARGET core)
+        message(WARNING "g2o targets were not created — pose graph optimization disabled")
+        set(LITEVO_ENABLE_G2O OFF)
     endif()
 endif()
 
@@ -251,7 +263,7 @@ if(LITEVO_ENABLE_CERES AND TARGET Ceres::ceres)
 endif()
 
 set(LITEVO_PACKAGE_WITH_G2O OFF)
-if(LITEVO_ENABLE_G2O AND TARGET g2o_core)
+if(LITEVO_ENABLE_G2O AND (TARGET g2o::core OR TARGET core))
     set(LITEVO_PACKAGE_WITH_G2O ON)
 endif()
 

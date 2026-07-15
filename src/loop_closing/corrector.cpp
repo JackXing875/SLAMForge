@@ -51,8 +51,7 @@ void LoopCorrector::CorrectLoop(std::shared_ptr<KeyFrame> current_kf,
     SE3 Tcw_corrected;
     Tcw_corrected.linear() = S_cw_correct.R * Tcw_current_original.rotation();
     Tcw_corrected.translation() =
-        S_cw_correct.s * (S_cw_correct.R * Tcw_current_original.translation()) +
-        S_cw_correct.t;
+        S_cw_correct.s * (S_cw_correct.R * Tcw_current_original.translation()) + S_cw_correct.t;
     current_kf->SetPose(Tcw_corrected);
 
     // Step 2: Propagate correction through covisibility graph
@@ -66,8 +65,7 @@ void LoopCorrector::CorrectLoop(std::shared_ptr<KeyFrame> current_kf,
             continue;
         }
 
-        const SE3 T_rel =
-            geometry::RelativePose(Tcw_current_original, Tcw_cov_original);
+        const SE3 T_rel = geometry::RelativePose(Tcw_current_original, Tcw_cov_original);
 
         // Apply correction: T'cov = Tcw_corrected * T_rel
         SE3 Tcov_new;
