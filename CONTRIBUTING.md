@@ -1,15 +1,15 @@
-# Contributing to LiteVO
+# Contributing to SLAMForge
 
-Thanks for your interest in contributing! LiteVO is an industrial-grade monocular SLAM system and we welcome improvements.
+Thanks for your interest in contributing! SLAMForge is an industrial-grade monocular SLAM system and we welcome improvements.
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/yourname/LiteVO.git
-cd LiteVO
+git clone https://github.com/JackXing875/SLAMForge.git
+cd SLAMForge
 
 # Build with tests
-cmake -B build -DLITEVO_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug
+cmake -B build -DSLAMFORGE_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug
 cmake --build build -j$(nproc)
 
 # Run tests
@@ -23,7 +23,7 @@ cd build && ctest --output-on-failure
 - **clang-tidy** for static analysis
 - All public APIs must have `/// @brief` Doxygen comments
 - Use `PascalCase` for classes, `snake_case` for functions/variables
-- Namespaces: `litevo::{subsystem}`
+- Namespaces: `slamforge::{subsystem}`
 
 ## Commit Guidelines
 
@@ -57,7 +57,7 @@ Use conventional commits:
 ## Project Structure
 
 ```
-include/litevo/   — Public headers (one per module)
+include/slamforge/   — Public headers (one per module)
 src/               — Implementation files
 apps/              — CLI and ROS2 applications
 tests/unit/        — Unit tests

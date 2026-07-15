@@ -1,5 +1,5 @@
 {
-  "name": "LiteVO Development",
+  "name": "SLAMForge Development",
   "dockerFile": "docker/Dockerfile",
   "context": "..",
   "customizations": {
@@ -14,8 +14,8 @@
       "settings": {
         "cmake.buildDirectory": "${workspaceFolder}/build",
         "cmake.configureArgs": [
-          "-DLITEVO_BUILD_TESTS=ON",
-          "-DLITEVO_BUILD_APPS=ON"
+          "-DSLAMFORGE_BUILD_TESTS=ON",
+          "-DSLAMFORGE_BUILD_APPS=ON"
         ],
         "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
       }

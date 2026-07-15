@@ -6,11 +6,11 @@
 
 #include <cmath>
 
-#include "litevo/geometry/se3.h"
-#include "litevo/geometry/sim3.h"
+#include "slamforge/geometry/se3.h"
+#include "slamforge/geometry/sim3.h"
 
-using namespace litevo;
-using namespace litevo::geometry;
+using namespace slamforge;
+using namespace slamforge::geometry;
 
 // ── Construction and basic operations ─────────────────────────────────────────
 

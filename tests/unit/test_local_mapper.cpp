@@ -9,16 +9,16 @@
 #include <chrono>
 #include <thread>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/config.h"
-#include "litevo/core/frame.h"
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map.h"
-#include "litevo/core/map_point.h"
-#include "litevo/features/orb_extractor.h"
-#include "litevo/mapping/local_mapper.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/config.h"
+#include "slamforge/core/frame.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map.h"
+#include "slamforge/core/map_point.h"
+#include "slamforge/features/orb_extractor.h"
+#include "slamforge/mapping/local_mapper.h"
 
-using namespace litevo;
+using namespace slamforge;
 
 class LocalMapperTest : public ::testing::Test {
 protected:

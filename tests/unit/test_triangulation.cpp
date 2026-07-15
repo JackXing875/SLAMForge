@@ -4,12 +4,12 @@
 
 #include <gtest/gtest.h>
 
-#include "litevo/core/camera.h"
-#include "litevo/geometry/se3.h"
-#include "litevo/geometry/triangulation.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/geometry/se3.h"
+#include "slamforge/geometry/triangulation.h"
 
-using namespace litevo;
-using namespace litevo::geometry;
+using namespace slamforge;
+using namespace slamforge::geometry;
 
 class TriangulationTest : public ::testing::Test {
 protected:

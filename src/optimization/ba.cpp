@@ -2,9 +2,9 @@
 // Bundle Adjustment implementation
 // =============================================================================
 
-#include "litevo/optimization/ba.h"
+#include "slamforge/optimization/ba.h"
 
-#ifdef LITEVO_HAS_CERES
+#ifdef SLAMFORGE_HAS_CERES
 
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
@@ -13,12 +13,12 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map_point.h"
-#include "litevo/geometry/se3.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map_point.h"
+#include "slamforge/geometry/se3.h"
 
-namespace litevo::optimization {
+namespace slamforge::optimization {
 
 // ── Ceres cost functor (must be at namespace scope, not local class) ───────
 
@@ -235,15 +235,15 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
     return 0;
 }
 
-}  // namespace litevo::optimization
+}  // namespace slamforge::optimization
 
-#else  // !LITEVO_HAS_CERES
+#else  // !SLAMFORGE_HAS_CERES
 
 // Stub when Ceres is unavailable
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map_point.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map_point.h"
 
-namespace litevo::optimization {
+namespace slamforge::optimization {
 
 LocalBundleAdjuster::LocalBundleAdjuster(const Camera& camera) : camera_(camera) {}
 
@@ -255,6 +255,6 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>&, std::vector<KeyFrame*
     return 0;
 }
 
-}  // namespace litevo::optimization
+}  // namespace slamforge::optimization
 
-#endif  // LITEVO_HAS_CERES
+#endif  // SLAMFORGE_HAS_CERES

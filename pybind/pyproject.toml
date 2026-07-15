@@ -3,21 +3,20 @@ requires = ["scikit-build-core>=0.10", "pybind11>=2.12", "numpy>=1.24"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "litevo"
-version = "2.0.0"
+name = "slamforge"
+version = "3.0.0"
 description = "Industrial-grade monocular visual SLAM system"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.24"]
 readme = {file = "README.md", content-type = "text/markdown"}
-license = {text = "MIT"}
+license = "GPL-3.0-only"
 authors = [
-    {name = "LiteVO Contributors"}
+    {name = "SLAMForge Contributors"}
 ]
 keywords = ["slam", "visual-odometry", "computer-vision", "robotics"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
@@ -27,24 +26,29 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
 
+[project.urls]
+Homepage = "https://github.com/JackXing875/SLAMForge"
+Repository = "https://github.com/JackXing875/SLAMForge"
+Issues = "https://github.com/JackXing875/SLAMForge/issues"
+
 [project.optional-dependencies]
 dev = ["pytest>=7", "numpy>=1.24", "opencv-python>=4.8"]
 
 [tool.scikit-build]
-wheel.packages = ["litevo"]
+wheel.packages = ["slamforge"]
 
 [tool.scikit-build.cmake]
 source-dir = ".."
 build-type = "Release"
 
 [tool.scikit-build.cmake.define]
-LITEVO_BUILD_PYBIND = "ON"
-LITEVO_BUILD_TESTS = "OFF"
-LITEVO_BUILD_APPS = "OFF"
-LITEVO_BUILD_BENCHMARKS = "OFF"
-LITEVO_ENABLE_SOPHUS = "OFF"
-LITEVO_ENABLE_CERES = "OFF"
-LITEVO_ENABLE_G2O = "OFF"
-LITEVO_ENABLE_FBOW = "OFF"
-LITEVO_ENABLE_SPDLOG = "OFF"
-LITEVO_ENABLE_YAML = "OFF"
+SLAMFORGE_BUILD_PYBIND = "ON"
+SLAMFORGE_BUILD_TESTS = "OFF"
+SLAMFORGE_BUILD_APPS = "OFF"
+SLAMFORGE_BUILD_BENCHMARKS = "OFF"
+SLAMFORGE_ENABLE_SOPHUS = "OFF"
+SLAMFORGE_ENABLE_CERES = "OFF"
+SLAMFORGE_ENABLE_G2O = "OFF"
+SLAMFORGE_ENABLE_FBOW = "OFF"
+SLAMFORGE_ENABLE_SPDLOG = "OFF"
+SLAMFORGE_ENABLE_YAML = "OFF"

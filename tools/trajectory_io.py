@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Trajectory I/O utilities for LiteVO evaluation tools.
+"""Trajectory I/O utilities for SLAMForge evaluation tools.
 
 Provides format-agnostic trajectory loading and conversion for:
   - TUM:   timestamp[s] tx ty tz qx qy qz qw
@@ -70,7 +70,7 @@ def _load_euroc(path: str) -> tuple[np.ndarray, Optional[np.ndarray], Optional[n
     EuRoC stores timestamps in nanoseconds and uses scalar-first quaternions:
     ``timestamp,p_x,p_y,p_z,q_w,q_x,q_y,q_z,...``.  The public return value
     exposes timestamps in seconds and quaternions in ``qx,qy,qz,qw`` order.
-    Whitespace-delimited early LiteVO output is accepted as a compatibility
+    Whitespace-delimited early SLAMForge output is accepted as a compatibility
     fallback.
     """
     try:
@@ -81,7 +81,7 @@ def _load_euroc(path: str) -> tuple[np.ndarray, Optional[np.ndarray], Optional[n
 
     timestamps = _normalise_timestamp_seconds(data[:, 0])
     positions = data[:, 1:4]
-    # Early LiteVO output advertised EuRoC but serialized a TUM-style
+    # Early SLAMForge output advertised EuRoC but serialized a TUM-style
     # qx,qy,qz,qw line. Preserve that explicit legacy header on read.
     header = ""
     with Path(path).open(encoding="utf-8") as trajectory_file:

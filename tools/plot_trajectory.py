@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""3D trajectory visualization tool for LiteVO output.
+"""3D trajectory visualization tool for SLAMForge output.
 
 Usage:
     python tools/plot_trajectory.py trajectory.txt [--groundtruth gt.txt] [--save plot.png]
@@ -39,7 +39,7 @@ def main():
     ax.set_xlabel("X (m)")
     ax.set_ylabel("Y (m)")
     ax.set_zlabel("Z (m)")
-    ax.set_title("LiteVO Trajectory")
+    ax.set_title("SLAMForge Trajectory")
     ax.legend()
     ax.view_init(elev=30, azim=-45)
 

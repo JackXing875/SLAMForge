@@ -63,7 +63,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha
-            type=raw,value=litevo-ci,enable=${{ github.event_name == 'pull_request' }}
+            type=raw,value=slamforge-ci,enable=${{ github.event_name == 'pull_request' }}
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
@@ -79,4 +79,4 @@ jobs:
 
       - name: Smoke test CLI in image
         if: github.event_name == 'pull_request'
-        run: docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:litevo-ci --help
+        run: docker run --rm ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:slamforge-ci --help

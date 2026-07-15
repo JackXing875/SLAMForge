@@ -2,23 +2,23 @@
 // Tracker implementation
 // =============================================================================
 
-#include "litevo/tracking/tracker.h"
+#include "slamforge/tracking/tracker.h"
 
 #include <algorithm>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/frame.h"
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map_point.h"
-#include "litevo/features/orb_extractor.h"
-#include "litevo/geometry/pnp.h"
-#include "litevo/geometry/se3.h"
-#include "litevo/loop_closing/loop_closing.h"
-#include "litevo/mapping/local_mapper.h"
-#include "litevo/tracking/initializer.h"
-#include "litevo/tracking/matcher.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/frame.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map_point.h"
+#include "slamforge/features/orb_extractor.h"
+#include "slamforge/geometry/pnp.h"
+#include "slamforge/geometry/se3.h"
+#include "slamforge/loop_closing/loop_closing.h"
+#include "slamforge/mapping/local_mapper.h"
+#include "slamforge/tracking/initializer.h"
+#include "slamforge/tracking/matcher.h"
 
-namespace litevo::tracking {
+namespace slamforge::tracking {
 
 Tracker::Tracker(const Camera& camera, const TrackingConfig& config, const OrbConfig& orb_config)
     : camera_(camera), config_(config), orb_config_(orb_config) {
@@ -665,4 +665,4 @@ bool Tracker::EstimatePose(const std::vector<cv::Point3f>& pts_3d,
     return true;
 }
 
-}  // namespace litevo::tracking
+}  // namespace slamforge::tracking

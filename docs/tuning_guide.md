@@ -1,6 +1,6 @@
-# LiteVO Performance Tuning Guide
+# SLAMForge Performance Tuning Guide
 
-How to adjust LiteVO parameters for your specific camera, scene, and performance requirements.
+How to adjust SLAMForge parameters for your specific camera, scene, and performance requirements.
 
 ## Core Trade-offs
 
@@ -115,7 +115,7 @@ mapping.min_observations: 2
 
 Build with benchmarks:
 ```bash
-cmake -B build -DLITEVO_BUILD_BENCHMARKS=ON
+cmake -B build -DSLAMFORGE_BUILD_BENCHMARKS=ON
 cmake --build build
 ./build/tests/bench/bench_orb
 ```

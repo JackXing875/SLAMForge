@@ -2,9 +2,9 @@
 // GlobalBundleAdjuster implementation — full BA in a background thread
 // =============================================================================
 
-#include "litevo/loop_closing/global_ba.h"
+#include "slamforge/loop_closing/global_ba.h"
 
-#ifdef LITEVO_HAS_CERES
+#ifdef SLAMFORGE_HAS_CERES
 
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
@@ -14,13 +14,13 @@
 #include <memory>
 #include <unordered_map>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map.h"
-#include "litevo/core/map_point.h"
-#include "litevo/geometry/se3.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map.h"
+#include "slamforge/core/map_point.h"
+#include "slamforge/geometry/se3.h"
 
-namespace litevo::loop_closing {
+namespace slamforge::loop_closing {
 
 // ── Reprojection cost functor (same as local BA) ──────────────────────────────
 
@@ -295,11 +295,11 @@ void GlobalBundleAdjuster::Run() {
     }
 }
 
-}  // namespace litevo::loop_closing
+}  // namespace slamforge::loop_closing
 
-#else  // !LITEVO_HAS_CERES
+#else  // !SLAMFORGE_HAS_CERES
 
-namespace litevo::loop_closing {
+namespace slamforge::loop_closing {
 
 GlobalBundleAdjuster::~GlobalBundleAdjuster() {
     Stop();
@@ -325,6 +325,6 @@ void GlobalBundleAdjuster::RequestStop() {
     stop_requested_ = true;
 }
 
-}  // namespace litevo::loop_closing
+}  // namespace slamforge::loop_closing
 
-#endif  // LITEVO_HAS_CERES
+#endif  // SLAMFORGE_HAS_CERES

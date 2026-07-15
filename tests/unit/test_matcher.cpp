@@ -4,9 +4,9 @@
 
 #include <gtest/gtest.h>
 
-#include "litevo/tracking/matcher.h"
+#include "slamforge/tracking/matcher.h"
 
-using litevo::tracking::FeatureMatcher;
+using slamforge::tracking::FeatureMatcher;
 
 TEST(FeatureMatcherTest, RotationHistogramWrapsDegreeAnglesAtFullTurn) {
     std::vector<cv::KeyPoint> reference;

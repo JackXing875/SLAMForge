@@ -6,10 +6,10 @@
 
 #include <gtest/gtest.h>
 
-#include "litevo/core/frame.h"
-#include "litevo/features/orb_extractor.h"
+#include "slamforge/core/frame.h"
+#include "slamforge/features/orb_extractor.h"
 
-using namespace litevo;
+using namespace slamforge;
 
 class FrameTest : public ::testing::Test {
 protected:

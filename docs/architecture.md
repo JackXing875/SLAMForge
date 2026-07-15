@@ -1,10 +1,10 @@
-# LiteVO Architecture
+# SLAMForge Architecture
 
 > Industrial-Grade Monocular Visual SLAM System
 
 ## Overview
 
-LiteVO is a feature-based monocular SLAM system inspired by ORB-SLAM3. It estimates
+SLAMForge is a feature-based monocular SLAM system inspired by ORB-SLAM3. It estimates
 6-DoF camera poses and builds a sparse 3D map in real-time using ORB features.
 
 ## System Architecture

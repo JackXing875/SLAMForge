@@ -1,15 +1,15 @@
 // =============================================================================
-// LiteVO PnP solver — implementation
+// SLAMForge PnP solver — implementation
 // =============================================================================
 
-#include "litevo/geometry/pnp.h"
+#include "slamforge/geometry/pnp.h"
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core/eigen.hpp>
 
-#include "litevo/geometry/se3.h"
+#include "slamforge/geometry/se3.h"
 
-namespace litevo::geometry {
+namespace slamforge::geometry {
 
 PnPResult SolvePnPRansac(const std::vector<cv::Point3f>& points_3d,
                          const std::vector<cv::Point2f>& points_2d, const cv::Mat& K,
@@ -39,7 +39,7 @@ PnPResult SolvePnPRansac(const std::vector<cv::Point3f>& points_3d,
 
     result.T_cw = FromOpenCVRt(rvec, tvec);
 
-    result.inlier_indices.reserve(inliers.rows);
+    result.inlier_indices.reserve(static_cast<size_t>(inliers.rows));
     for (int i = 0; i < inliers.rows; ++i) {
         result.inlier_indices.push_back(inliers.at<int>(i));
     }
@@ -92,4 +92,4 @@ void ToOpenCVRt(const SE3& T_cw, cv::Mat& rvec, cv::Mat& tvec) {
     cv::eigen2cv(t, tvec);
 }
 
-}  // namespace litevo::geometry
+}  // namespace slamforge::geometry

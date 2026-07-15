@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Batch benchmarking tool for LiteVO.
+"""Batch benchmarking tool for SLAMForge.
 
-Runs LiteVO on multiple dataset sequences, computes ATE and RPE for each,
+Runs SLAMForge on multiple dataset sequences, computes ATE and RPE for each,
 and produces a summary table and CSV report.
 
 Usage:
@@ -37,15 +37,15 @@ def find_sequences(dataset_dir: Path, pattern: str = "*") -> list[Path]:
 
 
 def run_slam(
-    litevo_bin: str,
+    slamforge_bin: str,
     config_path: str,
     input_dir: str,
     output_path: str,
     extra_args: Optional[list[str]] = None,
 ) -> tuple[bool, str]:
-    """Run litevo_cli on a sequence. Returns (success, stdout)."""
+    """Run slamforge_cli on a sequence. Returns (success, stdout)."""
     cmd = [
-        litevo_bin, "run",
+        slamforge_bin, "run",
         "--config", config_path,
         "--input", input_dir,
         "--output", output_path,
@@ -64,7 +64,7 @@ def run_slam(
     except subprocess.TimeoutExpired:
         return False, "TIMEOUT"
     except FileNotFoundError:
-        return False, f"Binary not found: {litevo_bin}"
+        return False, f"Binary not found: {slamforge_bin}"
 
 
 def evaluate_sequence(
@@ -109,7 +109,7 @@ def evaluate_sequence(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Batch benchmark LiteVO across multiple dataset sequences"
+        description="Batch benchmark SLAMForge across multiple dataset sequences"
     )
     parser.add_argument(
         "--dataset-dir", required=True, help="Root directory of the dataset"
@@ -148,9 +148,9 @@ def main():
         help="Maximum timestamp difference in seconds for TUM/EuRoC association",
     )
     parser.add_argument(
-        "--litevo-bin",
-        default="build/apps/litevo_cli",
-        help="Path to litevo_cli binary",
+        "--slamforge-bin",
+        default="build/apps/slamforge_cli",
+        help="Path to slamforge_cli binary",
     )
     parser.add_argument(
         "--output-dir",
@@ -195,7 +195,7 @@ def main():
         sys.exit(1)
 
     print(f"Found {len(sequences)} sequences to benchmark")
-    print(f"LiteVO binary: {args.litevo_bin}")
+    print(f"SLAMForge binary: {args.slamforge_bin}")
     print(f"Config: {args.config}")
     print()
 
@@ -221,7 +221,7 @@ def main():
 
         # Run
         ok, stdout = run_slam(
-            args.litevo_bin,
+            args.slamforge_bin,
             args.config,
             str(image_dir),
             str(traj_out),
@@ -257,7 +257,7 @@ def main():
 
     # ── Summary table ──────────────────────────────────────────────────────
     print("\n" + "═" * 80)
-    print("  LiteVO Benchmark Summary")
+    print("  SLAMForge Benchmark Summary")
     print("═" * 80)
     header = f"  {'Sequence':<20s} {'Status':<10s} {'Frames':>8s} {'ATE':>8s} {'RPE':>8s} {'RPE10':>8s}"
     print(header)

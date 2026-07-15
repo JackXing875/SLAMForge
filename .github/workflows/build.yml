@@ -64,12 +64,12 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DLITEVO_BUILD_TESTS=ON \
-            -DLITEVO_BUILD_APPS=ON \
-            -DLITEVO_ENABLE_SOPHUS=OFF \
-            -DLITEVO_ENABLE_CERES=OFF \
-            -DLITEVO_ENABLE_G2O=OFF \
-            -DLITEVO_ENABLE_FBOW=OFF
+            -DSLAMFORGE_BUILD_TESTS=ON \
+            -DSLAMFORGE_BUILD_APPS=ON \
+            -DSLAMFORGE_ENABLE_SOPHUS=OFF \
+            -DSLAMFORGE_ENABLE_CERES=OFF \
+            -DSLAMFORGE_ENABLE_G2O=OFF \
+            -DSLAMFORGE_ENABLE_FBOW=OFF
 
       - name: Build
         run: cmake --build build --config ${{ matrix.build_type }} -j$(nproc)
@@ -86,7 +86,7 @@ jobs:
           cmake -S tests/packaging/consumer -B package-smoke \
             -DCMAKE_PREFIX_PATH="$PWD/stage"
           cmake --build package-smoke -j$(nproc)
-          ./package-smoke/litevo_package_smoke
+          ./package-smoke/slamforge_package_smoke
 
       - name: Smoke test installed CLI resources
         run: |
@@ -95,7 +95,7 @@ jobs:
           printf '0 0 0 0 0 0 0 1\n1 1 0 0 0 0 0 1\n' > "$tmp_dir/groundtruth.txt"
           (
             cd "$tmp_dir"
-            "$GITHUB_WORKSPACE/stage/bin/litevo_cli" eval \
+            "$GITHUB_WORKSPACE/stage/bin/slamforge_cli" eval \
               --estimated estimated.txt --groundtruth groundtruth.txt
           )
 
@@ -128,14 +128,14 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_CXX_FLAGS="--coverage -O0" \
             -DCMAKE_EXE_LINKER_FLAGS="--coverage" \
-            -DLITEVO_BUILD_TESTS=ON \
-            -DLITEVO_BUILD_APPS=OFF \
-            -DLITEVO_ENABLE_SOPHUS=OFF \
-            -DLITEVO_ENABLE_CERES=OFF \
-            -DLITEVO_ENABLE_G2O=OFF \
-            -DLITEVO_ENABLE_FBOW=OFF \
-            -DLITEVO_ENABLE_SPDLOG=OFF \
-            -DLITEVO_ENABLE_YAML=OFF
+            -DSLAMFORGE_BUILD_TESTS=ON \
+            -DSLAMFORGE_BUILD_APPS=OFF \
+            -DSLAMFORGE_ENABLE_SOPHUS=OFF \
+            -DSLAMFORGE_ENABLE_CERES=OFF \
+            -DSLAMFORGE_ENABLE_G2O=OFF \
+            -DSLAMFORGE_ENABLE_FBOW=OFF \
+            -DSLAMFORGE_ENABLE_SPDLOG=OFF \
+            -DSLAMFORGE_ENABLE_YAML=OFF
 
       - name: Build and run tests
         run: |

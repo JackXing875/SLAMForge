@@ -1,12 +1,12 @@
 # =============================================================================
-# LiteVO — Development Docker image
+# SLAMForge — Development Docker image
 # =============================================================================
 # Build:
-#   docker build -t litevo -f docker/Dockerfile .
+#   docker build -t slamforge -f docker/Dockerfile .
 #
 # Run:
 #   docker run --rm -v $(pwd)/data:/images -v $(pwd)/output:/output \
-#       litevo run --config /opt/litevo/config/kitti.yaml --input /images \
+#       slamforge run --config /opt/slamforge/config/kitti.yaml --input /images \
 #       --output /output/trajectory.txt
 
 FROM ubuntu:22.04
@@ -84,21 +84,21 @@ RUN ldconfig
 # ── Python tools dependencies ─────────────────────────────────────────────────
 RUN pip3 install --no-cache-dir numpy matplotlib pandas
 
-# ── Copy LiteVO source ────────────────────────────────────────────────────────
-COPY . /opt/litevo
+# ── Copy SLAMForge source ────────────────────────────────────────────────────────
+COPY . /opt/slamforge
 
-# ── Build LiteVO ──────────────────────────────────────────────────────────────
-WORKDIR /opt/litevo/build
+# ── Build SLAMForge ──────────────────────────────────────────────────────────────
+WORKDIR /opt/slamforge/build
 RUN cmake .. \
     -DCMAKE_BUILD_TYPE=Release \
-    -DLITEVO_BUILD_TESTS=OFF \
-    -DLITEVO_BUILD_APPS=ON \
-    -DLITEVO_ENABLE_SOPHUS=ON \
-    -DLITEVO_ENABLE_CERES=ON \
-    -DLITEVO_ENABLE_G2O=ON \
-    -DLITEVO_ENABLE_FBOW=ON \
-    -DLITEVO_ENABLE_SPDLOG=ON \
-    -DLITEVO_ENABLE_YAML=ON \
+    -DSLAMFORGE_BUILD_TESTS=OFF \
+    -DSLAMFORGE_BUILD_APPS=ON \
+    -DSLAMFORGE_ENABLE_SOPHUS=ON \
+    -DSLAMFORGE_ENABLE_CERES=ON \
+    -DSLAMFORGE_ENABLE_G2O=ON \
+    -DSLAMFORGE_ENABLE_FBOW=ON \
+    -DSLAMFORGE_ENABLE_SPDLOG=ON \
+    -DSLAMFORGE_ENABLE_YAML=ON \
     && make -j$(nproc)
 
 # ── Install ───────────────────────────────────────────────────────────────────
@@ -106,5 +106,5 @@ RUN cmake --install .
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 WORKDIR /workspace
-ENTRYPOINT ["/usr/local/bin/litevo_cli"]
+ENTRYPOINT ["/usr/local/bin/slamforge_cli"]
 CMD ["--help"]

@@ -2,13 +2,13 @@
 // Frame implementation
 // =============================================================================
 
-#include "litevo/core/frame.h"
+#include "slamforge/core/frame.h"
 
 #include <opencv2/imgproc.hpp>
 
-#include "litevo/features/orb_extractor.h"
+#include "slamforge/features/orb_extractor.h"
 
-namespace litevo {
+namespace slamforge {
 
 uint64_t Frame::next_id_ = 0;
 
@@ -55,8 +55,8 @@ void Frame::UndistortKeyPoints() {
 
     for (const auto& kp : keypoints_) {
         // Convert to normalized coordinates
-        double nx = (kp.pt.x - camera_.cx()) / camera_.fx();
-        double ny = (kp.pt.y - camera_.cy()) / camera_.fy();
+        double nx = (static_cast<double>(kp.pt.x) - camera_.cx()) / camera_.fx();
+        double ny = (static_cast<double>(kp.pt.y) - camera_.cy()) / camera_.fy();
 
         // Undistort
         Vec2 norm_undist = camera_.Undistort(Vec2(nx, ny));
@@ -119,4 +119,4 @@ std::vector<int> Frame::GetFeaturesInArea(float x, float y, float radius, int mi
     return grid_.GetCandidates(x, y, radius, min_level, max_level);
 }
 
-}  // namespace litevo
+}  // namespace slamforge

@@ -11,27 +11,27 @@
 
 #include <random>
 
-#include "litevo/core/camera.h"
-#include "litevo/geometry/triangulation.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/geometry/triangulation.h"
 
 namespace {
 
 /// Generate two camera poses and corresponding 2D observations.
 struct TriangulationTestData {
-    litevo::SE3 T1, T2;
+    slamforge::SE3 T1, T2;
     std::vector<cv::Point2f> pts1, pts2;
-    std::vector<litevo::Vec3> ground_truth;
+    std::vector<slamforge::Vec3> ground_truth;
 };
 
-TriangulationTestData GenerateTestData(int num_points, const litevo::Camera& camera) {
+TriangulationTestData GenerateTestData(int num_points, const slamforge::Camera& camera) {
     TriangulationTestData data;
 
     // Camera 1 at origin
-    data.T1 = litevo::SE3::Identity();
+    data.T1 = slamforge::SE3::Identity();
 
     // Camera 2 moved 1m to the right
-    data.T2 = litevo::SE3::Identity();
-    data.T2.translation() = litevo::Vec3(1.0, 0.0, 0.0);
+    data.T2 = slamforge::SE3::Identity();
+    data.T2.translation() = slamforge::Vec3(1.0, 0.0, 0.0);
 
     std::mt19937 rng(42);
     std::uniform_real_distribution<double> xy_dist(-2.0, 2.0);
@@ -39,11 +39,11 @@ TriangulationTestData GenerateTestData(int num_points, const litevo::Camera& cam
     std::normal_distribution<double> noise(0.0, 0.5);
 
     for (int i = 0; i < num_points; i++) {
-        litevo::Vec3 p_w(xy_dist(rng), xy_dist(rng), z_dist(rng));
+        slamforge::Vec3 p_w(xy_dist(rng), xy_dist(rng), z_dist(rng));
         data.ground_truth.push_back(p_w);
 
-        litevo::Vec2 p1 = camera.Project(data.T1 * p_w);
-        litevo::Vec2 p2 = camera.Project(data.T2 * p_w);
+        slamforge::Vec2 p1 = camera.Project(data.T1 * p_w);
+        slamforge::Vec2 p2 = camera.Project(data.T2 * p_w);
 
         data.pts1.emplace_back(static_cast<float>(p1.x() + noise(rng)),
                                static_cast<float>(p1.y() + noise(rng)));

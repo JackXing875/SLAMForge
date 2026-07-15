@@ -2,18 +2,18 @@
 // LoopCorrector implementation — Sim(3) propagation and map point fusion
 // =============================================================================
 
-#include "litevo/loop_closing/corrector.h"
+#include "slamforge/loop_closing/corrector.h"
 
 #include <algorithm>
 #include <unordered_set>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map.h"
-#include "litevo/core/map_point.h"
-#include "litevo/geometry/se3.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map.h"
+#include "slamforge/core/map_point.h"
+#include "slamforge/geometry/se3.h"
 
-namespace litevo::loop_closing {
+namespace slamforge::loop_closing {
 
 void LoopCorrector::CorrectLoop(std::shared_ptr<KeyFrame> current_kf,
                                 std::shared_ptr<KeyFrame> matched_kf,
@@ -207,4 +207,4 @@ void LoopCorrector::UpdateConnections(Map& map) {
     }
 }
 
-}  // namespace litevo::loop_closing
+}  // namespace slamforge::loop_closing

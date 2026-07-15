@@ -2,7 +2,7 @@
 // MonocularInitializer implementation
 // =============================================================================
 
-#include "litevo/tracking/initializer.h"
+#include "slamforge/tracking/initializer.h"
 
 #include <opencv2/calib3d.hpp>
 
@@ -11,14 +11,14 @@
 #include <thread>
 #include <unordered_set>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/frame.h"
-#include "litevo/core/map_point.h"
-#include "litevo/geometry/se3.h"
-#include "litevo/geometry/triangulation.h"
-#include "litevo/tracking/matcher.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/frame.h"
+#include "slamforge/core/map_point.h"
+#include "slamforge/geometry/se3.h"
+#include "slamforge/geometry/triangulation.h"
+#include "slamforge/tracking/matcher.h"
 
-namespace litevo::tracking {
+namespace slamforge::tracking {
 
 MonocularInitializer::MonocularInitializer(const Camera& camera, features::OrbExtractor& extractor,
                                            const Options& opts)
@@ -192,6 +192,10 @@ std::vector<std::pair<Mat3, Vec3>> MonocularInitializer::DecomposeH(const cv::Ma
 std::vector<std::pair<Mat3, Vec3>> MonocularInitializer::DecomposeE(
     const cv::Mat& E, const cv::Mat& K, const std::vector<cv::Point2f>& pts1_norm,
     const std::vector<cv::Point2f>& pts2_norm) const {
+    static_cast<void>(K);
+    static_cast<void>(pts1_norm);
+    static_cast<void>(pts2_norm);
+
     std::vector<std::pair<Mat3, Vec3>> candidates;
 
     if (E.empty())
@@ -491,4 +495,4 @@ InitializationResult MonocularInitializer::Initialize(Frame& frame) {
     return result;
 }
 
-}  // namespace litevo::tracking
+}  // namespace slamforge::tracking

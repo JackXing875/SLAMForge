@@ -2,14 +2,14 @@
 // Map implementation
 // =============================================================================
 
-#include "litevo/core/map.h"
+#include "slamforge/core/map.h"
 
 #include <algorithm>
 
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map_point.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map_point.h"
 
-namespace litevo {
+namespace slamforge {
 
 std::shared_ptr<MapPoint> Map::AddMapPoint(const Vec3& position, FrameId ref_frame) {
     auto graph_lock = AcquireGraphLock();
@@ -122,4 +122,4 @@ void Map::Clear() {
     reference_kf_.reset();
 }
 
-}  // namespace litevo
+}  // namespace slamforge

@@ -2,18 +2,18 @@
 // LoopClosing implementation — orchestrator thread
 // =============================================================================
 
-#include "litevo/loop_closing/loop_closing.h"
+#include "slamforge/loop_closing/loop_closing.h"
 
 #include <exception>
 #include <iostream>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map.h"
-#include "litevo/features/orb_extractor.h"
-#include "litevo/geometry/se3.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map.h"
+#include "slamforge/features/orb_extractor.h"
+#include "slamforge/geometry/se3.h"
 
-namespace litevo::loop_closing {
+namespace slamforge::loop_closing {
 
 LoopClosing::LoopClosing(Map& map, const Camera& camera, const LoopClosingConfig& config)
     : map_(map),
@@ -198,4 +198,4 @@ void LoopClosing::Run() {
     global_ba_.Stop();
 }
 
-}  // namespace litevo::loop_closing
+}  // namespace slamforge::loop_closing

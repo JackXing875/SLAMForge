@@ -1,4 +1,4 @@
-# Python dependencies for LiteVO evaluation and visualization tools
+# Python dependencies for SLAMForge evaluation and visualization tools
 # -----------------------------------------------------------------
 
 # Numerical computing

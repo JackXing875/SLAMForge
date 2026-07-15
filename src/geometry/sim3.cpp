@@ -2,7 +2,7 @@
 // Sim(3) implementation — Lie group exponential, logarithm, estimation
 // =============================================================================
 
-#include "litevo/geometry/sim3.h"
+#include "slamforge/geometry/sim3.h"
 
 #include <algorithm>
 #include <cmath>
@@ -10,7 +10,7 @@
 #include <random>
 #include <vector>
 
-namespace litevo::geometry {
+namespace slamforge::geometry {
 
 namespace {
 
@@ -31,7 +31,7 @@ Mat3 ExpSO3(const Vec3& omega) {
     Scalar theta = omega.norm();
     if (theta < kSmallTheta) {
         Mat3 omega_hat = Skew(omega);
-        return Mat3::Identity() + omega_hat + Scalar(0.5) * omega_hat * omega_hat;
+        return Mat3::Identity() + omega_hat + 0.5 * omega_hat * omega_hat;
     }
     Vec3 axis = omega / theta;
     Mat3 axis_hat = Skew(axis);
@@ -130,11 +130,11 @@ Sim3 ExpSim3(const Eigen::Matrix<Scalar, 7, 1>& v) {
     // Compute translation Jacobian W and multiply: t = W * upsilon
     if (theta < kSmallTheta && std::abs(sigma) < kSmallSigma) {
         // Both small: t ≈ υ + 0.5*ω×υ + σ*υ/2
-        S.t = upsilon + Scalar(0.5) * omega.cross(upsilon) + Scalar(0.5) * sigma * upsilon;
+        S.t = upsilon + 0.5 * omega.cross(upsilon) + 0.5 * sigma * upsilon;
     } else if (theta < kSmallTheta) {
         // Small rotation only
         Scalar a = (S.s - Scalar(1)) / sigma;
-        S.t = a * upsilon + Scalar(0.5) * omega.cross(upsilon);
+        S.t = a * upsilon + 0.5 * omega.cross(upsilon);
     } else if (std::abs(sigma) < kSmallSigma) {
         // Small scale only → SE(3) case
         Scalar sin_t = std::sin(theta);
@@ -208,7 +208,7 @@ Eigen::Matrix<Scalar, 7, 1> LogSim3(const Sim3& S) {
 
         // W⁻¹ = I - θ/2*A + (1 - a/(2b))/θ² * A²
         Scalar c = (Scalar(1) - a / (Scalar(2) * b)) / (theta * theta);
-        Mat3 W_inv = Mat3::Identity() - Scalar(0.5) * A + c * A * A;
+        Mat3 W_inv = Mat3::Identity() - 0.5 * A + c * A * A;
 
         Vec3 upsilon = W_inv * S.t;
         v << omega, upsilon, sigma;
@@ -363,7 +363,7 @@ Sim3Estimate EstimateSim3Ransac(const std::vector<Vec3>& pts1, const std::vector
             result.inlier_indices = std::move(inlier_indices);
 
             // Update max iterations adaptively
-            double inlier_ratio = static_cast<double>(best_inliers) / N;
+            double inlier_ratio = static_cast<double>(best_inliers) / static_cast<double>(N);
             if (inlier_ratio > 0) {
                 max_iters =
                     static_cast<int>(log_1_minus_conf / std::log(1.0 - std::pow(inlier_ratio, 3)));
@@ -391,4 +391,4 @@ Sim3Estimate EstimateSim3Ransac(const std::vector<Vec3>& pts1, const std::vector
     return result;
 }
 
-}  // namespace litevo::geometry
+}  // namespace slamforge::geometry

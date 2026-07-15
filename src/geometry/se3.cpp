@@ -1,13 +1,13 @@
 // =============================================================================
-// LiteVO SE(3) Lie algebra — implementation
+// SLAMForge SE(3) Lie algebra — implementation
 // =============================================================================
 
-#include "litevo/geometry/se3.h"
+#include "slamforge/geometry/se3.h"
 
 #include <cmath>
 #include <limits>
 
-namespace litevo::geometry {
+namespace slamforge::geometry {
 
 namespace {
 
@@ -21,7 +21,7 @@ Mat3 ExpSO3(const Vec3& omega) {
         Mat3 omega_hat;
         omega_hat << Scalar(0), -omega.z(), omega.y(), omega.z(), Scalar(0), -omega.x(), -omega.y(),
             omega.x(), Scalar(0);
-        return Mat3::Identity() + omega_hat + Scalar(0.5) * omega_hat * omega_hat;
+        return Mat3::Identity() + omega_hat + 0.5 * omega_hat * omega_hat;
     }
 
     const Vec3 axis = omega / theta;
@@ -37,7 +37,7 @@ Mat3 ExpSO3(const Vec3& omega) {
 Mat3 LeftJacobianSO3(const Vec3& omega) {
     const Scalar theta = omega.norm();
     if (theta < kEpsilon) {
-        return Mat3::Identity() + Scalar(0.5) * SkewSymmetric(omega);
+        return Mat3::Identity() + 0.5 * SkewSymmetric(omega);
     }
 
     const Vec3 axis = omega / theta;
@@ -86,19 +86,17 @@ Vec6 LogSE3(const SE3& T) {
     }
 
     // Compute the translation part of the twist
-    const Mat3 V_inv = LeftJacobianSO3(-omega);  // V^{-1}(omega) = V(-omega) for small angles
-    // Actually V^{-1} is more complex; use approximation for now
+    // V^{-1} is more complex than V(-omega); use the closed-form approximation below.
     // V^{-1} ≈ I - 0.5*omega^ + (1/theta^2 - (1+cos(theta))/(2*theta*sin(theta))) * omega^2
     Mat3 omega_hat = SkewSymmetric(omega);
     Mat3 V_inv_approx;
     if (theta < kEpsilon) {
-        V_inv_approx =
-            Mat3::Identity() - Scalar(0.5) * omega_hat + Scalar(1.0 / 12.0) * omega_hat * omega_hat;
+        V_inv_approx = Mat3::Identity() - 0.5 * omega_hat + (1.0 / 12.0) * omega_hat * omega_hat;
     } else {
         const Scalar a = std::sin(theta) / theta;
         const Scalar b = (Scalar(1) - cos_theta) / (theta * theta);
         const Scalar c = (Scalar(1) - a / (Scalar(2) * b)) / (theta * theta);
-        V_inv_approx = Mat3::Identity() - Scalar(0.5) * omega_hat + c * omega_hat * omega_hat;
+        V_inv_approx = Mat3::Identity() - 0.5 * omega_hat + c * omega_hat * omega_hat;
     }
 
     const Vec3 upsilon = V_inv_approx * t;
@@ -123,4 +121,4 @@ Mat6 AdjointSE3(const SE3& T) {
     return Adj;
 }
 
-}  // namespace litevo::geometry
+}  // namespace slamforge::geometry

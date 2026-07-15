@@ -1,6 +1,19 @@
 # Changelog
 
-All notable changes to LiteVO will be documented in this file.
+All notable changes to SLAMForge will be documented in this file.
+
+## [3.0.0] — 2026-07-15
+
+### Breaking changes
+
+- Renamed the project and all public interfaces to **SLAMForge**: C++ headers,
+  namespace, CMake package, CLI, ROS2 node, Python package, and build options.
+- Relicensed the project under **GPL-3.0-only**.
+
+### Release readiness
+
+- Added relocatable installation resources, package-consumer smoke coverage,
+  and CI checks for formatting, static analysis, and Docker delivery.
 
 ## [2.0.0] — 2026-07-14
 

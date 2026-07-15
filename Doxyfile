@@ -1,8 +1,8 @@
-# Doxyfile 1.9.1 — LiteVO API Documentation
+# Doxyfile 1.9.1 — SLAMForge API Documentation
 
-PROJECT_NAME           = "LiteVO"
+PROJECT_NAME           = "SLAMForge"
 PROJECT_BRIEF          = "Industrial-Grade Monocular Visual SLAM System"
-PROJECT_NUMBER         = 2.0.0
+PROJECT_NUMBER         = 3.0.0
 
 OUTPUT_DIRECTORY       = docs/html
 CREATE_SUBDIRS         = NO
@@ -16,11 +16,11 @@ EXTRACT_PRIVATE        = NO
 EXTRACT_STATIC         = NO
 EXTRACT_LOCAL_METHODS  = NO
 
-INPUT                  = include/litevo
+INPUT                  = include/slamforge
 FILE_PATTERNS          = *.h *.hpp
 RECURSIVE              = YES
 
-EXCLUDE                = include/litevo/version.h.in
+EXCLUDE                = include/slamforge/version.h.in
 EXCLUDE_PATTERNS       = */test/* */bench/* */legacy/*
 
 EXAMPLE_PATH           =
@@ -81,4 +81,4 @@ DISABLE_INDEX          = NO
 ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = NO
-PREDEFINED             = "LITEVO_HAS_SOPHUS" "LITEVO_HAS_CERES" "LITEVO_HAS_G2O" "LITEVO_HAS_FBOW" "LITEVO_HAS_SPDLOG" "LITEVO_HAS_YAML_CPP"
+PREDEFINED             = "SLAMFORGE_HAS_SOPHUS" "SLAMFORGE_HAS_CERES" "SLAMFORGE_HAS_G2O" "SLAMFORGE_HAS_FBOW" "SLAMFORGE_HAS_SPDLOG" "SLAMFORGE_HAS_YAML_CPP"

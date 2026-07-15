@@ -2,7 +2,7 @@
 // FeatureMatcher implementation
 // =============================================================================
 
-#include "litevo/tracking/matcher.h"
+#include "slamforge/tracking/matcher.h"
 
 #include <opencv2/calib3d.hpp>
 
@@ -10,11 +10,11 @@
 #include <cmath>
 #include <unordered_set>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/frame.h"
-#include "litevo/core/map_point.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/frame.h"
+#include "slamforge/core/map_point.h"
 
-namespace litevo::tracking {
+namespace slamforge::tracking {
 
 namespace {
 
@@ -277,4 +277,4 @@ std::vector<std::pair<int, int>> FeatureMatcher::FilterByRotationHistogram(
     return filtered;
 }
 
-}  // namespace litevo::tracking
+}  // namespace slamforge::tracking

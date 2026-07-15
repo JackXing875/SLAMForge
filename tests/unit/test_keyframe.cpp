@@ -6,14 +6,14 @@
 
 #include <gtest/gtest.h>
 
-#include "litevo/core/camera.h"
-#include "litevo/core/config.h"
-#include "litevo/core/frame.h"
-#include "litevo/core/keyframe.h"
-#include "litevo/core/map_point.h"
-#include "litevo/features/orb_extractor.h"
+#include "slamforge/core/camera.h"
+#include "slamforge/core/config.h"
+#include "slamforge/core/frame.h"
+#include "slamforge/core/keyframe.h"
+#include "slamforge/core/map_point.h"
+#include "slamforge/features/orb_extractor.h"
 
-using namespace litevo;
+using namespace slamforge;
 
 class KeyFrameTest : public ::testing::Test {
 protected:

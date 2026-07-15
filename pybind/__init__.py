@@ -1,9 +1,9 @@
-"""LiteVO — Industrial-Grade Monocular Visual SLAM with Python Bindings.
+"""SLAMForge — Industrial-Grade Monocular Visual SLAM with Python Bindings.
 
 Quickstart
 ----------
     import numpy as np
-    from litevo import *
+    from slamforge import *
 
     # Load configuration
     cfg = load_config("kitti.yaml")
@@ -31,4 +31,4 @@ Quickstart
         print(pt.position)
 """
 
-from _litevo import *
+from _slamforge import *

@@ -4,9 +4,9 @@
 
 #include <gtest/gtest.h>
 
-#include "litevo/core/feature_grid.h"
+#include "slamforge/core/feature_grid.h"
 
-using namespace litevo;
+using namespace slamforge;
 
 TEST(FeatureGridTest, Construction) {
     FeatureGrid grid(640, 480, 64);

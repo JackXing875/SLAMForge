@@ -2,11 +2,11 @@
 // MapPoint implementation
 // =============================================================================
 
-#include "litevo/core/map_point.h"
+#include "slamforge/core/map_point.h"
 
 #include <cmath>
 
-namespace litevo {
+namespace slamforge {
 
 std::atomic<uint64_t> MapPoint::next_id_{1};  // id=0 is the invalid sentinel
 
@@ -262,4 +262,4 @@ void MapPoint::Replace(MapPoint* other) {
     other->visible_count_ = 0;
 }
 
-}  // namespace litevo
+}  // namespace slamforge

@@ -4,9 +4,9 @@
 
 #include <gtest/gtest.h>
 
-#include "litevo/core/config.h"
+#include "slamforge/core/config.h"
 
-using namespace litevo;
+using namespace slamforge;
 
 TEST(ConfigTest, DefaultConfig) {
     SystemConfig cfg = SystemConfig::Default();
@@ -19,7 +19,7 @@ TEST(ConfigTest, DefaultConfig) {
     EXPECT_EQ(cfg.output_format, "tum");
 }
 
-#ifdef LITEVO_HAS_YAML_CPP
+#ifdef SLAMFORGE_HAS_YAML_CPP
 TEST(ConfigTest, LoadFromYAML) {
     // This test requires a YAML file on disk
     // Create a temporary config
