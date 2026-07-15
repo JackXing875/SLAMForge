@@ -7,7 +7,7 @@ from conan.tools.files import copy
 
 class SLAMForgeConan(ConanFile):
     name = "slamforge"
-    version = "3.0.0"
+    version = "3.1.0"
     description = "Industrial-grade monocular visual SLAM system"
     license = "GPL-3.0-only"
     url = "https://github.com/JackXing875/SLAMForge"

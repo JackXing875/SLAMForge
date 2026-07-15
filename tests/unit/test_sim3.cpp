@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <numbers>
 
 #include "slamforge/geometry/se3.h"
 #include "slamforge/geometry/sim3.h"
@@ -50,7 +51,7 @@ TEST(Sim3Test, MatrixConversion) {
 }
 
 TEST(Sim3Test, TransformPoint) {
-    Mat3 R = Eigen::AngleAxisd(M_PI / 2, Vec3::UnitZ()).toRotationMatrix();
+    Mat3 R = Eigen::AngleAxisd(std::numbers::pi_v<double> / 2.0, Vec3::UnitZ()).toRotationMatrix();
     Vec3 t(0, 0, 0);
     Scalar s = 2.0;
     Sim3 S = MakeSim3(R, t, s);

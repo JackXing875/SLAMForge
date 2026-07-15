@@ -1,0 +1,25 @@
+{
+  "name": "slamforge-desktop-dependencies",
+  "version-string": "3.1.0-beta.1",
+  "builtin-baseline": "ef7dbf94b9198bc58f45951adcf1f041fcbc5ea0",
+  "dependencies": [
+    "ceres",
+    "eigen3",
+    {
+      "name": "opencv4",
+      "default-features": false,
+      "features": [
+        "calib3d",
+        "dshow",
+        "ffmpeg",
+        "intrinsics",
+        "jpeg",
+        "msmf",
+        "png",
+        "thread"
+      ]
+    },
+    "spdlog",
+    "yaml-cpp"
+  ]
+}

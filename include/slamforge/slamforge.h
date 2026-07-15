@@ -33,6 +33,9 @@
 // ── Features ─────────────────────────────────────────────────────────────────
 #include "slamforge/features/orb_extractor.h"
 
+// ── Input / Output ───────────────────────────────────────────────────────────
+#include "slamforge/io/map_export.h"
+
 // ── Tracking ─────────────────────────────────────────────────────────────────
 #include "slamforge/tracking/initializer.h"
 #include "slamforge/tracking/matcher.h"

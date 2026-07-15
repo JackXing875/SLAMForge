@@ -13,6 +13,23 @@
 
 ## 快速开始
 
+### 桌面 Beta——无需开发环境
+
+从 [GitHub Releases](https://github.com/JackXing875/SLAMForge/releases/tag/v3.1.0-beta.1)
+下载 `SLAMForge Desktop 3.1.0-beta.1`：
+
+- **Windows x64：**解压 ZIP，然后双击 `SLAMForge Desktop.exe`。
+- **Linux x86_64：**给 AppImage 添加执行权限后直接启动。
+
+将视频拖入窗口，选择与该相机匹配的标定 YAML，指定结果目录并开始建图。所有处理都在
+本地完成；软件会显示最终稀疏地图和相机轨迹，并导出 `map.ply`、`trajectory.txt` 和
+`run.log`。
+
+> 单目 SLAM 无法确定绝对尺度，并且依赖准确的相机内参。首个 Beta 不会从任意视频中
+> 自动推断标定参数。
+
+### 开发者和容器用法
+
 ```bash
 # Docker 构建（无需安装任何依赖）
 docker build -t slamforge -f docker/Dockerfile .
@@ -68,13 +85,14 @@ python3 tools/evaluate_ate.py output/traj.txt groundtruth.txt --plot
 | 回环闭合   | ✅    | FBOW 词袋、Sim(3) 验证、位姿图 (g2o)、全局 BA  |
 | ORB 特征   | ✅    | 多尺度金字塔、四叉树均匀分布、自适应阈值       |
 | 配置系统   | ✅    | YAML 配置 + 模式校验                           |
+| 桌面 Beta  | 🧪    | Windows/Linux 视频工作流、结果查看与 PLY 导出  |
 | CLI 工具   | ✅    | `run`、`eval`、`benchmark` 子命令              |
 | ROS2 节点  | ✅    | 实时 SLAM，发布 PoseStamped、PointCloud2、TF   |
 | Python API | ✅    | pybind11 绑定，numpy 互操作                    |
 | 评估工具   | ✅    | ATE、RPE、轨迹可视化、批量基准测试             |
 | Docker     | ✅    | 一键构建运行                                   |
 | 文档       | ✅    | Doxygen API 文档、架构说明、快速开始、调优指南 |
-| 单元测试   | ✅    | 12 个 GoogleTest 测试套件                      |
+| 单元测试   | ✅    | 19 项核心/CLI 测试及桌面结果查看器冒烟测试     |
 | CI/CD      | ✅    | GitHub Actions: 构建、测试、lint、文档、Docker |
 | 基准测试   | ✅    | Google Benchmark: ORB、PnP、三角化             |
 
@@ -115,8 +133,9 @@ slamforge_cli run --config config/kitti.yaml --input /data/images --output traj.
 slamforge_cli run --config config/euroc.yaml --input /data/images \
     --timestamps /data/timestamps.txt --output traj.txt
 
-# 对视频文件运行 SLAM
-slamforge_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30
+# 对视频文件运行 SLAM 并导出稀疏点云
+slamforge_cli run --config config/kitti.yaml --input /data/video.mp4 --fps 30 \
+    --map-output map.ply
 
 # 评估轨迹精度
 slamforge_cli eval --estimated traj.txt --groundtruth gt.txt --format kitti
@@ -160,6 +179,7 @@ cd build && ctest --output-on-failure
 - [快速开始指南](docs/quick_start.md)
 - [架构概览](docs/architecture.md)
 - [调优指南](docs/tuning_guide.md)
+- [桌面 Beta 指南](docs/desktop.md)
 - [API 文档](https://JackXing875.github.io/SLAMForge/)
 
 ## 参与贡献

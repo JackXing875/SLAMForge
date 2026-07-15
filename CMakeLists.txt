@@ -5,11 +5,16 @@ cmake_minimum_required(VERSION 3.20)
 
 # ── Project identity ─────────────────────────────────────────────────────────
 project(SLAMForge
-    VERSION 3.0.0
+    VERSION 3.1.0
     DESCRIPTION "Industrial-grade monocular visual SLAM system"
     HOMEPAGE_URL "https://github.com/JackXing875/SLAMForge"
     LANGUAGES CXX
 )
+
+# CMake package compatibility uses the numeric project version, while public
+# beta builds expose the complete prerelease identifier in the CLI and GUI.
+set(SLAMFORGE_VERSION_PRERELEASE "beta.1")
+set(SLAMFORGE_VERSION_STRING "${PROJECT_VERSION}-${SLAMFORGE_VERSION_PRERELEASE}")
 
 # ── C++ standard ─────────────────────────────────────────────────────────────
 set(CMAKE_CXX_STANDARD 20)
@@ -20,6 +25,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(SLAMFORGE_BUILD_TESTS   "Build unit and integration tests"     ON)
 option(SLAMFORGE_BUILD_PYTHON_TESTS "Build Python trajectory-tool regressions" ON)
 option(SLAMFORGE_BUILD_APPS    "Build CLI applications"               ON)
+option(SLAMFORGE_BUILD_DESKTOP "Build the Qt 6 desktop application"   OFF)
 option(SLAMFORGE_ENABLE_SOPHUS "Enable Sophus Lie algebra support"    ON)
 option(SLAMFORGE_ENABLE_CERES  "Enable Ceres Solver optimization"     ON)
 option(SLAMFORGE_ENABLE_G2O    "Enable g2o pose graph optimization"   ON)
@@ -162,6 +168,18 @@ if(SLAMFORGE_BUILD_APPS)
     FetchContent_MakeAvailable(cli11)
 endif()
 
+# Qt is required only for the end-user desktop application. Keep this opt-in
+# while the desktop packaging matrix is being established so existing library,
+# CLI, ROS2, and Python builds remain dependency-compatible.
+if(SLAMFORGE_BUILD_DESKTOP)
+    if(NOT SLAMFORGE_BUILD_APPS)
+        message(FATAL_ERROR
+            "SLAMFORGE_BUILD_DESKTOP currently requires SLAMFORGE_BUILD_APPS because "
+            "the first desktop milestone runs the verified slamforge_cli pipeline")
+    endif()
+    find_package(Qt6 6.2 REQUIRED COMPONENTS Widgets)
+endif()
+
 # Python bindings: pybind11
 if(SLAMFORGE_BUILD_PYBIND)
     # A PEP 517 build supplies pybind11 through its build requirements.  Keep
@@ -209,7 +227,7 @@ endif()
 
 # ── Library target ───────────────────────────────────────────────────────────
 add_subdirectory(src)
-if(SLAMFORGE_BUILD_APPS OR SLAMFORGE_BUILD_ROS2)
+if(SLAMFORGE_BUILD_APPS OR SLAMFORGE_BUILD_DESKTOP OR SLAMFORGE_BUILD_ROS2)
     add_subdirectory(apps)
 endif()
 
@@ -233,6 +251,7 @@ include(CMakePackageConfigHelpers)
 # examples rather than hidden runtime state, so callers can copy and tune them.
 install(DIRECTORY "${PROJECT_SOURCE_DIR}/config/"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/slamforge/config"
+    COMPONENT Desktop
     FILES_MATCHING PATTERN "*.yaml"
 )
 
@@ -257,6 +276,11 @@ install(FILES "${PROJECT_BINARY_DIR}/include/slamforge/version.h"
 # GPL distributions must carry the license text with every installed package.
 install(FILES "${PROJECT_SOURCE_DIR}/LICENSE"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/SLAMForge"
+    COMPONENT Desktop
+)
+install(FILES "${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/SLAMForge"
+    COMPONENT Desktop
 )
 
 install(EXPORT SLAMForgeTargets
@@ -337,11 +361,12 @@ include(CPack)
 # ── Feature summary ──────────────────────────────────────────────────────────
 message(STATUS "")
 message(STATUS "═══════════════════════════════════════════════════════════════")
-message(STATUS "  SLAMForge ${PROJECT_VERSION} — Configuration Summary")
+message(STATUS "  SLAMForge ${SLAMFORGE_VERSION_STRING} — Configuration Summary")
 message(STATUS "═══════════════════════════════════════════════════════════════")
 message(STATUS "  C++ Standard:       ${CMAKE_CXX_STANDARD}")
 message(STATUS "  Build tests:        ${SLAMFORGE_BUILD_TESTS}")
 message(STATUS "  Build apps:         ${SLAMFORGE_BUILD_APPS}")
+message(STATUS "  Desktop app:        ${SLAMFORGE_BUILD_DESKTOP}")
 message(STATUS "  Sophus (SE3):       ${SLAMFORGE_ENABLE_SOPHUS}")
 message(STATUS "  Ceres (BA):         ${SLAMFORGE_ENABLE_CERES}")
 message(STATUS "  g2o (Pose Graph):   ${SLAMFORGE_ENABLE_G2O}")

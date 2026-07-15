@@ -1,0 +1,16 @@
+ply
+format ascii 1.0
+comment Deterministic SLAMForge Desktop smoke-test map
+element vertex 8
+property double x
+property double y
+property double z
+end_header
+-1 -1 -1
+1 -1 -1
+1 1 -1
+-1 1 -1
+-1 -1 1
+1 -1 1
+1 1 1
+-1 1 1

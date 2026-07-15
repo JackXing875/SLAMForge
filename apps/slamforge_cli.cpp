@@ -594,9 +594,9 @@ static bool WriteTrajectoryPose(std::ostream& stream, const slamforge::SE3& Tcw,
 static int RunSlam(const std::string& config_path, const std::string& input_path,
                    const std::string& output_path, bool verbose, double fps,
                    const std::string& output_format_override = "",
-                   const std::string& timestamp_path = "", const std::string& gt_path = "",
-                   const std::string& gt_format = "tum", int* out_keyframes = nullptr,
-                   int* out_mappoints = nullptr) {
+                   const std::string& timestamp_path = "", const std::string& map_output_path = "",
+                   const std::string& gt_path = "", const std::string& gt_format = "tum",
+                   int* out_keyframes = nullptr, int* out_mappoints = nullptr) {
     // ── Load configuration ──────────────────────────────────────────────────
     auto cfg_opt = slamforge::SystemConfig::LoadFromYAML(config_path);
     if (!cfg_opt) {
@@ -832,6 +832,18 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         return EXIT_FAILURE;
     }
 
+    if (!map_output_path.empty()) {
+        const auto export_result = slamforge::io::ExportMapAsPly(tracker.GetMap(), map_output_path);
+        if (!export_result) {
+            std::cerr << "Error: " << export_result.error << "\n";
+            return EXIT_FAILURE;
+        }
+        if (verbose) {
+            std::cout << "Map:     " << map_output_path << " (" << export_result.point_count
+                      << " points)\n";
+        }
+    }
+
     // ── Collect final stats ─────────────────────────────────────────────────
     const int final_kfs = tracker.NumKeyFrames();
     const int final_mps = static_cast<int>(tracker.GetMap().MapPointCount());
@@ -851,6 +863,9 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         std::cout << "  Loops closed: " << loop_closing->NumLoopsClosed() << "\n";
     }
     std::cout << "  Output:     " << output_path << "\n";
+    if (!map_output_path.empty()) {
+        std::cout << "  Map:        " << map_output_path << "\n";
+    }
 
     // ── Optional inline ATE ─────────────────────────────────────────────────
     if (!gt_path.empty()) {
@@ -878,6 +893,7 @@ static int RunSubcommand(CLI::App* run_cmd) {
     static std::string config = "config/default.yaml";
     static std::string input;
     static std::string output = "trajectory.txt";
+    static std::string map_output;
     static std::string output_format;
     static std::string timestamps;
     static bool verbose = false;
@@ -893,6 +909,7 @@ static int RunSubcommand(CLI::App* run_cmd) {
         ->add_option("--output", output,
                      "Output trajectory (format from config unless --output-format is set)")
         ->default_val("trajectory.txt");
+    run_cmd->add_option("--map-output", map_output, "Optional sparse map output in ASCII PLY");
     run_cmd
         ->add_option("--output-format", output_format,
                      "Output trajectory format override (tum|kitti|euroc)")
@@ -980,6 +997,7 @@ static int BenchSubcommand(CLI::App* bench_cmd) {
 int main(int argc, char* argv[]) {
     executable_directory = ResolveExecutableDirectory(argc > 0 ? argv[0] : nullptr);
     CLI::App app{"SLAMForge — Industrial-Grade Monocular Visual SLAM"};
+    app.set_version_flag("--version", slamforge::kVersionString);
     app.require_subcommand(1);
 
     // ── Set up subcommands ──────────────────────────────────────────────────
@@ -1002,7 +1020,8 @@ int main(int argc, char* argv[]) {
                        run->get_option("--verbose")->as<bool>(),
                        run->get_option("--fps")->as<double>(),
                        run->get_option("--output-format")->as<std::string>(),
-                       run->get_option("--timestamps")->as<std::string>());
+                       run->get_option("--timestamps")->as<std::string>(),
+                       run->get_option("--map-output")->as<std::string>());
     }
 
     // ── Dispatch: eval ──────────────────────────────────────────────────────
@@ -1165,8 +1184,8 @@ int main(int argc, char* argv[]) {
             int run_kfs = 0, run_mps = 0;
             int ret =
                 RunSlam(config_path, image_path.string(), out_traj.string(), /*verbose=*/false,
-                        /*fps=*/30.0, /*output_format_override=*/"", /*timestamp_path=*/"", gt_path,
-                        gt_format, &run_kfs, &run_mps);
+                        /*fps=*/30.0, /*output_format_override=*/"", /*timestamp_path=*/"",
+                        /*map_output_path=*/"", gt_path, gt_format, &run_kfs, &run_mps);
 
             r.success = (ret == EXIT_SUCCESS);
             r.keyframes = run_kfs;

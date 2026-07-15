@@ -7,7 +7,7 @@
 #define SLAMFORGE_VERSION_MAJOR @SLAMForge_VERSION_MAJOR@
 #define SLAMFORGE_VERSION_MINOR @SLAMForge_VERSION_MINOR@
 #define SLAMFORGE_VERSION_PATCH @SLAMForge_VERSION_PATCH@
-#define SLAMFORGE_VERSION_STRING "@SLAMForge_VERSION@"
+#define SLAMFORGE_VERSION_STRING "@SLAMFORGE_VERSION_STRING@"
 
 namespace slamforge {
 
@@ -20,7 +20,7 @@ constexpr int kVersionMinor = @SLAMForge_VERSION_MINOR@;
 /// Patch version number.
 constexpr int kVersionPatch = @SLAMForge_VERSION_PATCH@;
 
-/// Full version string (e.g., "3.0.0").
-constexpr const char* kVersionString = "@SLAMForge_VERSION@";
+/// Full version string (e.g., "3.1.0-beta.1").
+constexpr const char* kVersionString = "@SLAMFORGE_VERSION_STRING@";
 
 }  // namespace slamforge

@@ -88,7 +88,7 @@ PYBIND11_MODULE(_slamforge, m) {
     m.doc() = "SLAMForge — Industrial-Grade Monocular Visual SLAM";
 
     // ── Version ────────────────────────────────────────────────────────────
-    m.attr("__version__") = "3.0.0";
+    m.attr("__version__") = slamforge::kVersionString;
 
     // =========================================================================
     // TrackingState enum
