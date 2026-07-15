@@ -1,0 +1,48 @@
+.clang-tidy
+  s_b39884776f0393::t_eaa6f60f4575b3 24
+tests/unit/test_loop_closing.cpp
+  s_b39884776f0393::t_555ca64deb3d9c 7-8,26,30,62-64,204-205
+tests/unit/test_tracking_initialization.cpp
+  s_b39884776f0393::t_555ca64deb3d9c 36,44
+CMakeLists.txt
+  s_b39884776f0393::t_a7e157e8b22902 78-81,83-85,97,99-101
+  s_b39884776f0393::t_80e2eae553addc 82,86,98,266
+apps/litevo_cli.cpp
+  s_b39884776f0393::t_a7e157e8b22902 220-224
+  s_b39884776f0393::t_555ca64deb3d9c 20,101-102,110-111,119-120,126-127,139-140,281-282,532,566-567,598-599,650-651,892-894,896-898,900-903,906,933-934,937-939,941-943,1025-1029,1038-1042,1155-1156,1168-1169
+src/tracking/initializer.cpp
+  s_b39884776f0393::t_555ca64deb3d9c 105-106,114-115,138-139
+src/tracking/matcher.cpp
+  s_b39884776f0393::t_555ca64deb3d9c 33-34
+include/litevo/tracking/tracker.h
+  s_b39884776f0393::t_555ca64deb3d9c 100
+tests/unit/test_matcher.cpp
+  s_b39884776f0393::t_555ca64deb3d9c 28
+include/litevo/tracking/initializer.h
+  s_b39884776f0393::t_555ca64deb3d9c 41
+src/CMakeLists.txt
+  s_b39884776f0393::t_80e2eae553addc 151-165
+  s_b39884776f0393::t_a7e157e8b22902 106-110
+src/loop_closing/loop_closing.cpp
+  s_b39884776f0393::t_555ca64deb3d9c 160-161
+apps/litevo_ros_node.cpp
+  s_b39884776f0393::t_555ca64deb3d9c 99
+src/loop_closing/corrector.cpp
+  s_b39884776f0393::t_555ca64deb3d9c 54,68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "ad2c6c48a9f7927155669e8cbecf4217687b017d",
+  "prompts": {},
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-terra"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
