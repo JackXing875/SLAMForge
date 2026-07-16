@@ -44,9 +44,9 @@ jobs:
 
       - name: Use Canonical package mirrors
         run: |
-          printf '%s\n' \
-            'https://archive.ubuntu.com/ubuntu/ priority:1' \
-            'https://security.ubuntu.com/ubuntu/ priority:2' \
+          printf '%s\t%s\n' \
+            'https://archive.ubuntu.com/ubuntu/' 'priority:1' \
+            'https://security.ubuntu.com/ubuntu/' 'priority:2' \
             | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
 
       - name: Install dependencies
