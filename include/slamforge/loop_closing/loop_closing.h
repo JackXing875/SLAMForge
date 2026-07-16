@@ -20,8 +20,10 @@
 #include <condition_variable>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <queue>
 #include <thread>
+#include <vector>
 
 #include "slamforge/core/config.h"
 #include "slamforge/loop_closing/corrector.h"
@@ -109,10 +111,30 @@ public:
     /// @brief Number of loops closed since start.
     int NumLoopsClosed() const { return num_loops_closed_; }
 
+    /// @brief Best verified correction, available after the worker drains.
+    std::optional<LoopCorrection> BestCorrection() const;
+
+    /// @brief All corrections actually applied, in temporal order.
+    std::vector<LoopCorrection> Corrections() const;
+
+    /// @brief Apply all independent corrections once. Stop() calls this automatically.
+    bool ApplyCorrections();
+
+    /// @brief Backward-compatible alias for ApplyCorrections().
+    bool ApplyBestCorrection();
+
 private:
+    struct PendingLoop {
+        std::shared_ptr<KeyFrame> current;
+        std::shared_ptr<KeyFrame> candidate;
+        VerificationResult verification;
+    };
+
     // ── Main loop ───────────────────────────────────────────────────────────
 
     void Run();
+    void SearchBestGlobalLoop();
+    void AddPendingLoop(PendingLoop pending);
 
     // ── Components ──────────────────────────────────────────────────────────
 
@@ -125,6 +147,11 @@ private:
     LoopCorrector corrector_;
     PoseGraphOptimizer pose_graph_;
     GlobalBundleAdjuster global_ba_;
+
+    mutable std::mutex correction_mutex_;
+    std::vector<PendingLoop> pending_loops_;
+    std::vector<LoopCorrection> applied_corrections_;
+    bool final_search_done_ = false;
 
     // ── Threading ───────────────────────────────────────────────────────────
 

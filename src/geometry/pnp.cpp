@@ -13,7 +13,7 @@ namespace slamforge::geometry {
 
 PnPResult SolvePnPRansac(const std::vector<cv::Point3f>& points_3d,
                          const std::vector<cv::Point2f>& points_2d, const cv::Mat& K,
-                         const PnPOptions& options) {
+                         const PnPOptions& options, const SE3* initial_pose) {
     PnPResult result;
 
     if (points_3d.size() < 4 || points_2d.size() < 4 || points_3d.size() != points_2d.size()) {
@@ -23,9 +23,9 @@ PnPResult SolvePnPRansac(const std::vector<cv::Point3f>& points_3d,
     cv::Mat rvec, tvec, inliers;
     cv::Mat dist_coeffs = cv::Mat::zeros(4, 1, CV_64F);
 
-    bool use_guess = options.use_extrinsic_guess;
+    const bool use_guess = options.use_extrinsic_guess && initial_pose != nullptr;
     if (use_guess) {
-        ToOpenCVRt(result.T_cw, rvec, tvec);
+        ToOpenCVRt(*initial_pose, rvec, tvec);
     }
 
     const bool ok =

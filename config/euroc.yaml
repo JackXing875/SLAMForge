@@ -42,5 +42,7 @@ mapping:
 
 loop_closing:
   enabled: false  # EuRoC rooms are small; loops are common in full sequences
+  fallback_min_match_ratio: 0.03
+  min_frame_separation: 500
 
 output_format: "euroc"

@@ -85,6 +85,10 @@ public:
     int NumTrackedPoints() const { return num_tracked_points_; }
     int NumKeyFrames() const { return static_cast<int>(map_.KeyFrameCount()); }
 
+    /// @brief Publish the optimized current-keyframe pose back into tracking
+    /// after deterministic local-mapping synchronization.
+    std::optional<SE3> SynchronizeCurrentPoseFromMap();
+
     /// @brief Reset tracker to initial state.
     void Reset();
 
@@ -130,6 +134,7 @@ private:
     int num_tracked_points_ = 0;
     int frames_since_last_kf_ = 0;
     bool is_new_keyframe_ = false;
+    bool used_relative_motion_ = false;
 
     mapping::LocalMapper* local_mapper_ = nullptr;
     loop_closing::LoopClosing* loop_closing_ = nullptr;
@@ -140,17 +145,26 @@ private:
     ///        map points into current frame, and optimize via PnP.
     bool TrackWithMotionModel();
 
+    /// @brief Track last-frame landmarks with forward/backward KLT flow and PnP.
+    bool TrackWithOpticalFlow();
+
     /// @brief Match descriptors against reference keyframe, then PnP.
     bool TrackReferenceKeyFrame();
 
     /// @brief Project local map points and refine pose.
     bool TrackLocalMap();
 
+    /// @brief Estimate frame-to-frame motion when map-based tracking fails.
+    bool TrackRelativeMotion();
+
     /// @brief Decide whether the current frame should become a keyframe.
     bool NeedNewKeyFrame();
 
     /// @brief Brute-force descriptor matching against recent keyframes.
     bool Relocalization();
+
+    /// @brief Promote and dispatch the current frame as a keyframe.
+    void InsertCurrentKeyFrame();
 
     /// @brief Create the initial map from a successful initialization.
     void CreateInitialMap(const InitializationResult& result);
@@ -166,7 +180,8 @@ private:
 
     /// @brief Run PnP with RANSAC + refinement on 3D-2D correspondences.
     bool EstimatePose(const std::vector<cv::Point3f>& pts_3d,
-                      const std::vector<cv::Point2f>& pts_2d, SE3& Tcw, int min_inliers = 10);
+                      const std::vector<cv::Point2f>& pts_2d, SE3& Tcw, int min_inliers = 10,
+                      std::vector<int>* inlier_indices = nullptr, bool use_pose_guess = true);
 
     /// @brief Build OpenCV intrinsic matrix.
     cv::Mat BuildK() const;

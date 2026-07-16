@@ -9,6 +9,10 @@
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+#include <limits>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
@@ -36,7 +40,11 @@ struct ProjectionFunctor {
         // Translate
         T pc[3] = {rotated[0] + t[0], rotated[1] + t[1], rotated[2] + t[2]};
         // Project
-        T inv_z = T(1.0) / pc[2];
+        // A raw 1/z becomes non-finite when an LM trial step crosses the
+        // camera plane, poisoning the complete Schur system. This smooth
+        // reciprocal is indistinguishable from 1/z at ordinary scene depth
+        // while keeping rejected trial steps finite near z=0.
+        T inv_z = pc[2] / (pc[2] * pc[2] + T(1e-8));
         T proj_x = T(fx_) * pc[0] * inv_z + T(cx_);
         T proj_y = T(fy_) * pc[1] * inv_z + T(cy_);
         // Residual
@@ -46,6 +54,50 @@ struct ProjectionFunctor {
     }
 
     double ox_, oy_, fx_, fy_, cx_, cy_;
+};
+
+/// Numerically negligible Tikhonov priors keep locally disconnected or
+/// near-zero-parallax blocks positive definite. Reprojection terms still
+/// dominate by many orders of magnitude, so these are not motion priors.
+struct PointPriorFunctor {
+    explicit PointPriorFunctor(const Vec3& point, double weight = 1e-4)
+        : point_(point), weight_(weight) {}
+
+    template <typename T>
+    bool operator()(const T* const point, T* residuals) const {
+        residuals[0] = T(weight_) * (point[0] - T(point_.x()));
+        residuals[1] = T(weight_) * (point[1] - T(point_.y()));
+        residuals[2] = T(weight_) * (point[2] - T(point_.z()));
+        return true;
+    }
+
+    Vec3 point_;
+    double weight_;
+};
+
+struct PosePriorFunctor {
+    PosePriorFunctor(const Eigen::Quaterniond& rotation, const Vec3& translation,
+                     double weight = 1e-4)
+        : rotation_(rotation), translation_(translation), weight_(weight) {}
+
+    template <typename T>
+    bool operator()(const T* const q, const T* const t, T* residuals) const {
+        const T reference_inverse[4] = {T(rotation_.w()), T(-rotation_.x()),
+                                        T(-rotation_.y()), T(-rotation_.z())};
+        T delta[4];
+        ceres::QuaternionProduct(q, reference_inverse, delta);
+        residuals[0] = T(2.0 * weight_) * delta[1];
+        residuals[1] = T(2.0 * weight_) * delta[2];
+        residuals[2] = T(2.0 * weight_) * delta[3];
+        residuals[3] = T(weight_) * (t[0] - T(translation_.x()));
+        residuals[4] = T(weight_) * (t[1] - T(translation_.y()));
+        residuals[5] = T(weight_) * (t[2] - T(translation_.z()));
+        return true;
+    }
+
+    Eigen::Quaterniond rotation_;
+    Vec3 translation_;
+    double weight_;
 };
 
 // ── LocalBundleAdjuster ─────────────────────────────────────────────────────
@@ -80,6 +132,21 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
 
     std::unordered_map<KeyFrame*, std::unique_ptr<KfData>> kf_data_map;
 
+    // Anchor the oldest local keyframe, never the newest one.  Fixing the
+    // current keyframe made every local BA bend the existing map around the
+    // noisiest pose estimate.  If no external fixed keyframe exists, anchor a
+    // second old pose as well to remove monocular scale gauge freedom.
+    std::vector<KeyFrame*> anchor_candidates = local_kfs;
+    std::sort(anchor_candidates.begin(), anchor_candidates.end(), [](const KeyFrame* lhs,
+                                                                     const KeyFrame* rhs) {
+        return lhs->Id().id < rhs->Id().id;
+    });
+    std::unordered_set<KeyFrame*> anchored_local_kfs;
+    anchored_local_kfs.insert(anchor_candidates.front());
+    if (fixed_kfs.empty() && anchor_candidates.size() > 1) {
+        anchored_local_kfs.insert(anchor_candidates[1]);
+    }
+
     auto add_kf_pose = [&](KeyFrame* kf, bool is_fixed) {
         auto data = std::make_unique<KfData>();
         data->kf = kf;
@@ -105,10 +172,9 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
         kf_data_map[kf] = std::move(data);
     };
 
-    // Add local KFs (fix first for gauge freedom)
+    // Add local KFs with stable gauge anchors.
     for (auto* kf : local_kfs) {
-        bool fix_first = (kf == local_kfs[0]);
-        add_kf_pose(kf, fix_first);
+        add_kf_pose(kf, anchored_local_kfs.contains(kf));
     }
 
     // Add fixed KFs
@@ -120,31 +186,60 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
 
     // ── MP blocks: point[3] ─────────────────────────────────────────────
 
+    std::vector<KeyFrame*> all_kfs = local_kfs;
+    all_kfs.insert(all_kfs.end(), fixed_kfs.begin(), fixed_kfs.end());
+
+    // Count observations inside this BA window before adding point blocks.
+    // A point seen by fewer than two participating keyframes provides no
+    // triangulation constraint and creates a free 3-D block in the Schur
+    // system. Those blocks caused the dense Cholesky failures on long runs.
+    std::unordered_map<uint64_t, int> observation_counts;
+    for (const auto* kf : all_kfs) {
+        if (!kf) {
+            continue;
+        }
+        std::unordered_set<uint64_t> observed_in_keyframe;
+        for (int index = 0; index < kf->NumKeyPoints(); ++index) {
+            const MapPointId id = kf->MapPointIdAt(index);
+            if (id.id != 0 && observed_in_keyframe.insert(id.id).second) {
+                ++observation_counts[id.id];
+            }
+        }
+    }
+
     struct MpData {
         double point[3] = {0, 0, 0};
+        Vec3 original = Vec3::Zero();
         MapPoint* mp;
     };
     std::unordered_map<MapPoint*, std::unique_ptr<MpData>> mp_data_map;
+    std::unordered_map<uint64_t, MapPoint*> map_point_by_id;
 
     for (auto* mp : map_points) {
+        if (!mp || mp->IsBad() || observation_counts[mp->Id().id] < 2) {
+            continue;
+        }
         auto data = std::make_unique<MpData>();
         Vec3 pos = mp->Position();
+        if (!pos.allFinite()) {
+            continue;
+        }
         data->point[0] = pos.x();
         data->point[1] = pos.y();
         data->point[2] = pos.z();
+        data->original = pos;
         data->mp = mp;
         problem.AddParameterBlock(data->point, 3);
+        map_point_by_id.emplace(mp->Id().id, mp);
         mp_data_map[mp] = std::move(data);
     }
 
     // ── Add residuals ────────────────────────────────────────────────────
 
-    std::vector<KeyFrame*> all_kfs = local_kfs;
-    all_kfs.insert(all_kfs.end(), fixed_kfs.begin(), fixed_kfs.end());
-
     ceres::LossFunction* loss = opts_.use_huber ? new ceres::HuberLoss(opts_.huber_delta) : nullptr;
 
     int total_residuals = 0;
+    std::unordered_map<KeyFrame*, int> residuals_per_keyframe;
 
     for (auto* kf : all_kfs) {
         auto kf_it = kf_data_map.find(kf);
@@ -156,22 +251,21 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
             if (mp_id.id == 0)
                 continue;
 
-            // Find the MapPoint in our optimization set
-            MapPoint* mp_raw = nullptr;
-            for (auto* mp : map_points) {
-                if (mp->Id() == mp_id) {
-                    mp_raw = mp;
-                    break;
-                }
-            }
-            if (!mp_raw)
+            const auto raw_it = map_point_by_id.find(mp_id.id);
+            if (raw_it == map_point_by_id.end())
                 continue;
+            MapPoint* mp_raw = raw_it->second;
 
             auto mp_it = mp_data_map.find(mp_raw);
             if (mp_it == mp_data_map.end())
                 continue;
 
-            const auto& kps = kf->KeyPoints();
+            const Vec3 point_camera = kf->Pose() * mp_raw->Position();
+            if (!point_camera.allFinite() || point_camera.z() <= 1e-6) {
+                continue;
+            }
+
+            const auto& kps = kf->KeyPointsUndistorted();
             if (idx >= static_cast<int>(kps.size()))
                 continue;
 
@@ -187,11 +281,42 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
                                      mp_it->second->point);  // 3D point
 
             total_residuals++;
+            ++residuals_per_keyframe[kf];
         }
     }
 
     if (total_residuals == 0) {
         return 0;
+    }
+
+    // Keep any camera with no surviving residuals constant so it cannot make
+    // the normal equations rank deficient.
+    for (auto* kf : local_kfs) {
+        if (residuals_per_keyframe[kf] != 0) {
+            const auto data = kf_data_map.find(kf);
+            if (data != kf_data_map.end()) {
+                const Eigen::Quaterniond original_rotation(data->second->q[0], data->second->q[1],
+                                                           data->second->q[2], data->second->q[3]);
+                const Vec3 original_translation(data->second->t[0], data->second->t[1],
+                                                data->second->t[2]);
+                auto* prior =
+                    new ceres::AutoDiffCostFunction<PosePriorFunctor, 6, 4, 3>(
+                        new PosePriorFunctor(original_rotation, original_translation));
+                problem.AddResidualBlock(prior, nullptr, data->second->q, data->second->t);
+            }
+            continue;
+        }
+        const auto data = kf_data_map.find(kf);
+        if (data != kf_data_map.end()) {
+            problem.SetParameterBlockConstant(data->second->q);
+            problem.SetParameterBlockConstant(data->second->t);
+        }
+    }
+
+    for (const auto& [_, data] : mp_data_map) {
+        auto* prior = new ceres::AutoDiffCostFunction<PointPriorFunctor, 3, 3>(
+            new PointPriorFunctor(data->original));
+        problem.AddResidualBlock(prior, nullptr, data->point);
     }
 
     // ── Solve ────────────────────────────────────────────────────────────
@@ -200,10 +325,38 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
     solver_opts.linear_solver_type = ceres::DENSE_SCHUR;
     solver_opts.max_num_iterations = opts_.max_iterations;
     solver_opts.minimizer_progress_to_stdout = false;
-    solver_opts.num_threads = 4;
+    // Reproducible batch/video output is more valuable than a small local-BA
+    // speedup. Multi-threaded floating-point reductions changed RANSAC inputs
+    // several frames later and produced run-to-run trajectory variation.
+    solver_opts.num_threads = 1;
 
     ceres::Solver::Summary summary;
     ceres::Solve(solver_opts, &problem, &summary);
+
+    // Never publish a failed or divergent solution into the live map.  Ceres
+    // can leave parameter blocks containing a partial unusable step after a
+    // factorization failure.
+    if (!summary.IsSolutionUsable() || !std::isfinite(summary.final_cost) ||
+        (std::isfinite(summary.initial_cost) && summary.final_cost > summary.initial_cost * 1.01)) {
+        return 0;
+    }
+
+    for (const auto& [_, data] : kf_data_map) {
+        const Eigen::Map<const Eigen::Vector4d> quaternion(data->q);
+        const Eigen::Map<const Vec3> translation(data->t);
+        if (!quaternion.allFinite() || !translation.allFinite() || quaternion.norm() < 1e-8) {
+            return 0;
+        }
+    }
+
+    for (const auto& [_, data] : mp_data_map) {
+        const Vec3 optimized(data->point[0], data->point[1], data->point[2]);
+        const double original_scale = std::max(1.0, data->original.norm());
+        if (!optimized.allFinite() || optimized.norm() > original_scale * 20.0 + 100.0 ||
+            (optimized - data->original).norm() > original_scale * 10.0 + 10.0) {
+            return 0;
+        }
+    }
 
     // ── Update poses ─────────────────────────────────────────────────────
 

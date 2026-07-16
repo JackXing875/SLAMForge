@@ -42,6 +42,8 @@ mapping:
 loop_closing:
   enabled: false
   min_similarity_score: 0.3
+  fallback_min_match_ratio: 0.03
+  min_frame_separation: 500
   min_consecutive_loops: 3
   vocab_path: ""
   pose_graph_iterations: 20

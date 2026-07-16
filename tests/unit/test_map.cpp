@@ -138,6 +138,18 @@ TEST_F(MapTest, GetAllMapPoints) {
     EXPECT_EQ(all.size(), 3);
 }
 
+TEST_F(MapTest, GetAllMapPointsUsesStableIdOrder) {
+    Map map;
+    map.AddMapPoint(Vec3(0, 0, 0), FrameId{0});
+    map.AddMapPoint(Vec3(1, 0, 0), FrameId{0});
+    map.AddMapPoint(Vec3(2, 0, 0), FrameId{0});
+
+    const auto all = map.GetAllMapPoints();
+    ASSERT_EQ(all.size(), 3);
+    EXPECT_LT(all[0]->Id().id, all[1]->Id().id);
+    EXPECT_LT(all[1]->Id().id, all[2]->Id().id);
+}
+
 TEST_F(MapTest, AddKeyFrame) {
     Map map;
     // Creating a real Frame requires an image + ORB extractor, so we test

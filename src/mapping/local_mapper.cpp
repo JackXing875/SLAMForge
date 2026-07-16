@@ -76,6 +76,7 @@ void LocalMapper::InsertKeyFrame(std::shared_ptr<KeyFrame> kf) {
     {
         std::lock_guard<std::mutex> lock(mutex_);
         new_keyframes_.push(std::move(kf));
+        ++pending_work_;
     }
     cv_.notify_one();
 }
@@ -83,6 +84,11 @@ void LocalMapper::InsertKeyFrame(std::shared_ptr<KeyFrame> kf) {
 int LocalMapper::QueueSize() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return static_cast<int>(new_keyframes_.size());
+}
+
+void LocalMapper::WaitUntilIdle() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    idle_cv_.wait(lock, [this] { return pending_work_ == 0; });
 }
 
 // ── Main loop ───────────────────────────────────────────────────────────────
@@ -109,7 +115,10 @@ void LocalMapper::Run() {
             CreateNewMapPoints();
             CullMapPoints();
             LocalBundleAdjustment();
-            CullKeyFrames();
+            // Keyframe culling remains disabled until it can atomically erase
+            // landmark observations and graph edges.  Merely setting IsBad,
+            // as the old implementation did, left stale observations behind
+            // and destroyed the temporal chain needed for recovery.
 
             // Periodically clean up bad map points from the map
             {
@@ -125,6 +134,15 @@ void LocalMapper::Run() {
         }
 
         current_kf_.reset();
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (pending_work_ > 0) {
+                --pending_work_;
+            }
+            if (pending_work_ == 0) {
+                idle_cv_.notify_all();
+            }
+        }
     }
 
     is_finished_ = true;
@@ -156,8 +174,26 @@ void LocalMapper::CreateNewMapPoints() {
         return;
 
     // Get covisible keyframes
-    auto covisibles =
-        current_kf_->GetBestCovisibilityKeyFrames(static_cast<int>(config_.sliding_window_size));
+    // Triangulating against every BA-window keyframe repeats expensive full
+    // descriptor matching while adding little baseline diversity.  The five
+    // strongest covisible neighbours are sufficient and match ORB-SLAM's
+    // local-neighbour strategy for monocular mapping.
+    auto covisibles = current_kf_->GetBestCovisibilityKeyFrames(
+        std::min(5, static_cast<int>(config_.sliding_window_size)));
+
+    // Always include a few temporal neighbours.  A frame tracked by the
+    // essential-matrix fallback may not share an existing landmark yet, so it
+    // has no covisibility edge until these pairs are triangulated.
+    std::unordered_set<KeyFrame*> selected(covisibles.begin(), covisibles.end());
+    auto recent = map_.GetRecentKeyFrames(8);
+    for (auto it = recent.rbegin(); it != recent.rend() && covisibles.size() < 8; ++it) {
+        KeyFrame* candidate = it->get();
+        if (!candidate || candidate == current_kf_.get() || candidate->IsBad() ||
+            !selected.insert(candidate).second) {
+            continue;
+        }
+        covisibles.push_back(candidate);
+    }
 
     for (auto* kf : covisibles) {
         if (kf->IsBad())
@@ -270,20 +306,19 @@ void LocalMapper::LocalBundleAdjustment() {
 void LocalMapper::CullKeyFrames() {
     // Cull redundant keyframes: >90% of map points are seen by at least
     // 3 other keyframes in the same or finer scale
-    auto all_kfs = map_.GetAllKeyFrames();
-    if (all_kfs.size() < 3)
+    if (!current_kf_)
         return;
 
-    for (auto& kf : all_kfs) {
+    // Redundancy is a local property.  Re-scanning every keyframe and every
+    // feature after each insertion was quadratic in map size.
+    auto local_candidates = current_kf_->GetBestCovisibilityKeyFrames(
+        static_cast<int>(config_.sliding_window_size));
+    for (auto* kf : local_candidates) {
         if (!kf || kf->IsBad())
             continue;
 
         // Don't cull the current or most recent KF
-        if (kf.get() == current_kf_.get())
-            continue;
-
-        auto covisibles = kf->GetCovisiblesByWeight(1);
-        if (covisibles.size() < 3)
+        if (kf == current_kf_.get())
             continue;
 
         int total_mps = 0;
@@ -295,19 +330,8 @@ void LocalMapper::CullKeyFrames() {
                 continue;
 
             total_mps++;
-            int kf_count = 0;
-            for (auto* cov_kf : covisibles) {
-                for (int j = 0; j < cov_kf->NumKeyPoints(); ++j) {
-                    if (cov_kf->MapPointIdAt(j) == mp_id) {
-                        kf_count++;
-                        break;
-                    }
-                }
-                if (kf_count >= 3)
-                    break;
-            }
-
-            if (kf_count >= 3) {
+            const auto mp = map_.GetMapPoint(mp_id);
+            if (mp && !mp->IsBad() && mp->Observations() >= 4) {
                 redundant_mps++;
             }
         }
@@ -327,27 +351,11 @@ void LocalMapper::UpdateCovisibilityGraph(std::shared_ptr<KeyFrame> kf) {
     auto all_kfs = map_.GetAllKeyFrames();
     kf->UpdateConnections(all_kfs);
 
-    // Update connections for KFs that share points with this one
-    for (auto& other : all_kfs) {
-        if (!other || other.get() == kf.get() || other->IsBad())
-            continue;
-
-        int shared = 0;
-        for (int i = 0; i < kf->NumKeyPoints(); ++i) {
-            MapPointId mp_id = kf->MapPointIdAt(i);
-            if (mp_id.id == 0)
-                continue;
-            for (int j = 0; j < other->NumKeyPoints(); ++j) {
-                if (other->MapPointIdAt(j) == mp_id) {
-                    shared++;
-                    break;
-                }
-            }
-        }
-
-        if (shared > 0) {
-            kf->AddConnection(other.get(), shared);
-            other->AddConnection(kf.get(), shared);
+    // Mirror the already-computed weights.  The old implementation repeated
+    // the complete quadratic feature comparison a second time.
+    for (auto* other : kf->GetCovisiblesByWeight(1)) {
+        if (other && !other->IsBad()) {
+            other->AddConnection(kf.get(), kf->GetWeight(other));
         }
     }
 }

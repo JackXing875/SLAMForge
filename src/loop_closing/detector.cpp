@@ -14,23 +14,48 @@
 
 namespace slamforge::loop_closing {
 
+namespace {
+
+cv::Mat SubsampleDescriptors(const cv::Mat& descriptors) {
+    if (descriptors.empty() || descriptors.rows <= 600) {
+        return descriptors.clone();
+    }
+
+    const int stride = std::max(1, descriptors.rows / 600);
+    cv::Mat sampled;
+    for (int row = 0; row < descriptors.rows; row += stride) {
+        sampled.push_back(descriptors.row(row));
+    }
+    return sampled;
+}
+
+bool SameCandidateRegion(FrameId lhs, FrameId rhs) {
+    const uint64_t delta = lhs.id > rhs.id ? lhs.id - rhs.id : rhs.id - lhs.id;
+    return delta <= 300;
+}
+
+}  // namespace
+
 LoopDetector::LoopDetector(const LoopDetectorConfig& config) : config_(config) {}
 
 void LoopDetector::Insert(std::shared_ptr<KeyFrame> kf) {
-    if (!kf || !vocabulary_.IsLoaded())
+    if (!kf)
         return;
 
     const auto& descriptors = kf->Descriptors();
     if (descriptors.empty())
         return;
 
-    std::vector<float> bow;
-    std::vector<std::pair<int, float>> weights;
-    vocabulary_.Transform(descriptors, bow, weights);
+    fallback_descriptors_[kf->Id()] = SubsampleDescriptors(descriptors);
+    ++database_size_;
 
-    bow_vectors_[kf->Id()] = std::move(bow);
-    word_weights_[kf->Id()] = std::move(weights);
-    database_size_++;
+    if (vocabulary_.IsLoaded()) {
+        std::vector<float> bow;
+        std::vector<std::pair<int, float>> weights;
+        vocabulary_.Transform(descriptors, bow, weights);
+        bow_vectors_[kf->Id()] = std::move(bow);
+        word_weights_[kf->Id()] = std::move(weights);
+    }
 }
 
 bool LoopDetector::LoadVocabulary(const std::string& path) {
@@ -77,6 +102,10 @@ std::shared_ptr<KeyFrame> LoopDetector::Detect(std::shared_ptr<KeyFrame> current
             continue;
         if (kf->Id() == current_kf->Id())
             continue;
+        if (current_kf->Id().id <= kf->Id().id ||
+            current_kf->Id().id - kf->Id().id <
+                static_cast<uint64_t>(config_.min_frame_separation))
+            continue;
         if (recent_ids.contains(kf->Id()))
             continue;
 
@@ -112,6 +141,13 @@ std::shared_ptr<KeyFrame> LoopDetector::Detect(std::shared_ptr<KeyFrame> current
 
 std::shared_ptr<KeyFrame> LoopDetector::DetectWithFallback(std::shared_ptr<KeyFrame> current_kf,
                                                            const Map& map) {
+    // Full descriptor fallback is intentionally evaluated every other
+    // keyframe.  It remains independent of an external vocabulary without
+    // monopolizing the loop-closing worker on long videos.
+    if (database_size_ < config_.max_recent_kfs + 2 || database_size_ % 2 != 0) {
+        return nullptr;
+    }
+
     auto all_kfs = map.GetAllKeyFrames();
     double best_score = config_.min_inlier_ratio;
     std::shared_ptr<KeyFrame> best_kf = nullptr;
@@ -134,11 +170,22 @@ std::shared_ptr<KeyFrame> LoopDetector::DetectWithFallback(std::shared_ptr<KeyFr
             continue;
         if (kf->Id() == current_kf->Id())
             continue;
+        if (current_kf->Id().id <= kf->Id().id ||
+            current_kf->Id().id - kf->Id().id <
+                static_cast<uint64_t>(config_.min_frame_separation))
+            continue;
         if (recent_ids.contains(kf->Id()))
             continue;
 
-        double score =
-            ComputeDescriptorSimilarity(current_kf->Descriptors(), kf->Descriptors(), 0.7f);
+        const auto cur_desc_it = fallback_descriptors_.find(current_kf->Id());
+        const auto candidate_desc_it = fallback_descriptors_.find(kf->Id());
+        if (cur_desc_it == fallback_descriptors_.end() ||
+            candidate_desc_it == fallback_descriptors_.end()) {
+            continue;
+        }
+
+        const double score =
+            ComputeDescriptorSimilarity(cur_desc_it->second, candidate_desc_it->second, 0.72f);
 
         if (score > best_score) {
             best_score = score;
@@ -147,7 +194,7 @@ std::shared_ptr<KeyFrame> LoopDetector::DetectWithFallback(std::shared_ptr<KeyFr
     }
 
     if (best_kf) {
-        if (best_kf->Id() == last_candidate_id_) {
+        if (consecutive_count_ > 0 && SameCandidateRegion(best_kf->Id(), last_candidate_id_)) {
             consecutive_count_++;
         } else {
             consecutive_count_ = 1;
@@ -173,7 +220,12 @@ double LoopDetector::ScoreBetween(std::shared_ptr<KeyFrame> kf1, std::shared_ptr
         return vocabulary_.Score(it1->second, it2->second);
     }
 
-    return ComputeDescriptorSimilarity(kf1->Descriptors(), kf2->Descriptors());
+    const auto fallback_1 = fallback_descriptors_.find(kf1->Id());
+    const auto fallback_2 = fallback_descriptors_.find(kf2->Id());
+    if (fallback_1 != fallback_descriptors_.end() && fallback_2 != fallback_descriptors_.end()) {
+        return ComputeDescriptorSimilarity(fallback_1->second, fallback_2->second, 0.72f);
+    }
+    return ComputeDescriptorSimilarity(kf1->Descriptors(), kf2->Descriptors(), 0.72f);
 }
 
 }  // namespace slamforge::loop_closing

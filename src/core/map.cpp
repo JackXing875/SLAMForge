@@ -57,6 +57,12 @@ std::vector<std::shared_ptr<MapPoint>> Map::GetAllMapPoints() const {
     for (const auto& [id, mp] : map_points_) {
         result.push_back(mp);
     }
+    std::sort(result.begin(), result.end(), [](const auto& lhs, const auto& rhs) {
+        if (!lhs || !rhs) {
+            return static_cast<bool>(lhs);
+        }
+        return lhs->Id().id < rhs->Id().id;
+    });
     return result;
 }
 

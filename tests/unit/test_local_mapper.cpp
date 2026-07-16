@@ -114,6 +114,19 @@ TEST_F(LocalMapperTest, SetAcceptKeyFrames) {
     EXPECT_TRUE(mapper_->IsAcceptingKeyFrames());
 }
 
+TEST_F(LocalMapperTest, WaitUntilIdleIncludesCurrentlyProcessingKeyFrame) {
+    auto kf = std::make_shared<KeyFrame>(image_, 0.0, *extractor_, camera_);
+    kf->SetPose(SE3::Identity());
+    map_.AddKeyFrame(kf);
+
+    mapper_->Start();
+    mapper_->InsertKeyFrame(kf);
+    mapper_->WaitUntilIdle();
+
+    EXPECT_EQ(mapper_->QueueSize(), 0);
+    EXPECT_TRUE(mapper_->IsRunning());
+}
+
 TEST_F(LocalMapperTest, DoubleStartNoCrash) {
     mapper_->Start();
     EXPECT_NO_THROW(mapper_->Start());  // Should be idempotent

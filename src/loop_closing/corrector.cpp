@@ -1,19 +1,81 @@
 // =============================================================================
-// LoopCorrector implementation — Sim(3) propagation and map point fusion
+// LoopCorrector implementation — temporally distributed Sim(3) correction
 // =============================================================================
 
 #include "slamforge/loop_closing/corrector.h"
 
 #include <algorithm>
-#include <unordered_set>
+#include <cmath>
+#include <unordered_map>
 
-#include "slamforge/core/camera.h"
+#include <Eigen/Geometry>
+
 #include "slamforge/core/keyframe.h"
 #include "slamforge/core/map.h"
 #include "slamforge/core/map_point.h"
-#include "slamforge/geometry/se3.h"
 
 namespace slamforge::loop_closing {
+
+namespace {
+
+double CorrectionAlpha(const LoopCorrection& correction, FrameId frame) {
+    if (correction.current_frame.id <= correction.matched_frame.id ||
+        frame.id <= correction.matched_frame.id) {
+        return 0.0;
+    }
+    if (frame.id >= correction.current_frame.id) {
+        return 1.0;
+    }
+    const uint64_t span = correction.current_frame.id - correction.matched_frame.id;
+    // Keep a real neighborhood around the matched keyframe fixed. Starting a
+    // large Sim(3) ramp at the exact matched frame deformed observations that
+    // were already locally consistent with the anchor map. The remaining
+    // loop path still has thousands of frames over which to absorb drift.
+    const uint64_t fixed_prefix = std::min<uint64_t>(500, span / 4);
+    const uint64_t correction_start = correction.matched_frame.id + fixed_prefix;
+    if (frame.id <= correction_start) {
+        return 0.0;
+    }
+    const double linear = static_cast<double>(frame.id - correction_start) /
+                          static_cast<double>(correction.current_frame.id - correction_start);
+    return linear * linear * (3.0 - 2.0 * linear);
+}
+
+}  // namespace
+
+geometry::Sim3 InterpolateLoopCorrection(const LoopCorrection& correction, FrameId frame) {
+    const double alpha = CorrectionAlpha(correction, frame);
+    if (alpha <= 0.0) {
+        return geometry::Sim3::Identity();
+    }
+    if (alpha >= 1.0) {
+        return correction.transform;
+    }
+
+    geometry::Sim3 interpolated;
+    const Eigen::Quaterniond identity = Eigen::Quaterniond::Identity();
+    const Eigen::Quaterniond target(correction.transform.R);
+    interpolated.R = identity.slerp(alpha, target).normalized().toRotationMatrix();
+    interpolated.t = alpha * correction.transform.t;
+    interpolated.s = std::pow(correction.transform.s, alpha);
+    return interpolated;
+}
+
+SE3 ApplyLoopCorrectionToPose(const SE3& Tcw, const geometry::Sim3& correction) {
+    if (!Tcw.matrix().allFinite() || !correction.R.allFinite() || !correction.t.allFinite() ||
+        !std::isfinite(correction.s) || correction.s <= 0.0) {
+        return Tcw;
+    }
+
+    const Vec3 old_center = -Tcw.rotation().transpose() * Tcw.translation();
+    const Vec3 corrected_center = correction.TransformPoint(old_center);
+    const Mat3 corrected_Rwc = correction.R * Tcw.rotation().transpose();
+
+    SE3 corrected = SE3::Identity();
+    corrected.linear() = corrected_Rwc.transpose();
+    corrected.translation() = -corrected.rotation() * corrected_center;
+    return corrected;
+}
 
 void LoopCorrector::CorrectLoop(std::shared_ptr<KeyFrame> current_kf,
                                 std::shared_ptr<KeyFrame> matched_kf,
@@ -21,189 +83,98 @@ void LoopCorrector::CorrectLoop(std::shared_ptr<KeyFrame> current_kf,
                                 const std::vector<std::pair<int, int>>& /*matches*/,
                                 const std::vector<MapPointId>& matched_mps_cur,
                                 const std::vector<MapPointId>& matched_mps_cand, Map& map) {
-    if (!current_kf || !matched_kf)
+    if (!current_kf || !matched_kf || current_kf->Id().id <= matched_kf->Id().id ||
+        !S_cw_correct.R.allFinite() || !S_cw_correct.t.allFinite() ||
+        !std::isfinite(S_cw_correct.s) || S_cw_correct.s <= 0.0) {
         return;
+    }
 
-    // CorrectLoop is also a public component API.  Take the graph guard here
-    // in addition to LoopClosing's outer transaction so direct callers cannot
-    // race the tracking/local-mapping workers either.
     auto graph_lock = map.AcquireGraphLock();
+    const LoopCorrection correction{matched_kf->Id(), current_kf->Id(), S_cw_correct,
+                                    static_cast<int>(matched_mps_cur.size())};
 
-    // Step 1: Update current KF pose with Sim(3) correction.
-    // Capture every relative transform from the uncorrected graph first.  If
-    // current_kf is overwritten before those transforms are computed, the
-    // correction is implicitly applied a second time while propagating it to
-    // its neighbours.
-    const SE3 Tcw_current_original = current_kf->Pose();
-    const SE3 Tcw_matched_original = matched_kf->Pose();
-    std::vector<std::pair<KeyFrame*, SE3>> covisible_original_poses;
-    const auto covisibles = current_kf->GetBestCovisibilityKeyFrames(20);
-    covisible_original_poses.reserve(covisibles.size());
-    for (auto* cov_kf : covisibles) {
-        if (!cov_kf || cov_kf->IsBad() || cov_kf == current_kf.get()) {
-            continue;
-        }
-        covisible_original_poses.emplace_back(cov_kf, cov_kf->Pose());
-    }
-
-    // The correction maps: current KF pose → corrected pose
-    // T_cw_corrected = S_cw_correct * T_cw_original
-    SE3 Tcw_corrected;
-    Tcw_corrected.linear() = S_cw_correct.R * Tcw_current_original.rotation();
-    Tcw_corrected.translation() =
-        S_cw_correct.s * (S_cw_correct.R * Tcw_current_original.translation()) + S_cw_correct.t;
-    current_kf->SetPose(Tcw_corrected);
-
-    // Step 2: Propagate correction through covisibility graph
-    std::set<KeyFrame*> corrected_kfs;
-    corrected_kfs.insert(current_kf.get());
-
-    // Propagate to covisible neighbors while preserving their original
-    // relative transform to the current keyframe.
-    for (const auto& [cov_kf, Tcw_cov_original] : covisible_original_poses) {
-        if (corrected_kfs.contains(cov_kf)) {
-            continue;
-        }
-
-        const SE3 T_rel = geometry::RelativePose(Tcw_current_original, Tcw_cov_original);
-
-        // Apply correction: T'cov = Tcw_corrected * T_rel
-        SE3 Tcov_new;
-        Tcov_new.linear() = Tcw_corrected.rotation() * T_rel.rotation();
-        Tcov_new.translation() =
-            Tcw_corrected.rotation() * T_rel.translation() + Tcw_corrected.translation();
-        cov_kf->SetPose(Tcov_new);
-        corrected_kfs.insert(cov_kf);
-    }
-
-    // Also apply to the matched-KF side using its original relative pose.
-    if (matched_kf.get() != current_kf.get()) {
-        matched_kf->SetPose(Tcw_corrected *
-                            geometry::RelativePose(Tcw_current_original, Tcw_matched_original));
-    }
-
-    // Step 3: Fuse duplicated map points
-    // Build list of keyframes involved in the loop
-    std::vector<std::shared_ptr<KeyFrame>> loop_kfs;
-    auto all_kfs = map.GetAllKeyFrames();
-    for (auto& kf : all_kfs) {
-        if (!kf || kf->IsBad())
-            continue;
-        if (corrected_kfs.contains(kf.get())) {
-            loop_kfs.push_back(kf);
-        }
-    }
-    // Add matched KF side covisibles
-    auto matched_covis = matched_kf->GetBestCovisibilityKeyFrames(20);
-    for (auto* cov_kf : matched_covis) {
-        if (!cov_kf || cov_kf->IsBad())
-            continue;
-        bool found = false;
-        for (const auto& kf : loop_kfs) {
-            if (kf.get() == cov_kf) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) {
-            // Find the shared_ptr
-            for (auto& akf : all_kfs) {
-                if (akf.get() == cov_kf) {
-                    loop_kfs.push_back(akf);
-                    break;
-                }
-            }
-        }
-    }
-
-    // Fuse on matched side
-    SearchAndFuse(loop_kfs, matched_mps_cand, 4.0, map);
-
-    // Fuse on current side
-    SearchAndFuse(loop_kfs, matched_mps_cur, 4.0, map);
-
-    // Step 4: Update covisibility connections
-    UpdateConnections(map);
-}
-
-void LoopCorrector::SearchAndFuse(const std::vector<std::shared_ptr<KeyFrame>>& /*loop_kfs*/,
-                                  const std::vector<MapPointId>& matched_mps,
-                                  double /*max_reproj_error*/, Map& map) {
-    // For each matched map point, search for nearby map points in loop KFs
-    // that might represent the same 3D point and fuse them.
-
+    // Distribute the closure over the complete temporal path.  This is the
+    // built-in fallback for releases that do not ship g2o: the old region is
+    // fixed, the current region receives the full Sim(3), and intermediate
+    // keyframes receive a smooth fraction of the correction.
     const auto all_kfs = map.GetAllKeyFrames();
-    const auto all_mps = map.GetAllMapPoints();
-    for (const MapPointId& mp_id : matched_mps) {
-        auto mp = map.GetMapPoint(mp_id);
-        if (!mp || mp->IsBad())
+    for (const auto& kf : all_kfs) {
+        if (!kf || kf->IsBad()) {
             continue;
+        }
+        const geometry::Sim3 local_correction = InterpolateLoopCorrection(correction, kf->Id());
+        kf->SetPose(ApplyLoopCorrectionToPose(kf->Pose(), local_correction));
+    }
 
-        Vec3 pos = mp->Position();
-
-        for (auto& other_mp : all_mps) {
-            if (!other_mp || other_mp->IsBad())
-                continue;
-            if (other_mp->Id() == mp->Id())
-                continue;
-
-            // Check 3D distance
-            double dist = (other_mp->Position() - pos).norm();
-            if (dist > 0.1)
-                continue;  // 10cm threshold for fusion
-
-            // Check descriptor similarity
-            if (mp->Descriptor().rows > 0 && other_mp->Descriptor().rows > 0) {
-                auto dist_hamming =
-                    cv::norm(mp->Descriptor(), other_mp->Descriptor(), cv::NORM_HAMMING);
-                if (dist_hamming > 100)
-                    continue;  // Hamming distance too high
-            }
-
-            // Fuse: keep the one with more observations.  Replace() marks
-            // its argument bad, so associations must always be redirected
-            // from the absorbed landmark to the surviving one.
-            std::shared_ptr<MapPoint> survivor;
-            std::shared_ptr<MapPoint> absorbed;
-            if (mp->Observations() >= other_mp->Observations()) {
-                survivor = mp;
-                absorbed = other_mp;
-            } else {
-                survivor = other_mp;
-                absorbed = mp;
-            }
-            survivor->Replace(absorbed.get());
-
-            // Associations outside the immediate loop neighbourhood can also
-            // reference the absorbed point.  Rewrite the entire map so later
-            // tracking never follows a MapPoint that has just been marked bad.
-            for (const auto& kf : all_kfs) {
-                if (!kf)
-                    continue;
-                for (int i = 0; i < kf->NumKeyPoints(); ++i) {
-                    MapPointId kf_mp_id = kf->MapPointIdAt(i);
-                    if (kf_mp_id == absorbed->Id()) {
-                        kf->SetMapPointId(i, survivor->Id());
-                    }
-                }
-            }
-
-            // Continue fusing around the surviving landmark if the original
-            // query point was absorbed by a better-observed candidate.
-            mp = survivor;
-            pos = mp->Position();
+    for (const auto& map_point : map.GetAllMapPoints()) {
+        if (!map_point || map_point->IsBad()) {
+            continue;
+        }
+        const geometry::Sim3 local_correction =
+            InterpolateLoopCorrection(correction, map_point->ReferenceFrame());
+        const Vec3 corrected_position = local_correction.TransformPoint(map_point->Position());
+        if (corrected_position.allFinite()) {
+            map_point->SetPosition(corrected_position);
         }
     }
+
+    FuseMatchedMapPoints(matched_mps_cur, matched_mps_cand, map);
+
+    // Only the two loop neighborhoods changed topology through fusion.  A
+    // full O(K^2 * features) graph rebuild made long-video finalization
+    // needlessly expensive.
+    const auto updated_kfs = map.GetAllKeyFrames();
+    current_kf->UpdateConnections(updated_kfs);
+    matched_kf->UpdateConnections(updated_kfs);
 }
 
-void LoopCorrector::UpdateConnections(Map& map) {
-    auto all_kfs = map.GetAllKeyFrames();
+void LoopCorrector::FuseMatchedMapPoints(const std::vector<MapPointId>& matched_mps_cur,
+                                         const std::vector<MapPointId>& matched_mps_cand,
+                                         Map& map) {
+    const size_t count = std::min(matched_mps_cur.size(), matched_mps_cand.size());
+    std::unordered_map<uint64_t, MapPointId> redirects;
 
-    // Update covisibility for all keyframes
-    for (auto& kf : all_kfs) {
-        if (!kf || kf->IsBad())
+    for (size_t index = 0; index < count; ++index) {
+        const MapPointId current_id = matched_mps_cur[index];
+        const MapPointId candidate_id = matched_mps_cand[index];
+        if (current_id.id == 0 || candidate_id.id == 0 || current_id == candidate_id) {
             continue;
-        kf->UpdateConnections(all_kfs);
+        }
+
+        auto current = map.GetMapPoint(current_id);
+        auto candidate = map.GetMapPoint(candidate_id);
+        if (!current || !candidate || current->IsBad() || candidate->IsBad()) {
+            continue;
+        }
+
+        std::shared_ptr<MapPoint> survivor;
+        std::shared_ptr<MapPoint> absorbed;
+        if (candidate->Observations() >= current->Observations()) {
+            survivor = candidate;
+            absorbed = current;
+        } else {
+            survivor = current;
+            absorbed = candidate;
+        }
+        survivor->Replace(absorbed.get());
+        redirects[absorbed->Id().id] = survivor->Id();
+    }
+
+    if (redirects.empty()) {
+        return;
+    }
+
+    for (const auto& kf : map.GetAllKeyFrames()) {
+        if (!kf) {
+            continue;
+        }
+        for (int feature = 0; feature < kf->NumKeyPoints(); ++feature) {
+            const MapPointId old_id = kf->MapPointIdAt(feature);
+            const auto redirect = redirects.find(old_id.id);
+            if (redirect != redirects.end()) {
+                kf->SetMapPointId(feature, redirect->second);
+            }
+        }
     }
 }
 

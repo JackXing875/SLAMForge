@@ -5,6 +5,7 @@
 #include "slamforge/core/keyframe.h"
 
 #include <algorithm>
+#include <unordered_set>
 
 #include "slamforge/core/map.h"
 #include "slamforge/core/map_point.h"
@@ -41,23 +42,26 @@ void KeyFrame::UpdateConnections(const std::vector<std::shared_ptr<KeyFrame>>& a
     // For each map point this KF observes, find other KFs that also observe it
     std::map<KeyFrame*, int> weight_map;
 
+    std::unordered_set<uint64_t> own_map_points;
+    own_map_points.reserve(static_cast<size_t>(NumMapPoints()));
+    for (int i = 0; i < NumKeyPoints(); ++i) {
+        const MapPointId mp_id = MapPointIdAt(i);
+        if (mp_id.id != 0) {
+            own_map_points.insert(mp_id.id);
+        }
+    }
+
     for (const auto& other_kf : all_kfs) {
         if (other_kf.get() == this || other_kf->IsBad())
             continue;
 
         int shared_count = 0;
-        // Count shared map points
-        for (int i = 0; i < NumKeyPoints(); ++i) {
-            MapPointId mp_id = MapPointIdAt(i);
-            if (mp_id.id == 0)
-                continue;
-
-            // Check if the other KF also observes this map point
-            for (int j = 0; j < other_kf->NumKeyPoints(); ++j) {
-                if (other_kf->MapPointIdAt(j) == mp_id) {
-                    shared_count++;
-                    break;
-                }
+        // Count shared map points in O(N), rather than the old O(N^2)
+        // nested feature scan.
+        for (int j = 0; j < other_kf->NumKeyPoints(); ++j) {
+            const MapPointId mp_id = other_kf->MapPointIdAt(j);
+            if (mp_id.id != 0 && own_map_points.contains(mp_id.id)) {
+                ++shared_count;
             }
         }
 

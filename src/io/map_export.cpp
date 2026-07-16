@@ -6,6 +6,9 @@
 
 #include <Eigen/Core>
 
+#include <algorithm>
+#include <array>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <vector>
@@ -14,6 +17,51 @@
 #include "slamforge/core/map_point.h"
 
 namespace slamforge::io {
+
+namespace {
+
+double Quantile(std::vector<double> values, double fraction) {
+    if (values.empty()) {
+        return 0.0;
+    }
+    const size_t index = static_cast<size_t>(
+        std::clamp(fraction, 0.0, 1.0) * static_cast<double>(values.size() - 1));
+    std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(index),
+                     values.end());
+    return values[index];
+}
+
+void RemoveCatastrophicOutliers(std::vector<Vec3>& positions) {
+    if (positions.size() < 20) {
+        return;
+    }
+
+    Vec3 center = Vec3::Zero();
+    for (int axis = 0; axis < 3; ++axis) {
+        std::vector<double> coordinates;
+        coordinates.reserve(positions.size());
+        for (const Vec3& position : positions) {
+            coordinates.push_back(position[axis]);
+        }
+        center[axis] = Quantile(std::move(coordinates), 0.5);
+    }
+
+    std::vector<double> radii;
+    radii.reserve(positions.size());
+    for (const Vec3& position : positions) {
+        radii.push_back((position - center).norm());
+    }
+    const double median_radius = Quantile(radii, 0.5);
+    const double p90_radius = Quantile(std::move(radii), 0.9);
+    const double radius_limit =
+        std::max({1e-6, median_radius * 10.0, p90_radius * 5.0});
+
+    std::erase_if(positions, [&](const Vec3& position) {
+        return !position.allFinite() || (position - center).norm() > radius_limit;
+    });
+}
+
+}  // namespace
 
 MapExportResult ExportMapAsPly(const Map& map, const std::filesystem::path& output_path) {
     MapExportResult result;
@@ -37,6 +85,11 @@ MapExportResult ExportMapAsPly(const Map& map, const std::filesystem::path& outp
             }
         }
     }
+
+    // A single failed monocular BA update can otherwise make an auto-fit 3D
+    // viewer collapse the useful cloud to a pixel.  Keep the dense spatial
+    // support and reject only points far beyond both its median and p90 scale.
+    RemoveCatastrophicOutliers(positions);
 
     std::ofstream output(output_path, std::ios::out | std::ios::trunc);
     if (!output.is_open()) {

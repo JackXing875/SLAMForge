@@ -64,7 +64,9 @@ struct MappingConfig {
 struct LoopClosingConfig {
     bool enabled = false;               ///< Enable loop closing (needs vocabulary)
     double min_similarity_score = 0.3;  ///< Minimum bag-of-words similarity
+    double fallback_min_match_ratio = 0.03;  ///< Descriptor fallback match ratio
     int min_consecutive_loops = 3;      ///< Consecutive detections to accept
+    int min_frame_separation = 500;     ///< Minimum temporal distance for a loop
     std::string vocab_path;             ///< Path to ORB vocabulary file
     int pose_graph_iterations = 20;     ///< Max iterations for pose graph optimization
     int global_ba_iterations = 20;      ///< Max iterations for global BA

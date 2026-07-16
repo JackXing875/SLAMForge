@@ -71,6 +71,10 @@ public:
     /// @brief Approximate number of keyframes in queue.
     int QueueSize() const;
 
+    /// @brief Block until every inserted keyframe has completed mapping/BA.
+    /// Used by deterministic offline/video processing at keyframe boundaries.
+    void WaitUntilIdle();
+
     /// @brief Pause/resume accepting new keyframes.
     void SetAcceptKeyFrames(bool accept) { accept_keyframes_ = accept; }
     bool IsAcceptingKeyFrames() const { return accept_keyframes_; }
@@ -123,7 +127,9 @@ private:
     mutable std::mutex lifecycle_mutex_;
     mutable std::mutex mutex_;
     std::condition_variable cv_;
+    std::condition_variable idle_cv_;
     KfQueue new_keyframes_;
+    size_t pending_work_ = 0;  // Queued plus currently processing; guarded by mutex_.
     std::atomic<bool> running_{false};
     bool stop_requested_ = false;  // Guarded by mutex_.
     std::atomic<bool> is_finished_{false};

@@ -41,7 +41,8 @@ struct PnPOptions {
 /// @return PnP result with pose and inlier info
 [[nodiscard]] PnPResult SolvePnPRansac(const std::vector<cv::Point3f>& points_3d,
                                        const std::vector<cv::Point2f>& points_2d, const cv::Mat& K,
-                                       const PnPOptions& options = {});
+                                       const PnPOptions& options = {},
+                                       const SE3* initial_pose = nullptr);
 
 /// @brief Refine a PnP solution with nonlinear optimization (no RANSAC).
 ///

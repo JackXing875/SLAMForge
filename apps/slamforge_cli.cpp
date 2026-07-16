@@ -582,6 +582,12 @@ static bool WriteTrajectoryPose(std::ostream& stream, const slamforge::SE3& Tcw,
     return false;
 }
 
+struct TrackedPose {
+    slamforge::FrameId frame_id;
+    double timestamp = 0.0;
+    slamforge::SE3 Tcw{slamforge::SE3::Identity()};
+};
+
 // =============================================================================
 // SLAM pipeline — shared by `run` and `benchmark` subcommands
 // =============================================================================
@@ -616,6 +622,11 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         std::cerr << "Error: --fps must be greater than zero\n";
         return EXIT_FAILURE;
     }
+
+    // ORB, RANSAC and optical-flow reductions must produce the same map for
+    // the same video on repeated batch runs.
+    cv::setNumThreads(1);
+    cv::setRNGSeed(0);
 
     // ── Build camera model ──────────────────────────────────────────────────
     slamforge::Camera::CameraParams cam_params{cfg.camera.fx,    cfg.camera.fy,    cfg.camera.cx,
@@ -669,6 +680,7 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     std::vector<std::string> image_paths;
     std::vector<double> image_timestamps;
     int total_frames = 0;
+    double effective_fps = fps;
 
     cv::VideoCapture video_cap;
     if (is_video) {
@@ -680,6 +692,10 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         total_frames = static_cast<int>(video_cap.get(cv::CAP_PROP_FRAME_COUNT));
         if (total_frames <= 0)
             total_frames = 1;  // Fallback for live streams
+        const double detected_fps = video_cap.get(cv::CAP_PROP_FPS);
+        if (std::isfinite(detected_fps) && detected_fps > 0.0) {
+            effective_fps = detected_fps;
+        }
     } else {
         std::string input_error;
         if (!GetImagePaths(input_path, image_paths, input_error)) {
@@ -714,7 +730,7 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     std::cout << "Format:  " << output_format << "\n";
     std::cout << "Camera:  " << cfg.camera.width << "x" << cfg.camera.height
               << "  fx=" << cfg.camera.fx << "\n";
-    std::cout << "FPS:     " << fps << "\n\n";
+    std::cout << "FPS:     " << effective_fps << "\n\n";
     if (!image_timestamps.empty()) {
         std::cout << "Timestamps: " << timestamp_path << "\n\n";
     }
@@ -732,27 +748,35 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
 
     // ── Start local mapper ─────────────────────────────────────────────────
     local_mapper.Start();
-    if (loop_closing) {
-        loop_closing->Start();
-    }
     if (verbose)
         std::cout << "Local mapping thread started"
-                  << (loop_closing ? "; loop-closing thread started" : "") << "\n\n";
+                  << (loop_closing ? "; loop closing queued for batch finalization" : "")
+                  << "\n\n";
 
     const auto stop_background_workers = [&] {
-        // Stop loop closing first: its global-BA worker may mutate the map.
+        // Drain local mapping first.  Loop correction is finalized only after
+        // tracking and mapping stop, so neither worker changes coordinate
+        // systems underneath the live motion model.
+        local_mapper.Stop();
+        tracker.SetLocalMapper(nullptr);
         if (loop_closing) {
+            // Run loop detection only after the complete local map is stable.
+            // Batch results must not depend on mapper-vs-loop thread timing.
+            loop_closing->Start();
             loop_closing->Stop();
             tracker.SetLoopClosing(nullptr);
         }
-        local_mapper.Stop();
     };
 
     // ── Main tracking loop ─────────────────────────────────────────────────
     int frame_count = 0;
     int lost_count = 0;
+    int initialization_count = 0;
     double timestamp = 0.0;
-    const double dt = 1.0 / fps;
+    const double dt = 1.0 / effective_fps;
+    std::vector<TrackedPose> tracked_poses;
+    tracked_poses.reserve(static_cast<size_t>(std::max(total_frames, 1)));
+    int synchronized_keyframe_count = 0;
 
     for (int i = 0;; ++i) {
         cv::Mat image;
@@ -779,14 +803,30 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
 
         auto pose_opt = tracker.Track(gray, timestamp);
 
+        const int keyframe_count = tracker.NumKeyFrames();
+        if (keyframe_count > synchronized_keyframe_count) {
+            // Offline/desktop video processing values reproducibility and map
+            // quality over latency: never outrun mapping at a KF boundary.
+            local_mapper.WaitUntilIdle();
+            synchronized_keyframe_count = keyframe_count;
+            if (pose_opt) {
+                pose_opt = tracker.SynchronizeCurrentPoseFromMap();
+            }
+        }
+
         if (pose_opt) {
-            if (!WriteTrajectoryPose(traj_file, *pose_opt, timestamp, output_format)) {
-                std::cerr << "Error: failed to write trajectory output\n";
-                stop_background_workers();
-                return EXIT_FAILURE;
+            const slamforge::Frame* current_frame = tracker.CurrentFrame();
+            if (current_frame) {
+                tracked_poses.push_back(TrackedPose{current_frame->Id(), timestamp, *pose_opt});
             }
         } else {
-            lost_count++;
+            const auto state = tracker.State();
+            if (state == slamforge::tracking::TrackingState::NOT_INITIALIZED ||
+                state == slamforge::tracking::TrackingState::INITIALIZING) {
+                ++initialization_count;
+            } else {
+                ++lost_count;
+            }
         }
 
         // ── Progress indicator (stderr, overwrite line) ─────────────────
@@ -818,7 +858,6 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     }
 
     std::fprintf(stderr, "\n");
-    traj_file.close();
 
     // ── Stop background workers ────────────────────────────────────────────
     stop_background_workers();
@@ -831,6 +870,26 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         std::cerr << "Error: no readable frames were processed from " << input_path << "\n";
         return EXIT_FAILURE;
     }
+
+    // Trajectory poses are buffered so a loop closure can correct every past
+    // frame consistently, rather than only keyframes that still live in Map.
+    const auto loop_corrections =
+        loop_closing ? loop_closing->Corrections()
+                     : std::vector<slamforge::loop_closing::LoopCorrection>{};
+    for (const TrackedPose& tracked_pose : tracked_poses) {
+        slamforge::SE3 corrected_pose = tracked_pose.Tcw;
+        for (const auto& loop_correction : loop_corrections) {
+            const auto interpolated = slamforge::loop_closing::InterpolateLoopCorrection(
+                loop_correction, tracked_pose.frame_id);
+            corrected_pose =
+                slamforge::loop_closing::ApplyLoopCorrectionToPose(corrected_pose, interpolated);
+        }
+        if (!WriteTrajectoryPose(traj_file, corrected_pose, tracked_pose.timestamp, output_format)) {
+            std::cerr << "Error: failed to write trajectory output\n";
+            return EXIT_FAILURE;
+        }
+    }
+    traj_file.close();
 
     if (!map_output_path.empty()) {
         const auto export_result = slamforge::io::ExportMapAsPly(tracker.GetMap(), map_output_path);
@@ -856,7 +915,13 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     std::cout << "\n══════════════════════════════════════════════\n";
     std::cout << "  Tracking complete\n";
     std::cout << "  Frames:     " << frame_count << "\n";
-    std::cout << "  Lost:       " << lost_count << "\n";
+    std::cout << "  Poses:      " << tracked_poses.size() << " ("
+              << std::fixed << std::setprecision(1)
+              << 100.0 * static_cast<double>(tracked_poses.size()) /
+                     static_cast<double>(frame_count)
+              << "%)\n";
+    std::cout << "  Initialization: " << initialization_count << " frames\n";
+    std::cout << "  Tracking lost: " << lost_count << " frames\n";
     std::cout << "  Keyframes:  " << final_kfs << "\n";
     std::cout << "  Map points: " << final_mps << "\n";
     if (loop_closing) {

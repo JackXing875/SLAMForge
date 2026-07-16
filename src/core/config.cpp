@@ -43,7 +43,9 @@ SystemConfig SystemConfig::Default() {
 
     cfg.loop_closing.enabled = false;
     cfg.loop_closing.min_similarity_score = 0.3;
+    cfg.loop_closing.fallback_min_match_ratio = 0.03;
     cfg.loop_closing.min_consecutive_loops = 3;
+    cfg.loop_closing.min_frame_separation = 500;
     cfg.loop_closing.pose_graph_iterations = 20;
     cfg.loop_closing.global_ba_iterations = 20;
     cfg.loop_closing.enable_global_ba = true;
@@ -121,8 +123,12 @@ std::optional<SystemConfig> SystemConfig::LoadFromYAML(const std::string& path) 
             cfg.loop_closing.enabled = lc["enabled"].as<bool>(cfg.loop_closing.enabled);
             cfg.loop_closing.min_similarity_score =
                 lc["min_similarity_score"].as<double>(cfg.loop_closing.min_similarity_score);
+            cfg.loop_closing.fallback_min_match_ratio = lc["fallback_min_match_ratio"].as<double>(
+                cfg.loop_closing.fallback_min_match_ratio);
             cfg.loop_closing.min_consecutive_loops =
                 lc["min_consecutive_loops"].as<int>(cfg.loop_closing.min_consecutive_loops);
+            cfg.loop_closing.min_frame_separation =
+                lc["min_frame_separation"].as<int>(cfg.loop_closing.min_frame_separation);
             if (lc["vocab_path"]) {
                 cfg.loop_closing.vocab_path = lc["vocab_path"].as<std::string>();
             }

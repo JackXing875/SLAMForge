@@ -18,6 +18,21 @@ class Map;
 
 namespace loop_closing {
 
+/// A verified correction mapping the drifted current map region into the
+/// coordinate system of an older, matched region.
+struct LoopCorrection {
+    FrameId matched_frame{0};
+    FrameId current_frame{0};
+    geometry::Sim3 transform;
+    int num_inliers = 0;
+};
+
+/// Smoothly interpolate a loop correction according to temporal frame ID.
+geometry::Sim3 InterpolateLoopCorrection(const LoopCorrection& correction, FrameId frame);
+
+/// Apply a world-coordinate Sim(3) correction to a world-to-camera pose.
+SE3 ApplyLoopCorrectionToPose(const SE3& Tcw, const geometry::Sim3& correction);
+
 /// @brief Corrects the map after a loop closure is verified.
 ///
 /// Operations:
@@ -45,19 +60,8 @@ public:
                      const std::vector<MapPointId>& matched_mps_cand, Map& map);
 
 private:
-    /// @brief Propagate Sim(3) correction along the covisibility graph.
-    /// Starting from the current KF, recursively apply to neighbors.
-    void PropagateCorrection(KeyFrame* kf, const geometry::Sim3& S_correction,
-                             std::set<KeyFrame*>& corrected);
-
-    /// @brief Fuse duplicated map points between loop-connected keyframes.
-    /// Searches for map points that represent the same 3D point and merges them.
-    void SearchAndFuse(const std::vector<std::shared_ptr<KeyFrame>>& loop_kfs,
-                       const std::vector<MapPointId>& matched_mps, double max_reproj_error,
-                       Map& map);
-
-    /// @brief Update covisibility connections after loop correction.
-    void UpdateConnections(Map& map);
+    void FuseMatchedMapPoints(const std::vector<MapPointId>& matched_mps_cur,
+                              const std::vector<MapPointId>& matched_mps_cand, Map& map);
 };
 
 }  // namespace loop_closing

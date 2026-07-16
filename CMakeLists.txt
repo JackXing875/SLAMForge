@@ -51,7 +51,7 @@ include(CompilerWarnings)
 
 # ── Dependencies ─────────────────────────────────────────────────────────────
 # Required: OpenCV (image I/O, feature extraction, geometry)
-find_package(OpenCV REQUIRED COMPONENTS core imgproc features2d calib3d videoio)
+find_package(OpenCV REQUIRED COMPONENTS core imgproc features2d calib3d video videoio)
 
 # Required: Eigen3 (linear algebra)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)

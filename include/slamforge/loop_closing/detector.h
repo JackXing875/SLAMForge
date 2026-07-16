@@ -28,7 +28,8 @@ struct LoopDetectorConfig {
     double min_score = 0.3;          ///< Minimum BoW similarity to consider
     int min_consecutive = 3;         ///< Consecutive detections to accept a loop
     int max_recent_kfs = 20;         ///< Ignore the N most recent keyframes
-    double min_inlier_ratio = 0.25;  ///< Minimum match ratio for fallback scoring
+    double min_inlier_ratio = 0.03;  ///< Minimum match ratio for fallback scoring
+    int min_frame_separation = 500;  ///< Reject ordinary short-term covisibility
 };
 
 /// @brief Detects loop closure candidates from keyframe BoW vectors.
@@ -52,13 +53,15 @@ public:
     const Vocabulary& GetVocabulary() const { return vocabulary_; }
     bool LoadVocabulary(const std::string& path);
 
+    /// @brief Score a pair using the loaded vocabulary or cached descriptor fallback.
+    double ScoreBetween(std::shared_ptr<KeyFrame> kf1, std::shared_ptr<KeyFrame> kf2);
+
     int DatabaseSize() const { return database_size_; }
 
     /// @brief Detector settings in effect for this worker.
     const LoopDetectorConfig& Config() const noexcept { return config_; }
 
 private:
-    double ScoreBetween(std::shared_ptr<KeyFrame> kf1, std::shared_ptr<KeyFrame> kf2);
     std::shared_ptr<KeyFrame> DetectWithFallback(std::shared_ptr<KeyFrame> current_kf,
                                                  const Map& map);
 
@@ -68,6 +71,7 @@ private:
     // BoW vectors and word weights stored per keyframe
     std::unordered_map<FrameId, std::vector<float>, FrameIdHash> bow_vectors_;
     std::unordered_map<FrameId, std::vector<std::pair<int, float>>, FrameIdHash> word_weights_;
+    std::unordered_map<FrameId, cv::Mat, FrameIdHash> fallback_descriptors_;
 
     int database_size_ = 0;
 

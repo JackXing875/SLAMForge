@@ -135,37 +135,68 @@ TEST(GlobalBundleAdjusterTest, StopAndRestartAreSafe) {
     EXPECT_TRUE(adjuster.IsFinished());
 }
 
-TEST(LoopCorrectorTest, PropagatesFromUncorrectedRelativePoses) {
+TEST(LoopCorrectorTest, DistributesWorldCoordinateCorrectionOverTemporalPath) {
     const Camera camera = MakeCamera();
     features::OrbExtractor::Options extractor_options;
     extractor_options.num_features = 200;
     features::OrbExtractor extractor(extractor_options);
     Map map;
 
-    auto current = MakeKeyFrame(camera, extractor);
+    Frame::ResetIdCounter();
     auto matched = MakeKeyFrame(camera, extractor);
-    map.AddKeyFrame(current);
+    auto middle = MakeKeyFrame(camera, extractor);
+    auto current = MakeKeyFrame(camera, extractor);
     map.AddKeyFrame(matched);
+    map.AddKeyFrame(middle);
+    map.AddKeyFrame(current);
 
-    SE3 current_pose = SE3::Identity();
-    current_pose.translation() = Vec3(1.0, 0.0, 0.0);
-    current->SetPose(current_pose);
     SE3 matched_pose = SE3::Identity();
-    matched_pose.translation() = Vec3(5.0, 0.0, 0.0);
     matched->SetPose(matched_pose);
-    current->AddConnection(matched.get(), 10);
+    SE3 middle_pose = SE3::Identity();
+    middle_pose.translation() = Vec3(-1.0, 0.0, 0.0);
+    middle->SetPose(middle_pose);
+    SE3 current_pose = SE3::Identity();
+    current_pose.translation() = Vec3(-2.0, 0.0, 0.0);
+    current->SetPose(current_pose);
 
     geometry::Sim3 correction;
-    correction.t = Vec3(2.0, 0.0, 0.0);
+    correction.t = Vec3(-2.0, 0.0, 0.0);
     loop_closing::LoopCorrector corrector;
     corrector.CorrectLoop(current, matched, correction, {}, {}, {}, map);
 
-    // Current moves by +2.  The neighbour's original relative transform is
-    // +4, so it must land at +7.  Computing that relative transform after
-    // current has already changed was the regression and incorrectly kept it
-    // at +5.
-    EXPECT_NEAR(current->Pose().translation().x(), 3.0, 1e-12);
-    EXPECT_NEAR(matched->Pose().translation().x(), 7.0, 1e-12);
+    // The old end point at world x=2 receives the full -2 correction.  The
+    // middle receives half, while the matched anchor remains fixed.
+    EXPECT_NEAR(matched->CameraCenter().x(), 0.0, 1e-12);
+    EXPECT_NEAR(middle->CameraCenter().x(), 0.0, 1e-12);
+    EXPECT_NEAR(current->CameraCenter().x(), 0.0, 1e-12);
+}
+
+TEST(LoopCorrectorTest, KeepsMatchedNeighborhoodFixedBeforeSmoothCorrection) {
+    loop_closing::LoopCorrection correction;
+    correction.matched_frame = FrameId{100};
+    correction.current_frame = FrameId{2100};
+    correction.transform.t = Vec3(8.0, -2.0, 1.0);
+    correction.transform.s = 2.0;
+
+    // A quarter of this 2000-frame loop is retained as a locally consistent
+    // anchor. The correction then ramps smoothly and reaches the exact target
+    // at the current frame.
+    const geometry::Sim3 anchored =
+        loop_closing::InterpolateLoopCorrection(correction, FrameId{600});
+    EXPECT_NEAR(anchored.s, 1.0, 1e-12);
+    EXPECT_NEAR(anchored.t.norm(), 0.0, 1e-12);
+
+    const geometry::Sim3 ramped =
+        loop_closing::InterpolateLoopCorrection(correction, FrameId{1100});
+    EXPECT_GT(ramped.s, 1.0);
+    EXPECT_LT(ramped.s, correction.transform.s);
+    EXPECT_GT(ramped.t.norm(), 0.0);
+    EXPECT_LT(ramped.t.norm(), correction.transform.t.norm());
+
+    const geometry::Sim3 completed =
+        loop_closing::InterpolateLoopCorrection(correction, correction.current_frame);
+    EXPECT_NEAR(completed.s, correction.transform.s, 1e-12);
+    EXPECT_NEAR((completed.t - correction.transform.t).norm(), 0.0, 1e-12);
 }
 
 TEST(LoopCorrectorTest, FusionRedirectsEveryKeyFrameToSurvivingPoint) {
@@ -175,16 +206,17 @@ TEST(LoopCorrectorTest, FusionRedirectsEveryKeyFrameToSurvivingPoint) {
     features::OrbExtractor extractor(extractor_options);
     Map map;
     MapPoint::ResetIdCounter();
+    Frame::ResetIdCounter();
 
-    auto current = MakeKeyFrame(camera, extractor);
     auto matched = MakeKeyFrame(camera, extractor);
     auto unrelated = MakeKeyFrame(camera, extractor);
+    auto current = MakeKeyFrame(camera, extractor);
     ASSERT_GT(current->NumKeyPoints(), 0);
     ASSERT_GT(matched->NumKeyPoints(), 0);
     ASSERT_GT(unrelated->NumKeyPoints(), 0);
-    map.AddKeyFrame(current);
     map.AddKeyFrame(matched);
     map.AddKeyFrame(unrelated);
+    map.AddKeyFrame(current);
 
     auto absorbed = map.AddMapPoint(Vec3(0.0, 0.0, 5.0), current->Id());
     auto survivor = map.AddMapPoint(Vec3(0.01, 0.0, 5.0), matched->Id());
@@ -201,8 +233,8 @@ TEST(LoopCorrectorTest, FusionRedirectsEveryKeyFrameToSurvivingPoint) {
     unrelated->SetMapPointId(0, absorbed->Id());
 
     loop_closing::LoopCorrector corrector;
-    corrector.CorrectLoop(current, matched, geometry::Sim3::Identity(), {}, {absorbed->Id()}, {},
-                          map);
+    corrector.CorrectLoop(current, matched, geometry::Sim3::Identity(), {}, {absorbed->Id()},
+                          {survivor->Id()}, map);
 
     EXPECT_TRUE(absorbed->IsBad());
     EXPECT_FALSE(survivor->IsBad());
