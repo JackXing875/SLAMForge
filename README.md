@@ -15,8 +15,8 @@
 
 ### Desktop beta — no development environment required
 
-Download `SLAMForge Desktop 3.1.0-beta.1` from the
-[GitHub Releases page](https://github.com/JackXing875/SLAMForge/releases/tag/v3.1.0-beta.1):
+Download `SLAMForge Desktop 3.1.0-beta.2` from the
+[GitHub Releases page](https://github.com/JackXing875/SLAMForge/releases/tag/v3.1.0-beta.2):
 
 - **Windows x64:** extract the ZIP, then run `SLAMForge Desktop.exe`.
 - **Linux x86_64:** make the AppImage executable, then launch it.
@@ -25,8 +25,8 @@ Drop a video into the window, select a YAML file calibrated for that camera, cho
 directory, and start mapping. Processing is local; the application displays the completed sparse
 map and trajectory and exports `map.ply`, `trajectory.txt`, and `run.log`.
 
-> Monocular SLAM has an unknown absolute scale and requires accurate camera intrinsics. The first
-> beta does not infer calibration from arbitrary videos.
+> Monocular SLAM has an unknown absolute scale and requires accurate camera intrinsics. The desktop
+> application does not infer calibration from arbitrary videos.
 
 ### Developer and container usage
 

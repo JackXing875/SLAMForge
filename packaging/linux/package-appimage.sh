@@ -30,7 +30,7 @@ export EXTRA_PLATFORM_PLUGINS=libqoffscreen.so
     --plugin qt
 
 mkdir -p "$appdir/usr/share/doc/slamforge"
-cp "$repository_root/docs/releases/v3.1.0-beta.1.md" \
+cp "$repository_root/docs/releases/v${version}.md" \
     "$appdir/usr/share/doc/slamforge/RELEASE_NOTES.md"
 
 pushd "$output_dir" >/dev/null

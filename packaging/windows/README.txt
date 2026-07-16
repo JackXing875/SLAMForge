@@ -1,4 +1,4 @@
-SLAMForge Desktop 3.1.0-beta.1
+SLAMForge Desktop 3.1.0-beta.2
 ================================
 
 QUICK START
@@ -23,7 +23,7 @@ IMPORTANT LIMITATIONS
 - Low texture, motion blur, pure rotation, repeated patterns, and insufficient parallax may cause
   initialization or tracking failure.
 - This is an unsigned public beta. Windows SmartScreen may show an unrecognized publisher warning.
-- Optional g2o/FBOW loop-closing support is not included in this first desktop package.
+- Built-in geometric loop closing is enabled; optional g2o/FBOW acceleration is not included.
 
 PRIVACY AND LICENSE
 

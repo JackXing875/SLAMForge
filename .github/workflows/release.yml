@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  RELEASE_VERSION: 3.1.0-beta.1
+  RELEASE_VERSION: 3.1.0-beta.2
 
 jobs:
   validate-tag:
@@ -102,7 +102,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-linux-x86-64
-          path: dist/SLAMForge-Desktop-3.1.0-beta.1-Linux-x86_64.AppImage
+          path: dist/SLAMForge-Desktop-3.1.0-beta.2-Linux-x86_64.AppImage
           if-no-files-found: error
 
   windows-zip:
@@ -182,7 +182,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-windows-x86-64
-          path: dist/SLAMForge-Desktop-3.1.0-beta.1-Windows-x64.zip
+          path: dist/SLAMForge-Desktop-3.1.0-beta.2-Windows-x64.zip
           if-no-files-found: error
 
   publish:

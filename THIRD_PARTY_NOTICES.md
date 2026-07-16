@@ -16,7 +16,7 @@ the authoritative source for their complete notices and dependency trees.
 | CLI11 | Command-line interface | BSD-3-Clause |
 
 The optional Sophus, g2o, and FBOW backends are source-tree capabilities but are not enabled in the
-`3.1.0-beta.1` desktop binaries. GoogleTest and other test/build tools are not shipped as runtime
+`3.1.0-beta.2` desktop binaries. GoogleTest and other test/build tools are not shipped as runtime
 components.
 
 Qt is dynamically linked in the desktop packages. Users may replace the compatible Qt shared

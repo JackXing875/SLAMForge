@@ -2,6 +2,31 @@
 
 All notable changes to SLAMForge will be documented in this file.
 
+## [3.1.0-beta.2] — 2026-07-16
+
+### Changed
+
+- Reworked video tracking with robust PnP, optical-flow support, essential-matrix recovery, and
+  safer pose synchronization after local optimization.
+- Rebuilt landmark triangulation and local bundle adjustment to reject underconstrained or invalid
+  residuals instead of allowing unstable solver steps to corrupt the map.
+- Added deterministic batch finalization and multi-loop Sim(3) drift correction, including a
+  geometric fallback that remains available without optional FBOW or g2o dependencies.
+- Improved trajectory and sparse-map exports with stable ordering and outlier filtering.
+
+### Fixed
+
+- Prevented long videos from remaining permanently lost after temporary tracking degradation.
+- Prevented non-finite Ceres steps and dense Cholesky failures caused by points crossing the camera
+  plane or single-view landmarks entering bundle adjustment.
+- Rejected false loop closures that could rotate the reconstructed map by approximately 180 degrees.
+
+### Validation
+
+- The 4,757-frame reference sequence now exports 4,554 poses, closes the complete route, and no
+  longer emits the repeated linear-solver failures seen in beta.1.
+- All build, unit, desktop, documentation, lint, and Docker CI workflows pass on the release source.
+
 ## [3.1.0-beta.1] — 2026-07-15
 
 ### Added

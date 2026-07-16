@@ -10,7 +10,7 @@ remain on the local machine.
 
 ## Download
 
-The `v3.1.0-beta.1` GitHub Release provides:
+The `v3.1.0-beta.2` GitHub Release provides:
 
 - a Windows x64 portable ZIP;
 - a Linux x86_64 AppImage.
@@ -19,8 +19,8 @@ Windows users must extract the complete archive before running `SLAMForge Deskto
 can launch the AppImage after making it executable:
 
 ```bash
-chmod +x SLAMForge-Desktop-3.1.0-beta.1-Linux-x86_64.AppImage
-./SLAMForge-Desktop-3.1.0-beta.1-Linux-x86_64.AppImage
+chmod +x SLAMForge-Desktop-3.1.0-beta.2-Linux-x86_64.AppImage
+./SLAMForge-Desktop-3.1.0-beta.2-Linux-x86_64.AppImage
 ```
 
 ## Build from source
@@ -69,6 +69,6 @@ Monocular SLAM produces a sparse map with an unknown absolute scale. The viewer 
 explicitly labeled as relative scale. Calibration assistance and live per-frame 3D updates remain
 future milestones.
 
-This first package enables Ceres local bundle adjustment but omits the optional g2o/FBOW
-loop-closing backend. The limitation keeps the Windows and Linux beta packages reproducible while
-cross-platform backend packaging is completed.
+This package enables Ceres local bundle adjustment and the deterministic built-in geometric loop
+closing fallback. It omits the optional g2o/FBOW acceleration backends to keep the Windows and Linux
+beta packages reproducible while cross-platform backend packaging is completed.

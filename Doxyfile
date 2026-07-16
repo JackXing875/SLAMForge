@@ -2,7 +2,7 @@
 
 PROJECT_NAME           = "SLAMForge"
 PROJECT_BRIEF          = "Industrial-Grade Monocular Visual SLAM System"
-PROJECT_NUMBER         = 3.1.0-beta.1
+PROJECT_NUMBER         = 3.1.0-beta.2
 
 OUTPUT_DIRECTORY       = docs/html
 CREATE_SUBDIRS         = NO

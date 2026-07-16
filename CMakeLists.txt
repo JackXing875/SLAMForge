@@ -13,7 +13,7 @@ project(SLAMForge
 
 # CMake package compatibility uses the numeric project version, while public
 # beta builds expose the complete prerelease identifier in the CLI and GUI.
-set(SLAMFORGE_VERSION_PRERELEASE "beta.1")
+set(SLAMFORGE_VERSION_PRERELEASE "beta.2")
 set(SLAMFORGE_VERSION_STRING "${PROJECT_VERSION}-${SLAMFORGE_VERSION_PRERELEASE}")
 
 # ── C++ standard ─────────────────────────────────────────────────────────────
