@@ -1,0 +1,21 @@
+.github/workflows/desktop.yml
+  s_b39884776f0393::t_c05b454c2a7786 57-58
+.github/workflows/release.yml
+  s_b39884776f0393::t_c05b454c2a7786 43-44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "776eca381c4ce7c2a895febdc644fc5adefceed3",
+  "prompts": {},
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
