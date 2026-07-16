@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef SLAMFORGE_HAS_CERES
+
 #include <ceres/ceres.h>
 #include <ceres/version.h>
 
@@ -14,3 +16,5 @@ inline void AddQuaternionParameterBlock(ceres::Problem& problem, double* quatern
 }
 
 }  // namespace slamforge::optimization::detail
+
+#endif  // SLAMFORGE_HAS_CERES
