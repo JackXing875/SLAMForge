@@ -144,6 +144,7 @@ public:
     /// @param current_dist  Distance from the current camera to the point.
     /// @param num_levels    Number of pyramid levels.
     /// @param scale_factor  Scale factor between levels.
+    /// @param log_scale_factor  Natural logarithm of @p scale_factor.
     int PredictScale(float current_dist, int num_levels, float scale_factor,
                      float log_scale_factor) const;
 
