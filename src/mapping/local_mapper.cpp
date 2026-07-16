@@ -41,7 +41,10 @@ void LocalMapper::Start() {
         thread_.join();
     }
 
-    stop_requested_ = false;
+    {
+        std::lock_guard<std::mutex> queue_lock(mutex_);
+        stop_requested_ = false;
+    }
     is_finished_ = false;
     running_ = true;
     thread_ = std::thread(&LocalMapper::Run, this);
@@ -56,7 +59,13 @@ void LocalMapper::Stop() {
 }
 
 void LocalMapper::RequestStop() {
-    stop_requested_ = true;
+    {
+        // Change the wait predicate while holding the same mutex used by
+        // cv_.wait(). This prevents a stop notification from being lost
+        // between the worker's predicate check and entering the wait state.
+        std::lock_guard<std::mutex> lock(mutex_);
+        stop_requested_ = true;
+    }
     cv_.notify_all();
 }
 

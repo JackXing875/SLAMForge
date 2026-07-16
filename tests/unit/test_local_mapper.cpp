@@ -121,14 +121,12 @@ TEST_F(LocalMapperTest, DoubleStartNoCrash) {
 }
 
 TEST_F(LocalMapperTest, RestartAfterStopIsSafe) {
-    mapper_->Start();
-    mapper_->Stop();
-    ASSERT_TRUE(mapper_->IsFinished());
-
-    EXPECT_NO_THROW(mapper_->Start());
-    EXPECT_TRUE(mapper_->IsRunning());
-    mapper_->Stop();
-    EXPECT_TRUE(mapper_->IsFinished());
+    for (int restart = 0; restart < 50; ++restart) {
+        EXPECT_NO_THROW(mapper_->Start());
+        EXPECT_TRUE(mapper_->IsRunning());
+        mapper_->Stop();
+        EXPECT_TRUE(mapper_->IsFinished());
+    }
 }
 
 TEST_F(LocalMapperTest, StopBeforeStart) {
