@@ -50,6 +50,7 @@ set(SLAMFORGE_CORE_SOURCES
     loop_closing/loop_closing.cpp
 
     # Optimization
+    optimization/ceres_compat.h
     optimization/ba.cpp
 )
 

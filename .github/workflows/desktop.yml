@@ -35,19 +35,28 @@ permissions:
 
 jobs:
   linux-desktop:
-    name: "Ubuntu 24.04 / Qt 6"
-    runs-on: ubuntu-24.04
+    name: "Ubuntu 22.04 / Qt 6"
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Use Canonical package mirrors
+        run: |
+          printf '%s\t%s\n' \
+            'https://archive.ubuntu.com/ubuntu/' 'priority:1' \
+            'https://security.ubuntu.com/ubuntu/' 'priority:2' \
+            | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+
       - name: Install dependencies
         run: |
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=3 update
           sudo apt-get install -y --no-install-recommends \
             appstream build-essential cmake curl file libfuse2 \
-            libceres-dev libeigen3-dev libopencv-dev libspdlog-dev libyaml-cpp-dev \
+            libceres-dev libeigen3-dev libgl1-mesa-dev libopencv-dev \
+            libspdlog-dev libunwind-dev \
+            libyaml-cpp-dev \
             qt6-base-dev
 
       - name: Configure desktop build

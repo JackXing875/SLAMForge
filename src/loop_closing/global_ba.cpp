@@ -14,6 +14,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "optimization/ceres_compat.h"
 #include "slamforge/core/camera.h"
 #include "slamforge/core/keyframe.h"
 #include "slamforge/core/map.h"
@@ -154,7 +155,7 @@ void GlobalBundleAdjuster::Run() {
         data->t[1] = Tcw.translation().y();
         data->t[2] = Tcw.translation().z();
 
-        problem.AddParameterBlock(data->q, 4, new ceres::QuaternionManifold());
+        optimization::detail::AddQuaternionParameterBlock(problem, data->q);
         problem.AddParameterBlock(data->t, 3);
 
         if (first_kf) {

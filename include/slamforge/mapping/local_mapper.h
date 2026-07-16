@@ -125,7 +125,7 @@ private:
     std::condition_variable cv_;
     KfQueue new_keyframes_;
     std::atomic<bool> running_{false};
-    std::atomic<bool> stop_requested_{false};
+    bool stop_requested_ = false;  // Guarded by mutex_.
     std::atomic<bool> is_finished_{false};
     std::atomic<bool> accept_keyframes_{true};
 
