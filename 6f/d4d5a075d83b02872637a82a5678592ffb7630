@@ -1,0 +1,23 @@
+include/slamforge/mapping/local_mapper.h
+  s_b39884776f0393::t_e9953718cda0d9 128
+tests/unit/test_local_mapper.cpp
+  s_b39884776f0393::t_e9953718cda0d9 124-129
+src/mapping/local_mapper.cpp
+  s_b39884776f0393::t_e9953718cda0d9 44-47,62-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "6fd4d5a075d83b02872637a82a5678592ffb7630",
+  "prompts": {},
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
