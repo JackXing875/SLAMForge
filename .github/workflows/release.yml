@@ -40,7 +40,8 @@ jobs:
           sudo apt-get -o Acquire::Retries=3 update
           sudo apt-get install -y --no-install-recommends \
             appstream build-essential cmake curl file libfuse2 \
-            libceres-dev libeigen3-dev libopencv-dev libspdlog-dev libunwind-dev \
+            libceres-dev libeigen3-dev libgl1-mesa-dev libopencv-dev \
+            libspdlog-dev libunwind-dev \
             libyaml-cpp-dev \
             qt6-base-dev
 
