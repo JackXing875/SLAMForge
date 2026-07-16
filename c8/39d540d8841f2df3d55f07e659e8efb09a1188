@@ -1,0 +1,27 @@
+src/loop_closing/global_ba.cpp
+  s_b39884776f0393::t_f1642fa27ad217 17
+  s_b39884776f0393::t_5ea759cbbd74e1 158
+src/CMakeLists.txt
+  s_b39884776f0393::t_5ea759cbbd74e1 53
+src/optimization/ba.cpp
+  s_b39884776f0393::t_f1642fa27ad217 16
+  s_b39884776f0393::t_5ea759cbbd74e1 97
+src/optimization/ceres_compat.h
+  s_b39884776f0393::t_5ea759cbbd74e1 1-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "c839d540d8841f2df3d55f07e659e8efb09a1188",
+  "prompts": {},
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
