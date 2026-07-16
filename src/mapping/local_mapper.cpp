@@ -311,8 +311,8 @@ void LocalMapper::CullKeyFrames() {
 
     // Redundancy is a local property.  Re-scanning every keyframe and every
     // feature after each insertion was quadratic in map size.
-    auto local_candidates = current_kf_->GetBestCovisibilityKeyFrames(
-        static_cast<int>(config_.sliding_window_size));
+    auto local_candidates =
+        current_kf_->GetBestCovisibilityKeyFrames(static_cast<int>(config_.sliding_window_size));
     for (auto* kf : local_candidates) {
         if (!kf || kf->IsBad())
             continue;

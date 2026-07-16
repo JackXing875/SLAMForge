@@ -15,8 +15,8 @@
 #include "slamforge/core/keyframe.h"
 #include "slamforge/core/map.h"
 #include "slamforge/core/map_point.h"
-#include "slamforge/geometry/triangulation.h"
 #include "slamforge/geometry/pnp.h"
+#include "slamforge/geometry/triangulation.h"
 #include "slamforge/loop_closing/detector.h"
 
 namespace slamforge::loop_closing {
@@ -98,9 +98,8 @@ VerificationResult LoopVerifier::Verify(std::shared_ptr<KeyFrame> current_kf,
     for (const Vec3& point : pts_cand_w) {
         target_radii.push_back((point - target_center).norm());
     }
-    const auto median_it =
-        target_radii.begin() + static_cast<std::vector<double>::difference_type>(
-                                   target_radii.size() / 2);
+    const auto median_it = target_radii.begin() + static_cast<std::vector<double>::difference_type>(
+                                                      target_radii.size() / 2);
     std::nth_element(target_radii.begin(), median_it, target_radii.end());
     const double target_spread = *median_it;
 
@@ -108,8 +107,7 @@ VerificationResult LoopVerifier::Verify(std::shared_ptr<KeyFrame> current_kf,
     sim3_opts.max_iterations = config_.ransac_iterations;
     // Monocular map scale is arbitrary.  Tie the 3D gate to the candidate
     // landmark cloud instead of assuming that every scene uses metres.
-    sim3_opts.max_error_3d =
-        std::clamp(target_spread * 0.20, config_.sim3_max_error_3d, 1.5);
+    sim3_opts.max_error_3d = std::clamp(target_spread * 0.20, config_.sim3_max_error_3d, 1.5);
     sim3_opts.min_inliers = config_.min_inliers;
 
     auto sim3_result = geometry::EstimateSim3Ransac(pts_cur_w, pts_cand_w, sim3_opts);
@@ -178,8 +176,8 @@ VerificationResult LoopVerifier::Verify(std::shared_ptr<KeyFrame> current_kf,
 
         const SE3 desired_current_pose = geometry::FromOpenCVRt(rvec, tvec);
         const SE3 raw_current_pose = current_kf->Pose();
-        const Mat3 correction_rotation = desired_current_pose.rotation().transpose() *
-                                         raw_current_pose.rotation();
+        const Mat3 correction_rotation =
+            desired_current_pose.rotation().transpose() * raw_current_pose.rotation();
         const double rotation_cosine =
             std::clamp((correction_rotation.trace() - 1.0) * 0.5, -1.0, 1.0);
         if (!desired_current_pose.matrix().allFinite() ||
@@ -188,21 +186,20 @@ VerificationResult LoopVerifier::Verify(std::shared_ptr<KeyFrame> current_kf,
         }
 
         const Vec3 raw_center = current_kf->CameraCenter();
-        const Vec3 desired_center = -desired_current_pose.rotation().transpose() *
-                                    desired_current_pose.translation();
+        const Vec3 desired_center =
+            -desired_current_pose.rotation().transpose() * desired_current_pose.translation();
         pose_consistent_sim3.R = correction_rotation;
-        pose_consistent_sim3.t = desired_center -
-                                 pose_consistent_sim3.s * correction_rotation * raw_center;
+        pose_consistent_sim3.t =
+            desired_center - pose_consistent_sim3.s * correction_rotation * raw_center;
         result.num_reprojection_inliers = pnp_inliers.rows;
     }
 
     // Step 5: Build final result
     result.valid = true;
     result.S_cw = pose_consistent_sim3;
-    result.num_inliers =
-        result.num_reprojection_inliers > 0
-            ? std::min(sim3_result.num_inliers, result.num_reprojection_inliers)
-            : sim3_result.num_inliers;
+    result.num_inliers = result.num_reprojection_inliers > 0
+                             ? std::min(sim3_result.num_inliers, result.num_reprojection_inliers)
+                             : sim3_result.num_inliers;
     result.matches = matches;
 
     // Collect matched map point IDs
@@ -289,8 +286,7 @@ int LoopVerifier::Build3DCorrespondences(std::shared_ptr<KeyFrame> kf_cur,
             if (!nearby_point || nearby_point->IsBad()) {
                 continue;
             }
-            const cv::Point2f delta =
-                keypoints[static_cast<size_t>(nearby_index)].pt - center;
+            const cv::Point2f delta = keypoints[static_cast<size_t>(nearby_index)].pt - center;
             const float distance_sq = delta.dot(delta);
             if (distance_sq < best_distance_sq) {
                 best_distance_sq = distance_sq;
@@ -310,8 +306,8 @@ int LoopVerifier::Build3DCorrespondences(std::shared_ptr<KeyFrame> kf_cur,
             return {};
         }
         const Camera& camera = keyframe->GetCamera();
-        const Vec3 ray = camera.Unproject(Vec2(static_cast<double>(center.x),
-                                               static_cast<double>(center.y)));
+        const Vec3 ray =
+            camera.Unproject(Vec2(static_cast<double>(center.x), static_cast<double>(center.y)));
         if (std::abs(ray.z()) <= 1e-9) {
             return {};
         }
@@ -330,9 +326,8 @@ int LoopVerifier::Build3DCorrespondences(std::shared_ptr<KeyFrame> kf_cur,
             continue;
         if (current_point.map_point->IsBad() || candidate_point.map_point->IsBad())
             continue;
-        const uint64_t pair_hash =
-            current_point.map_point->Id().id * 0x9E3779B185EBCA87ULL ^
-            candidate_point.map_point->Id().id;
+        const uint64_t pair_hash = current_point.map_point->Id().id * 0x9E3779B185EBCA87ULL ^
+                                   candidate_point.map_point->Id().id;
         if (!used_pairs.insert(pair_hash).second) {
             continue;
         }

@@ -350,11 +350,11 @@ std::optional<LoopCorrection> LoopClosing::BestCorrection() const {
     if (pending_loops_.empty()) {
         return std::nullopt;
     }
-    const auto best = std::max_element(
-        pending_loops_.begin(), pending_loops_.end(), [](const PendingLoop& lhs,
-                                                         const PendingLoop& rhs) {
-            return lhs.verification.num_inliers < rhs.verification.num_inliers;
-        });
+    const auto best =
+        std::max_element(pending_loops_.begin(), pending_loops_.end(),
+                         [](const PendingLoop& lhs, const PendingLoop& rhs) {
+                             return lhs.verification.num_inliers < rhs.verification.num_inliers;
+                         });
     return LoopCorrection{best->candidate->Id(), best->current->Id(), best->verification.S_cw,
                           best->verification.num_inliers};
 }
@@ -396,10 +396,10 @@ bool LoopClosing::ApplyCorrections() {
         };
         const geometry::Sim3 candidate_coordinates = accumulated_at(loop.candidate->Id());
         const geometry::Sim3 current_coordinates = accumulated_at(loop.current->Id());
-        const geometry::Sim3 adjusted = candidate_coordinates * loop.verification.S_cw *
-                                        current_coordinates.Inverse();
-        if (!adjusted.R.allFinite() || !adjusted.t.allFinite() ||
-            !std::isfinite(adjusted.s) || adjusted.s < 0.01 || adjusted.s > 100.0) {
+        const geometry::Sim3 adjusted =
+            candidate_coordinates * loop.verification.S_cw * current_coordinates.Inverse();
+        if (!adjusted.R.allFinite() || !adjusted.t.allFinite() || !std::isfinite(adjusted.s) ||
+            adjusted.s < 0.01 || adjusted.s > 100.0) {
             continue;
         }
 
@@ -412,8 +412,8 @@ bool LoopClosing::ApplyCorrections() {
         applied.push_back(correction);
         std::cout << "[LoopClosing] Applied global correction across frames "
                   << correction.matched_frame.id << ".." << correction.current_frame.id
-                  << " (inliers=" << correction.num_inliers
-                  << ", scale=" << correction.transform.s << ")\n";
+                  << " (inliers=" << correction.num_inliers << ", scale=" << correction.transform.s
+                  << ")\n";
     }
 
     if (applied.empty()) {

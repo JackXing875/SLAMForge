@@ -24,8 +24,8 @@ double Quantile(std::vector<double> values, double fraction) {
     if (values.empty()) {
         return 0.0;
     }
-    const size_t index = static_cast<size_t>(
-        std::clamp(fraction, 0.0, 1.0) * static_cast<double>(values.size() - 1));
+    const size_t index = static_cast<size_t>(std::clamp(fraction, 0.0, 1.0) *
+                                             static_cast<double>(values.size() - 1));
     std::nth_element(values.begin(), values.begin() + static_cast<std::ptrdiff_t>(index),
                      values.end());
     return values[index];
@@ -53,8 +53,7 @@ void RemoveCatastrophicOutliers(std::vector<Vec3>& positions) {
     }
     const double median_radius = Quantile(radii, 0.5);
     const double p90_radius = Quantile(std::move(radii), 0.9);
-    const double radius_limit =
-        std::max({1e-6, median_radius * 10.0, p90_radius * 5.0});
+    const double radius_limit = std::max({1e-6, median_radius * 10.0, p90_radius * 5.0});
 
     std::erase_if(positions, [&](const Vec3& position) {
         return !position.allFinite() || (position - center).norm() > radius_limit;

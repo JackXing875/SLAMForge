@@ -56,8 +56,7 @@ TEST(MapExport, RejectsCatastrophicFiniteOutlier) {
     slamforge::Map map;
     for (int i = 0; i < 30; ++i) {
         const double coordinate = static_cast<double>(i) * 0.01;
-        map.AddMapPoint(slamforge::Vec3(coordinate, coordinate * 0.5, 1.0),
-                        slamforge::FrameId{1});
+        map.AddMapPoint(slamforge::Vec3(coordinate, coordinate * 0.5, 1.0), slamforge::FrameId{1});
     }
     map.AddMapPoint(slamforge::Vec3(1e6, -2e6, 3e6), slamforge::FrameId{1});
 

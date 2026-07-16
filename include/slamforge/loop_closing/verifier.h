@@ -48,12 +48,12 @@ struct VerificationResult {
 
 /// @brief Configuration for LoopVerifier.
 struct LoopVerifierConfig {
-    int min_inliers = 6;              ///< Min inliers for valid loop
-    double max_reproj_error = 8.0;    ///< Max bidirectional reprojection error (pixels)
-    int min_boW_matches = 20;         ///< Min descriptor matches to attempt Sim3
-    int ransac_iterations = 300;      ///< RANSAC iterations for Sim3
-    double sim3_max_error_3d = 0.1;   ///< Minimum scale-adaptive 3D inlier gate
-    double descriptor_ratio = 0.75;   ///< Lowe ratio for ORB descriptor matching
+    int min_inliers = 6;             ///< Min inliers for valid loop
+    double max_reproj_error = 8.0;   ///< Max bidirectional reprojection error (pixels)
+    int min_boW_matches = 20;        ///< Min descriptor matches to attempt Sim3
+    int ransac_iterations = 300;     ///< RANSAC iterations for Sim3
+    double sim3_max_error_3d = 0.1;  ///< Minimum scale-adaptive 3D inlier gate
+    double descriptor_ratio = 0.75;  ///< Lowe ratio for ORB descriptor matching
 };
 
 /// @brief Geometrically verifies loop candidates using Sim(3) estimation.

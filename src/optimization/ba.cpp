@@ -82,8 +82,8 @@ struct PosePriorFunctor {
 
     template <typename T>
     bool operator()(const T* const q, const T* const t, T* residuals) const {
-        const T reference_inverse[4] = {T(rotation_.w()), T(-rotation_.x()),
-                                        T(-rotation_.y()), T(-rotation_.z())};
+        const T reference_inverse[4] = {T(rotation_.w()), T(-rotation_.x()), T(-rotation_.y()),
+                                        T(-rotation_.z())};
         T delta[4];
         ceres::QuaternionProduct(q, reference_inverse, delta);
         residuals[0] = T(2.0 * weight_) * delta[1];
@@ -137,10 +137,8 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
     // noisiest pose estimate.  If no external fixed keyframe exists, anchor a
     // second old pose as well to remove monocular scale gauge freedom.
     std::vector<KeyFrame*> anchor_candidates = local_kfs;
-    std::sort(anchor_candidates.begin(), anchor_candidates.end(), [](const KeyFrame* lhs,
-                                                                     const KeyFrame* rhs) {
-        return lhs->Id().id < rhs->Id().id;
-    });
+    std::sort(anchor_candidates.begin(), anchor_candidates.end(),
+              [](const KeyFrame* lhs, const KeyFrame* rhs) { return lhs->Id().id < rhs->Id().id; });
     std::unordered_set<KeyFrame*> anchored_local_kfs;
     anchored_local_kfs.insert(anchor_candidates.front());
     if (fixed_kfs.empty() && anchor_candidates.size() > 1) {
@@ -299,9 +297,8 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
                                                            data->second->q[2], data->second->q[3]);
                 const Vec3 original_translation(data->second->t[0], data->second->t[1],
                                                 data->second->t[2]);
-                auto* prior =
-                    new ceres::AutoDiffCostFunction<PosePriorFunctor, 6, 4, 3>(
-                        new PosePriorFunctor(original_rotation, original_translation));
+                auto* prior = new ceres::AutoDiffCostFunction<PosePriorFunctor, 6, 4, 3>(
+                    new PosePriorFunctor(original_rotation, original_translation));
                 problem.AddResidualBlock(prior, nullptr, data->second->q, data->second->t);
             }
             continue;

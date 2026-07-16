@@ -103,8 +103,7 @@ std::shared_ptr<KeyFrame> LoopDetector::Detect(std::shared_ptr<KeyFrame> current
         if (kf->Id() == current_kf->Id())
             continue;
         if (current_kf->Id().id <= kf->Id().id ||
-            current_kf->Id().id - kf->Id().id <
-                static_cast<uint64_t>(config_.min_frame_separation))
+            current_kf->Id().id - kf->Id().id < static_cast<uint64_t>(config_.min_frame_separation))
             continue;
         if (recent_ids.contains(kf->Id()))
             continue;
@@ -171,8 +170,7 @@ std::shared_ptr<KeyFrame> LoopDetector::DetectWithFallback(std::shared_ptr<KeyFr
         if (kf->Id() == current_kf->Id())
             continue;
         if (current_kf->Id().id <= kf->Id().id ||
-            current_kf->Id().id - kf->Id().id <
-                static_cast<uint64_t>(config_.min_frame_separation))
+            current_kf->Id().id - kf->Id().id < static_cast<uint64_t>(config_.min_frame_separation))
             continue;
         if (recent_ids.contains(kf->Id()))
             continue;

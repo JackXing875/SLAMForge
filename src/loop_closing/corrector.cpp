@@ -4,11 +4,11 @@
 
 #include "slamforge/loop_closing/corrector.h"
 
+#include <Eigen/Geometry>
+
 #include <algorithm>
 #include <cmath>
 #include <unordered_map>
-
-#include <Eigen/Geometry>
 
 #include "slamforge/core/keyframe.h"
 #include "slamforge/core/map.h"

@@ -750,8 +750,7 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     local_mapper.Start();
     if (verbose)
         std::cout << "Local mapping thread started"
-                  << (loop_closing ? "; loop closing queued for batch finalization" : "")
-                  << "\n\n";
+                  << (loop_closing ? "; loop closing queued for batch finalization" : "") << "\n\n";
 
     const auto stop_background_workers = [&] {
         // Drain local mapping first.  Loop correction is finalized only after
@@ -873,9 +872,9 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
 
     // Trajectory poses are buffered so a loop closure can correct every past
     // frame consistently, rather than only keyframes that still live in Map.
-    const auto loop_corrections =
-        loop_closing ? loop_closing->Corrections()
-                     : std::vector<slamforge::loop_closing::LoopCorrection>{};
+    const auto loop_corrections = loop_closing
+                                      ? loop_closing->Corrections()
+                                      : std::vector<slamforge::loop_closing::LoopCorrection>{};
     for (const TrackedPose& tracked_pose : tracked_poses) {
         slamforge::SE3 corrected_pose = tracked_pose.Tcw;
         for (const auto& loop_correction : loop_corrections) {
@@ -884,7 +883,8 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
             corrected_pose =
                 slamforge::loop_closing::ApplyLoopCorrectionToPose(corrected_pose, interpolated);
         }
-        if (!WriteTrajectoryPose(traj_file, corrected_pose, tracked_pose.timestamp, output_format)) {
+        if (!WriteTrajectoryPose(traj_file, corrected_pose, tracked_pose.timestamp,
+                                 output_format)) {
             std::cerr << "Error: failed to write trajectory output\n";
             return EXIT_FAILURE;
         }
@@ -915,8 +915,8 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     std::cout << "\n══════════════════════════════════════════════\n";
     std::cout << "  Tracking complete\n";
     std::cout << "  Frames:     " << frame_count << "\n";
-    std::cout << "  Poses:      " << tracked_poses.size() << " ("
-              << std::fixed << std::setprecision(1)
+    std::cout << "  Poses:      " << tracked_poses.size() << " (" << std::fixed
+              << std::setprecision(1)
               << 100.0 * static_cast<double>(tracked_poses.size()) /
                      static_cast<double>(frame_count)
               << "%)\n";

@@ -396,7 +396,8 @@ bool Tracker::TrackWithMotionModel() {
         if (inlier_idx < 0 || inlier_idx >= static_cast<int>(matched_mps.size()))
             continue;
         const auto& mp = matched_mps[static_cast<size_t>(inlier_idx)];
-        current_frame_->SetMapPointId(matched_kp_indices[static_cast<size_t>(inlier_idx)], mp->Id());
+        current_frame_->SetMapPointId(matched_kp_indices[static_cast<size_t>(inlier_idx)],
+                                      mp->Id());
         mp->IncreaseFound();
         mp->SetFound(true);
     }
@@ -553,7 +554,8 @@ bool Tracker::TrackReferenceKeyFrame() {
         if (inlier_idx < 0 || inlier_idx >= static_cast<int>(matched_mps.size()))
             continue;
         const auto& mp = matched_mps[static_cast<size_t>(inlier_idx)];
-        current_frame_->SetMapPointId(matched_kp_indices[static_cast<size_t>(inlier_idx)], mp->Id());
+        current_frame_->SetMapPointId(matched_kp_indices[static_cast<size_t>(inlier_idx)],
+                                      mp->Id());
         mp->IncreaseVisible();
         mp->IncreaseFound();
         mp->SetFound(true);
@@ -689,9 +691,8 @@ bool Tracker::TrackRelativeMotion() {
     }
 
     cv::Mat inlier_mask;
-    const cv::Mat essential =
-        cv::findEssentialMat(previous_undistorted, current_undistorted, BuildK(), cv::RANSAC,
-                             0.999, 1.5, inlier_mask);
+    const cv::Mat essential = cv::findEssentialMat(previous_undistorted, current_undistorted,
+                                                   BuildK(), cv::RANSAC, 0.999, 1.5, inlier_mask);
     if (essential.empty()) {
         return false;
     }
@@ -1083,8 +1084,7 @@ bool Tracker::EstimatePose(const std::vector<cv::Point3f>& pts_3d,
         }
 
         const Mat3 rotation_delta = refined_pose.rotation() * pose_guess.rotation().transpose();
-        const double cosine =
-            std::clamp((rotation_delta.trace() - 1.0) * 0.5, -1.0, 1.0);
+        const double cosine = std::clamp((rotation_delta.trace() - 1.0) * 0.5, -1.0, 1.0);
         if (std::acos(cosine) > 25.0 * std::numbers::pi_v<double> / 180.0) {
             return false;
         }
@@ -1105,7 +1105,8 @@ bool Tracker::EstimatePose(const std::vector<cv::Point3f>& pts_3d,
         }
 
         SE3 world_from_blended = SE3::Identity();
-        world_from_blended.linear() = guess_rotation.slerp(0.5, measured_rotation).toRotationMatrix();
+        world_from_blended.linear() =
+            guess_rotation.slerp(0.5, measured_rotation).toRotationMatrix();
         world_from_blended.translation() =
             0.5 * world_from_guess.translation() + 0.5 * world_from_measurement.translation();
         published_pose = world_from_blended.inverse();
