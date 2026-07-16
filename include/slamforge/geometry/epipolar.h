@@ -53,6 +53,7 @@ struct EpipolarOptions {
 /// @param E      Essential matrix (3x3)
 /// @param pts1   2D points in camera 1 (normalized)
 /// @param pts2   2D points in camera 2 (normalized)
+/// @param K      Camera intrinsic matrix (3x3)
 /// @param R_out  Output rotation matrix
 /// @param t_out  Output translation vector
 /// @param mask_inout  Output inlier mask (Nx1, CV_8UC1)
