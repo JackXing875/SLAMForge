@@ -1,0 +1,52 @@
+packaging/windows/README.txt
+  s_b39884776f0393::t_92f0f9beea8424 1
+README.md
+  s_b39884776f0393::t_5d990975a77e84 20-21
+include/slamforge/version.h.in
+  s_b39884776f0393::t_92f0f9beea8424 23
+docs/desktop.md
+  s_b39884776f0393::t_5d990975a77e84 13,22-23
+README_ch.md
+  s_b39884776f0393::t_5d990975a77e84 20-21
+.github/workflows/desktop.yml
+  s_b39884776f0393::t_92f0f9beea8424 37,152,259
+CHANGELOG.md
+  s_b39884776f0393::t_a891b9543dea6d 5-22
+packaging/linux/org.slamforge.SLAMForge.appdata.xml
+  s_b39884776f0393::t_a891b9543dea6d 27-31
+THIRD_PARTY_NOTICES.md
+  s_b39884776f0393::t_92f0f9beea8424 22
+docs/releases/v3.2.0-beta.2.md
+  s_b39884776f0393::t_a891b9543dea6d 1-46
+Doxyfile
+  s_b39884776f0393::t_92f0f9beea8424 5
+.github/workflows/release.yml
+  s_b39884776f0393::t_92f0f9beea8424 12,122,230
+packaging/windows/vcpkg.json
+  s_b39884776f0393::t_92f0f9beea8424 3
+  s_b39884776f0393::t_96a5f54a689fd5 22-25
+  s_b39884776f0393::t_80fb9c91c144de 21
+CMakeLists.txt
+  s_b39884776f0393::t_92f0f9beea8424 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "9178e97492296823cf580ea8b9482f01c5ecd368",
+  "prompts": {},
+  "humans": {
+    "h_a1ee18d6ec0670": {
+      "author": "Schrieffer <xjack875@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
