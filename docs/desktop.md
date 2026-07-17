@@ -10,7 +10,7 @@ remain on the local machine.
 
 ## Download
 
-The `v3.2.0-beta.1` GitHub Release provides:
+The `v3.2.0-beta.2` GitHub Release provides:
 
 - a Windows x64 portable ZIP;
 - a Linux x86_64 AppImage.
@@ -19,8 +19,8 @@ Windows users must extract the complete archive before running `SLAMForge Deskto
 can launch the AppImage after making it executable:
 
 ```bash
-chmod +x SLAMForge-Desktop-3.2.0-beta.1-Linux-x86_64.AppImage
-./SLAMForge-Desktop-3.2.0-beta.1-Linux-x86_64.AppImage
+chmod +x SLAMForge-Desktop-3.2.0-beta.2-Linux-x86_64.AppImage
+./SLAMForge-Desktop-3.2.0-beta.2-Linux-x86_64.AppImage
 ```
 
 ## Build from source

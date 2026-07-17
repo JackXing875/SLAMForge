@@ -20,7 +20,7 @@ constexpr int kVersionMinor = @SLAMForge_VERSION_MINOR@;
 /// Patch version number.
 constexpr int kVersionPatch = @SLAMForge_VERSION_PATCH@;
 
-/// Full version string (e.g., "3.2.0-beta.1").
+/// Full version string (e.g., "3.2.0-beta.2").
 constexpr const char* kVersionString = "@SLAMFORGE_VERSION_STRING@";
 
 }  // namespace slamforge

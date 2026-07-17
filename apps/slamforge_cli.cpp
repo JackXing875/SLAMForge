@@ -14,6 +14,10 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 
+#ifdef SLAMFORGE_HAS_CERES
+#include <ceres/version.h>
+#endif
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -47,6 +51,25 @@ namespace fs = std::filesystem;
 namespace {
 
 fs::path executable_directory;
+
+std::string BuildVersionDescription() {
+    std::ostringstream description;
+    description << "SLAMForge " << slamforge::kVersionString << " | OpenCV " << CV_VERSION;
+#ifdef SLAMFORGE_HAS_CERES
+    description << " | Ceres " << CERES_VERSION_MAJOR << '.' << CERES_VERSION_MINOR << '.'
+                << CERES_VERSION_REVISION;
+#else
+    description << " | Ceres disabled";
+#endif
+#if defined(_MSC_VER)
+    description << " | MSVC " << _MSC_VER;
+#elif defined(__clang__)
+    description << " | Clang " << __clang_major__ << '.' << __clang_minor__;
+#elif defined(__GNUC__)
+    description << " | GCC " << __GNUC__ << '.' << __GNUC_MINOR__;
+#endif
+    return description.str();
+}
 
 fs::path ResolveDepthModel(const std::string& requested_path) {
     if (!requested_path.empty()) {
@@ -707,7 +730,12 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
 
     cv::VideoCapture video_cap;
     if (is_video) {
-        video_cap.open(input_path);
+        // Desktop release packages contain FFmpeg on both Linux and Windows.
+        // Prefer it explicitly so Windows does not silently select MSMF and
+        // feed a different color-conversion path to the feature extractor.
+        if (!video_cap.open(input_path, cv::CAP_FFMPEG)) {
+            video_cap.open(input_path, cv::CAP_ANY);
+        }
         if (!video_cap.isOpened()) {
             std::cerr << "Error: cannot open video " << input_path << "\n";
             return EXIT_FAILURE;
@@ -745,7 +773,7 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     }
 
     // ── Print header ───────────────────────────────────────────────────────
-    std::cout << "SLAMForge v" << slamforge::kVersionString << "\n";
+    std::cout << BuildVersionDescription() << "\n";
     std::cout << "Config:  " << config_path << "\n";
     std::cout << "Input:   " << input_path << " (" << (is_video ? "video" : "images") << ", "
               << total_frames << " frames)\n";
@@ -754,6 +782,10 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     std::cout << "Camera:  " << cfg.camera.width << "x" << cfg.camera.height
               << "  fx=" << cfg.camera.fx << "\n";
     std::cout << "FPS:     " << effective_fps << "\n\n";
+    if (is_video) {
+        std::cout << "Decoder: " << video_cap.getBackendName() << " (OpenCV " << CV_VERSION
+                  << ")\n\n";
+    }
     if (!image_timestamps.empty()) {
         std::cout << "Timestamps: " << timestamp_path << "\n\n";
     }
@@ -1123,7 +1155,7 @@ static int BenchSubcommand(CLI::App* bench_cmd) {
 int main(int argc, char* argv[]) {
     executable_directory = ResolveExecutableDirectory(argc > 0 ? argv[0] : nullptr);
     CLI::App app{"SLAMForge — Monocular Visual SLAM and Dense Reconstruction"};
-    app.set_version_flag("--version", slamforge::kVersionString);
+    app.set_version_flag("--version", BuildVersionDescription());
     app.require_subcommand(1);
 
     // ── Set up subcommands ──────────────────────────────────────────────────

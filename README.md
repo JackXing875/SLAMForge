@@ -17,8 +17,8 @@ map. Its tracking and mapping architecture is modeled after **ORB-SLAM3**.
 
 ### Desktop beta — no development environment required
 
-Download `SLAMForge Desktop 3.2.0-beta.1` from the
-[GitHub Releases page](https://github.com/JackXing875/SLAMForge/releases/tag/v3.2.0-beta.1):
+Download `SLAMForge Desktop 3.2.0-beta.2` from the
+[GitHub Releases page](https://github.com/JackXing875/SLAMForge/releases/tag/v3.2.0-beta.2):
 
 - **Windows x64:** extract the ZIP, then run `SLAMForge Desktop.exe`.
 - **Linux x86_64:** make the AppImage executable, then launch it.

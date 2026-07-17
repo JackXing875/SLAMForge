@@ -34,7 +34,7 @@ permissions:
   contents: read
 
 env:
-  DESKTOP_VERSION: 3.2.0-beta.1
+  DESKTOP_VERSION: 3.2.0-beta.2
   ONNXRUNTIME_VERSION: 1.27.1
   DEPTH_MODEL_URL: https://github.com/fabio-sim/Depth-Anything-ONNX/releases/download/v2.0.0/depth_anything_v2_vits_dynamic.onnx
 
@@ -149,7 +149,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slamforge-desktop-linux-x86-64
-          path: dist/SLAMForge-Desktop-3.2.0-beta.1-Linux-x86_64.AppImage
+          path: dist/SLAMForge-Desktop-3.2.0-beta.2-Linux-x86_64.AppImage
           if-no-files-found: error
 
   windows-desktop:
@@ -246,10 +246,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Packaged CLI smoke test failed with exit code $LASTEXITCODE"
           }
+          $version = & "$package/slamforge_cli.exe" --version
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch 'OpenCV 4\.6\.0') {
+            throw "Windows package must use the validated OpenCV 4.6.0 runtime; got: $version"
+          }
+          Write-Host $version
 
       - name: Upload Windows beta artifact
         uses: actions/upload-artifact@v4
         with:
           name: slamforge-desktop-windows-x64
-          path: dist/SLAMForge-Desktop-3.2.0-beta.1-Windows-x64.zip
+          path: dist/SLAMForge-Desktop-3.2.0-beta.2-Windows-x64.zip
           if-no-files-found: error

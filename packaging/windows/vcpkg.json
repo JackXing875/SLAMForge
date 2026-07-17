@@ -1,6 +1,6 @@
 {
   "name": "slamforge-desktop-dependencies",
-  "version-string": "3.2.0-beta.1",
+  "version-string": "3.2.0-beta.2",
   "builtin-baseline": "ef7dbf94b9198bc58f45951adcf1f041fcbc5ea0",
   "dependencies": [
     "ceres",
@@ -9,17 +9,24 @@
       "name": "opencv4",
       "default-features": false,
       "features": [
-        "calib3d",
-        "dshow",
         "ffmpeg",
-        "intrinsics",
         "jpeg",
-        "msmf",
-        "png",
-        "thread"
+        "png"
       ]
     },
     "spdlog",
     "yaml-cpp"
+  ],
+  "overrides": [
+    {
+      "name": "ffmpeg",
+      "version": "4.4.3",
+      "port-version": 0
+    },
+    {
+      "name": "opencv4",
+      "version": "4.6.0",
+      "port-version": 10
+    }
   ]
 }

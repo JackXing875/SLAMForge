@@ -17,8 +17,8 @@
 
 ### 桌面 Beta——无需开发环境
 
-从 [GitHub Releases](https://github.com/JackXing875/SLAMForge/releases/tag/v3.2.0-beta.1)
-下载 `SLAMForge Desktop 3.2.0-beta.1`：
+从 [GitHub Releases](https://github.com/JackXing875/SLAMForge/releases/tag/v3.2.0-beta.2)
+下载 `SLAMForge Desktop 3.2.0-beta.2`：
 
 - **Windows x64：**解压 ZIP，然后双击 `SLAMForge Desktop.exe`。
 - **Linux x86_64：**给 AppImage 添加执行权限后直接启动。
