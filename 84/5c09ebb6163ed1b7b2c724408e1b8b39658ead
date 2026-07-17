@@ -1,0 +1,24 @@
+.github/workflows/desktop.yml
+  s_b39884776f0393::t_73826749dfb7e7 36-40,67-78,88,90-92,108,136,145,152,172-189,212,214-216,230-232,237,254
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "845c09ebb6163ed1b7b2c724408e1b8b39658ead",
+  "prompts": {},
+  "humans": {
+    "h_a1ee18d6ec0670": {
+      "author": "Schrieffer <xjack875@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
