@@ -1,0 +1,33 @@
+apps/slamforge_cli.cpp
+  s_b39884776f0393::t_a55c44baa3d34b 733-738,785-788
+  s_b39884776f0393::t_750f39bff0a932 17-20,55-72,776,1158
+  s_b39884776f0393::t_4f9e79c428b383 73
+packaging/windows/vcpkg.json
+  s_b39884776f0393::t_89a8127532f5fe 19-25
+  s_b39884776f0393::t_4ee3bdb978ad63 14
+.github/workflows/release.yml
+  s_b39884776f0393::t_9b60de76e19bdd 220-224
+.github/workflows/desktop.yml
+  s_b39884776f0393::t_9b60de76e19bdd 249-253
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "64c08b9586309a447192ef3e147b0af598aace9c",
+  "prompts": {},
+  "humans": {
+    "h_a1ee18d6ec0670": {
+      "author": "Schrieffer <xjack875@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
