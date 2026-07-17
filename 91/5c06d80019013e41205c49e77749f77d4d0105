@@ -1,0 +1,28 @@
+include/slamforge/mapping/dense_mapper.h
+  s_b39884776f0393::t_32669225f0bf50 75
+src/mapping/dense_mapper.cpp
+  s_b39884776f0393::t_32669225f0bf50 161-162,185-187,213-220,241,278,326-331,373-374,389-390,420,422-423,445-447,495-496,532,569-570
+tests/unit/test_dense_mapper.cpp
+  s_b39884776f0393::t_32669225f0bf50 52-53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "915c06d80019013e41205c49e77749f77d4d0105",
+  "prompts": {},
+  "humans": {
+    "h_a1ee18d6ec0670": {
+      "author": "Schrieffer <xjack875@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
