@@ -431,7 +431,7 @@ DepthCalibration CalibrateRelativeDepth(const std::vector<DepthAnchor>& anchors,
 }
 
 DenseMapper::DenseMapper(const Camera& camera, DenseMappingConfig config)
-    : camera_(camera), config_(std::move(config)) {}
+    : camera_(camera), config_(config) {}
 
 bool DenseMapper::RuntimeAvailable() noexcept {
 #ifdef SLAMFORGE_HAS_ONNXRUNTIME
