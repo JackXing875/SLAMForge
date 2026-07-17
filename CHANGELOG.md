@@ -2,6 +2,24 @@
 
 All notable changes to SLAMForge will be documented in this file.
 
+## [3.2.0-beta.2] — 2026-07-17
+
+### Changed
+
+- Aligned the Windows desktop package with the validated Linux video-processing baseline by
+  pinning OpenCV 4.6.0 and its historically compatible FFmpeg 4.4.3 runtime.
+- Made video input prefer the FFmpeg backend on every desktop platform, with automatic backend
+  fallback only when FFmpeg cannot open the source.
+- Expanded CLI and run diagnostics to report the SLAMForge, OpenCV, Ceres, compiler, and active
+  video-backend versions.
+
+### Packaging
+
+- Added Windows package smoke validation that rejects a release if it resolves an unexpected
+  OpenCV runtime.
+- Kept the SLAM algorithm unchanged from beta.1 so this release isolates platform and decoder
+  differences during Windows-versus-Linux evaluation.
+
 ## [3.2.0-beta.1] — 2026-07-17
 
 ### Added

@@ -19,7 +19,7 @@ the authoritative source for their complete notices and dependency trees.
 | Microsoft ONNX Runtime | Local neural-network inference | MIT |
 
 The optional Sophus, g2o, and FBOW backends are source-tree capabilities but are not enabled in the
-`3.2.0-beta.1` desktop binaries. GoogleTest and other test/build tools are not shipped as runtime
+`3.2.0-beta.2` desktop binaries. GoogleTest and other test/build tools are not shipped as runtime
 components.
 
 Only the Apache-2.0 Depth Anything V2 Small weights are distributed. The differently licensed

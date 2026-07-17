@@ -1,4 +1,4 @@
-SLAMForge Desktop 3.2.0-beta.1
+SLAMForge Desktop 3.2.0-beta.2
 ================================
 
 QUICK START

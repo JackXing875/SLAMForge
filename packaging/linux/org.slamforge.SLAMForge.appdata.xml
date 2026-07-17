@@ -24,6 +24,11 @@
   <url type="homepage">https://github.com/JackXing875/SLAMForge</url>
   <url type="bugtracker">https://github.com/JackXing875/SLAMForge/issues</url>
   <releases>
+    <release version="3.2.0-beta.2" date="2026-07-17">
+      <description>
+        <p>Cross-platform OpenCV and FFmpeg runtime alignment with explicit build diagnostics.</p>
+      </description>
+    </release>
     <release version="3.2.0-beta.1" date="2026-07-17">
       <description>
         <p>First dense surface reconstruction beta with offline neural depth fusion.</p>
