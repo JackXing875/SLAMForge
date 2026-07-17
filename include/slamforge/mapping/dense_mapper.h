@@ -72,8 +72,7 @@ public:
     [[nodiscard]] static bool RuntimeAvailable() noexcept;
 
     [[nodiscard]] DenseReconstructionResult Reconstruct(
-        Map& map, const std::filesystem::path& model_path,
-        const std::filesystem::path& output_path,
+        Map& map, const std::filesystem::path& model_path, const std::filesystem::path& output_path,
         const ProgressCallback& progress = ProgressCallback{}) const;
 
 private:

@@ -158,8 +158,8 @@ cv::Mat ColorForKeyFrame(const KeyFrame& keyframe, int output_width) {
         cv::cvtColor(keyframe.Image(), color, cv::COLOR_GRAY2BGR);
     }
     const int width = std::max(32, output_width);
-    const int height = std::max(24, static_cast<int>(std::lround(
-                                        static_cast<double>(color.rows) * width / color.cols)));
+    const int height = std::max(
+        24, static_cast<int>(std::lround(static_cast<double>(color.rows) * width / color.cols)));
     cv::Mat resized;
     cv::resize(color, resized, cv::Size(width, height), 0.0, 0.0, cv::INTER_AREA);
     return resized;
@@ -182,9 +182,9 @@ std::vector<std::shared_ptr<KeyFrame>> SelectKeyFrames(Map& map, int maximum) {
     selected.reserve(static_cast<size_t>(count));
     size_t previous = candidates.size();
     for (int index = 0; index < count; ++index) {
-        const size_t candidate_index = static_cast<size_t>(std::llround(
-            static_cast<double>(index) * static_cast<double>(candidates.size() - 1) /
-            static_cast<double>(count - 1)));
+        const size_t candidate_index = static_cast<size_t>(
+            std::llround(static_cast<double>(index) * static_cast<double>(candidates.size() - 1) /
+                         static_cast<double>(count - 1)));
         if (candidate_index != previous) {
             selected.push_back(candidates[candidate_index]);
             previous = candidate_index;
@@ -210,14 +210,14 @@ std::vector<DepthAnchor> BuildAnchors(const KeyFrame& keyframe, Map& map,
             continue;
         }
         const cv::Point2f pixel = keypoints[static_cast<size_t>(feature)].pt;
-        const int x = std::clamp(static_cast<int>(std::lround(
-                                     static_cast<double>(pixel.x) * prediction.cols /
-                                     keyframe.GetCamera().width())),
-                                 0, prediction.cols - 1);
-        const int y = std::clamp(static_cast<int>(std::lround(
-                                     static_cast<double>(pixel.y) * prediction.rows /
-                                     keyframe.GetCamera().height())),
-                                 0, prediction.rows - 1);
+        const int x =
+            std::clamp(static_cast<int>(std::lround(static_cast<double>(pixel.x) * prediction.cols /
+                                                    keyframe.GetCamera().width())),
+                       0, prediction.cols - 1);
+        const int y =
+            std::clamp(static_cast<int>(std::lround(static_cast<double>(pixel.y) * prediction.rows /
+                                                    keyframe.GetCamera().height())),
+                       0, prediction.rows - 1);
         const float model_value = prediction.at<float>(y, x);
         if (std::isfinite(model_value)) {
             anchors.push_back({static_cast<double>(model_value), camera_point.z()});
@@ -238,8 +238,7 @@ struct DenseFrame {
 class DepthNetwork {
 public:
     explicit DepthNetwork(const std::filesystem::path& model_path)
-        : environment_(ORT_LOGGING_LEVEL_WARNING, "slamforge-dense"),
-          session_(nullptr) {
+        : environment_(ORT_LOGGING_LEVEL_WARNING, "slamforge-dense"), session_(nullptr) {
         Ort::SessionOptions options;
         options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
         const unsigned int hardware_threads = std::thread::hardware_concurrency();
@@ -276,7 +275,7 @@ public:
         std::array<int64_t, 4> shape{1, 3, model_size, model_size};
         auto memory = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
         auto tensor = Ort::Value::CreateTensor<float>(memory, input.data(), input.size(),
-                                                       shape.data(), shape.size());
+                                                      shape.data(), shape.size());
         constexpr std::array<const char*, 1> input_names{"image"};
         constexpr std::array<const char*, 1> output_names{"depth"};
         auto outputs = session_.Run(Ort::RunOptions{nullptr}, input_names.data(), &tensor, 1,
@@ -324,12 +323,12 @@ std::optional<bool> ConsistentInFrame(const Vec3& world_point, const DenseFrame&
     if (!camera.IsInImage(pixel, 2)) {
         return std::nullopt;
     }
-    const int x = std::clamp(static_cast<int>(std::lround(
-                                 pixel.x() * other.depth.cols / camera.width())),
-                             0, other.depth.cols - 1);
-    const int y = std::clamp(static_cast<int>(std::lround(
-                                 pixel.y() * other.depth.rows / camera.height())),
-                             0, other.depth.rows - 1);
+    const int x =
+        std::clamp(static_cast<int>(std::lround(pixel.x() * other.depth.cols / camera.width())), 0,
+                   other.depth.cols - 1);
+    const int y =
+        std::clamp(static_cast<int>(std::lround(pixel.y() * other.depth.rows / camera.height())), 0,
+                   other.depth.rows - 1);
     const float reference_depth = other.depth.at<float>(y, x);
     if (!std::isfinite(reference_depth) || reference_depth <= 1e-6F) {
         return std::nullopt;
@@ -371,8 +370,8 @@ struct OutputPoint {
     VoxelKey key;
 };
 
-bool WriteDensePly(const std::filesystem::path& output_path,
-                   const std::vector<OutputPoint>& points, std::string& error) {
+bool WriteDensePly(const std::filesystem::path& output_path, const std::vector<OutputPoint>& points,
+                   std::string& error) {
     std::ofstream output(output_path, std::ios::out | std::ios::trunc);
     if (!output.is_open()) {
         error = "cannot open dense map output '" + output_path.string() + "'";
@@ -387,8 +386,8 @@ bool WriteDensePly(const std::filesystem::path& output_path,
            << "property float confidence\nend_header\n";
     output << std::setprecision(9);
     for (const OutputPoint& point : points) {
-        output << point.position.x() << ' ' << point.position.y() << ' ' << point.position.z() << ' '
-               << point.rgb[0] << ' ' << point.rgb[1] << ' ' << point.rgb[2] << ' '
+        output << point.position.x() << ' ' << point.position.y() << ' ' << point.position.z()
+               << ' ' << point.rgb[0] << ' ' << point.rgb[1] << ' ' << point.rgb[2] << ' '
                << point.confidence << '\n';
     }
     if (!output) {
@@ -418,12 +417,10 @@ DepthCalibration CalibrateRelativeDepth(const std::vector<DepthAnchor>& anchors,
     if (anchors.size() < static_cast<size_t>(std::max(3, minimum_samples))) {
         return {};
     }
-    DepthCalibration inverse =
-        EvaluateHypothesis(anchors, DepthCalibration::Mode::kInverseDepth);
+    DepthCalibration inverse = EvaluateHypothesis(anchors, DepthCalibration::Mode::kInverseDepth);
     DepthCalibration direct = EvaluateHypothesis(anchors, DepthCalibration::Mode::kDirectDepth);
-    DepthCalibration best = inverse.median_relative_error <= direct.median_relative_error
-                                ? inverse
-                                : direct;
+    DepthCalibration best =
+        inverse.median_relative_error <= direct.median_relative_error ? inverse : direct;
     const int minimum_inliers = std::max(6, minimum_samples / 2);
     if (!best.valid() || best.median_relative_error > maximum_median_error ||
         best.inlier_count < minimum_inliers || !std::isfinite(best.minimum_depth) ||
@@ -445,9 +442,9 @@ bool DenseMapper::RuntimeAvailable() noexcept {
 }
 
 DenseReconstructionResult DenseMapper::Reconstruct(Map& map,
-                                                    const std::filesystem::path& model_path,
-                                                    const std::filesystem::path& output_path,
-                                                    const ProgressCallback& progress) const {
+                                                   const std::filesystem::path& model_path,
+                                                   const std::filesystem::path& output_path,
+                                                   const ProgressCallback& progress) const {
     DenseReconstructionResult result;
 #ifndef SLAMFORGE_HAS_ONNXRUNTIME
     (void)map;
@@ -495,9 +492,8 @@ DenseReconstructionResult DenseMapper::Reconstruct(Map& map,
                 continue;
             }
             const auto anchors = BuildAnchors(*frame.keyframe, map, frame.prediction);
-            frame.calibration =
-                CalibrateRelativeDepth(anchors, config_.min_sparse_samples,
-                                       config_.max_calibration_error);
+            frame.calibration = CalibrateRelativeDepth(anchors, config_.min_sparse_samples,
+                                                       config_.max_calibration_error);
             if (frame.calibration.valid()) {
                 frame.depth = CalibratedDepth(frame.prediction, frame.calibration);
                 ++result.calibrated_keyframes;
@@ -533,8 +529,7 @@ DenseReconstructionResult DenseMapper::Reconstruct(Map& map,
             for (int y = pixel_stride; y + pixel_stride < frame.depth.rows; y += pixel_stride) {
                 const float* depth_row = frame.depth.ptr<float>(y);
                 const auto* color_row = frame.color.ptr<cv::Vec3b>(y);
-                for (int x = pixel_stride; x + pixel_stride < frame.depth.cols;
-                     x += pixel_stride) {
+                for (int x = pixel_stride; x + pixel_stride < frame.depth.cols; x += pixel_stride) {
                     const float depth = depth_row[x];
                     if (!std::isfinite(depth) || depth <= 1e-6F) {
                         continue;
@@ -571,7 +566,8 @@ DenseReconstructionResult DenseMapper::Reconstruct(Map& map,
                     int supporting_views = 0;
                     for (const int offset : {-1, 1}) {
                         const int neighbor_index = static_cast<int>(frame_index) + offset;
-                        if (neighbor_index < 0 || neighbor_index >= static_cast<int>(frames.size()) ||
+                        if (neighbor_index < 0 ||
+                            neighbor_index >= static_cast<int>(frames.size()) ||
                             frames[static_cast<size_t>(neighbor_index)].depth.empty()) {
                             continue;
                         }

@@ -49,8 +49,8 @@ TEST(DenseDepthCalibrationTest, RejectsInsufficientOrInconsistentAnchors) {
 
     std::vector<DepthAnchor> inconsistent;
     for (int index = 0; index < 30; ++index) {
-        inconsistent.push_back({static_cast<double>(index % 3),
-                                0.5 + static_cast<double>((index * 17) % 29)});
+        inconsistent.push_back(
+            {static_cast<double>(index % 3), 0.5 + static_cast<double>((index * 17) % 29)});
     }
     EXPECT_FALSE(CalibrateRelativeDepth(inconsistent, 20, 0.05).valid());
 }
