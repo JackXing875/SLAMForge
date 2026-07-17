@@ -33,6 +33,11 @@ on:
 permissions:
   contents: read
 
+env:
+  DESKTOP_VERSION: 3.2.0-beta.1
+  ONNXRUNTIME_VERSION: 1.27.1
+  DEPTH_MODEL_URL: https://github.com/fabio-sim/Depth-Anything-ONNX/releases/download/v2.0.0/depth_anything_v2_vits_dynamic.onnx
+
 jobs:
   linux-desktop:
     name: "Ubuntu 22.04 / Qt 6"
@@ -59,6 +64,18 @@ jobs:
             libyaml-cpp-dev \
             qt6-base-dev
 
+      - name: Download pinned dense reconstruction runtime and model
+        run: |
+          curl --fail --location --retry 3 \
+            --output onnxruntime-linux-x64.tgz \
+            "https://github.com/microsoft/onnxruntime/releases/download/v${ONNXRUNTIME_VERSION}/onnxruntime-linux-x64-${ONNXRUNTIME_VERSION}.tgz"
+          curl --fail --location --retry 3 \
+            --output depth_anything_v2_vits_dynamic.onnx \
+            "$DEPTH_MODEL_URL"
+          echo "25b1ef1fea1acd210d63f8f24dc870ad6e077795ce1f54876252c6d3803c15af  onnxruntime-linux-x64.tgz" | sha256sum --check -
+          echo "46c4e8eeda3a27f34701831b6a2ec7753d7b38779b215acb5633424703deed8f  depth_anything_v2_vits_dynamic.onnx" | sha256sum --check -
+          tar -xzf onnxruntime-linux-x64.tgz
+
       - name: Configure desktop build
         run: |
           cmake -B build-desktop \
@@ -68,8 +85,11 @@ jobs:
             -DSLAMFORGE_BUILD_DESKTOP=ON \
             -DSLAMFORGE_ENABLE_SOPHUS=OFF \
             -DSLAMFORGE_ENABLE_CERES=ON \
+            -DSLAMFORGE_ENABLE_DENSE=ON \
             -DSLAMFORGE_ENABLE_G2O=OFF \
-            -DSLAMFORGE_ENABLE_FBOW=OFF
+            -DSLAMFORGE_ENABLE_FBOW=OFF \
+            -DONNXRUNTIME_ROOT="${{ github.workspace }}/onnxruntime-linux-x64-${ONNXRUNTIME_VERSION}" \
+            -DSLAMFORGE_DEPTH_MODEL_FILE="${{ github.workspace }}/depth_anything_v2_vits_dynamic.onnx"
 
       - name: Build desktop application
         run: >-
@@ -85,6 +105,7 @@ jobs:
         run: |
           test -x "${{ runner.temp }}/slamforge/bin/slamforge_cli"
           test -f "${{ runner.temp }}/slamforge/share/slamforge/config/kitti.yaml"
+          test -f "${{ runner.temp }}/slamforge/share/slamforge/models/depth_anything_v2_vits_dynamic.onnx"
           "${{ runner.temp }}/slamforge/bin/slamforge_desktop" \
             --smoke-result tests/data/desktop-result
 
@@ -112,7 +133,7 @@ jobs:
       - name: Package AppImage
         run: |
           ./packaging/linux/package-appimage.sh \
-            build-desktop dist 3.1.0-beta.1 \
+            build-desktop dist "$DESKTOP_VERSION" \
             deployment-tools/linuxdeploy-x86_64.AppImage \
             deployment-tools/runtime-x86_64
 
@@ -121,14 +142,14 @@ jobs:
           APPIMAGE_EXTRACT_AND_RUN: '1'
           QT_QPA_PLATFORM: offscreen
         run: |
-          dist/SLAMForge-Desktop-3.1.0-beta.1-Linux-x86_64.AppImage \
+          dist/SLAMForge-Desktop-${DESKTOP_VERSION}-Linux-x86_64.AppImage \
             --smoke-result tests/data/desktop-result
 
       - name: Upload Linux beta artifact
         uses: actions/upload-artifact@v4
         with:
           name: slamforge-desktop-linux-x86-64
-          path: dist/SLAMForge-Desktop-3.1.0-beta.1-Linux-x86_64.AppImage
+          path: dist/SLAMForge-Desktop-3.2.0-beta.1-Linux-x86_64.AppImage
           if-no-files-found: error
 
   windows-desktop:
@@ -147,6 +168,24 @@ jobs:
           version: '6.8.3'
           arch: 'win64_msvc2022_64'
           cache: true
+
+      - name: Download pinned dense reconstruction runtime and model
+        shell: pwsh
+        run: |
+          Invoke-WebRequest `
+            -Uri "https://github.com/microsoft/onnxruntime/releases/download/v$env:ONNXRUNTIME_VERSION/onnxruntime-win-x64-$env:ONNXRUNTIME_VERSION.zip" `
+            -OutFile onnxruntime-win-x64.zip
+          Invoke-WebRequest -Uri $env:DEPTH_MODEL_URL `
+            -OutFile depth_anything_v2_vits_dynamic.onnx
+          if ((Get-FileHash onnxruntime-win-x64.zip -Algorithm SHA256).Hash.ToLower() -ne `
+              "2e00414a63fdef0914cd5a5ede6c707844878e0c08e1b6693842f0451b2df2a1") {
+            throw "ONNX Runtime archive checksum mismatch"
+          }
+          if ((Get-FileHash depth_anything_v2_vits_dynamic.onnx -Algorithm SHA256).Hash.ToLower() -ne `
+              "46c4e8eeda3a27f34701831b6a2ec7753d7b38779b215acb5633424703deed8f") {
+            throw "Depth model checksum mismatch"
+          }
+          Expand-Archive onnxruntime-win-x64.zip -DestinationPath onnxruntime
 
       - name: Cache vcpkg binaries
         uses: actions/cache@v4
@@ -170,8 +209,11 @@ jobs:
             -DSLAMFORGE_BUILD_DESKTOP=ON `
             -DSLAMFORGE_ENABLE_SOPHUS=OFF `
             -DSLAMFORGE_ENABLE_CERES=ON `
+            -DSLAMFORGE_ENABLE_DENSE=ON `
             -DSLAMFORGE_ENABLE_G2O=OFF `
-            -DSLAMFORGE_ENABLE_FBOW=OFF
+            -DSLAMFORGE_ENABLE_FBOW=OFF `
+            -DONNXRUNTIME_ROOT="${{ github.workspace }}/onnxruntime/onnxruntime-win-x64-$env:ONNXRUNTIME_VERSION" `
+            -DSLAMFORGE_DEPTH_MODEL_FILE="${{ github.workspace }}/depth_anything_v2_vits_dynamic.onnx"
 
       - name: Build desktop application
         run: >-
@@ -185,12 +227,14 @@ jobs:
             -BuildDirectory build-desktop `
             -VcpkgInstalledDirectory vcpkg_installed `
             -OutputDirectory dist `
-            -Version 3.1.0-beta.1
+            -Version $env:DESKTOP_VERSION `
+            -OnnxRuntimeRoot "onnxruntime/onnxruntime-win-x64-$env:ONNXRUNTIME_VERSION" `
+            -DepthModelFile depth_anything_v2_vits_dynamic.onnx
 
       - name: Smoke test packaged application
         shell: pwsh
         run: |
-          $package = "dist/SLAMForge-Desktop-3.1.0-beta.1-Windows-x64"
+          $package = "dist/SLAMForge-Desktop-$env:DESKTOP_VERSION-Windows-x64"
           $process = Start-Process `
             -FilePath "$package/SLAMForge Desktop.exe" `
             -ArgumentList "--smoke-result", "tests/data/desktop-result" `
@@ -207,5 +251,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slamforge-desktop-windows-x64
-          path: dist/SLAMForge-Desktop-3.1.0-beta.1-Windows-x64.zip
+          path: dist/SLAMForge-Desktop-3.2.0-beta.1-Windows-x64.zip
           if-no-files-found: error
