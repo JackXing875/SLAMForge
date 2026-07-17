@@ -1,0 +1,178 @@
+src/optimization/ba.cpp
+  s_b39884776f0393::t_cfab3c664e2a34 313-318
+apps/CMakeLists.txt
+  s_b39884776f0393::t_5d55846a526621 75-87
+  s_b39884776f0393::t_5d42dfbdac0a60 33-35
+README_ch.md
+  s_b39884776f0393::t_37141e52a5d6c1 1,110-113,115-117,119-120
+  s_b39884776f0393::t_099b70c1451f23 78-85
+  s_b39884776f0393::t_d1217550c55c42 10-12,20-21,27-28,95,106,130,151,153
+pybind/__init__.py
+  s_b39884776f0393::t_cdddaa0db06c78 1
+tests/unit/test_keyframe.cpp
+  s_b39884776f0393::t_cfab3c664e2a34 86-104
+  s_b39884776f0393::t_bf5d3d1f17c053 118-120
+apps/desktop/map_view.h
+  s_b39884776f0393::t_d36433ff72fe85 3,49
+src/CMakeLists.txt
+  s_b39884776f0393::t_93cc7da4ac431a 41,80
+  s_b39884776f0393::t_7002b5243bad81 157-161
+Doxyfile
+  s_b39884776f0393::t_10dd441cf9a2de 5
+  s_b39884776f0393::t_cdddaa0db06c78 4
+packaging/windows/README.txt
+  s_b39884776f0393::t_10dd441cf9a2de 1,11,16-17,23
+packaging/windows/package.ps1
+  s_b39884776f0393::t_5d53caff3e61d9 14-19,35,52-69
+  s_b39884776f0393::t_161a746513e475 70
+include/slamforge/core/config.h
+  s_b39884776f0393::t_9833d365270126 69-76
+  s_b39884776f0393::t_79fd93c0533e44 61-68,77-78,102
+.github/workflows/release.yml
+  s_b39884776f0393::t_d4dc1a6d52388e 12-14,50-61,71,73-75,122,143-160,183,185-187,201-203,225
+include/slamforge/core/frame.h
+  s_b39884776f0393::t_79fd93c0533e44 58-59,61-63,136
+  s_b39884776f0393::t_c98a18b6f6c59b 60
+THIRD_PARTY_NOTICES.md
+  s_b39884776f0393::t_e41fa6d12deba7 17-19,22,25-27
+  s_b39884776f0393::t_097e9be6a7a310 28
+include/slamforge/version.h.in
+  s_b39884776f0393::t_10dd441cf9a2de 23
+CONTRIBUTING.md
+  s_b39884776f0393::t_c03ef343d3f9f0 3-4
+apps/desktop/main_window.h
+  s_b39884776f0393::t_d36433ff72fe85 61,83
+tests/unit/test_frame.cpp
+  s_b39884776f0393::t_d0d329cd76602e 50-62
+docs/desktop.md
+  s_b39884776f0393::t_7f7da854f22484 1,5-6,13,22-23,59-60,76-84
+  s_b39884776f0393::t_5d55846a526621 33,37-38,43-45
+  s_b39884776f0393::t_1d3a022118bfba 72-75
+include/slamforge/mapping/dense_mapper.h
+  s_b39884776f0393::t_93cc7da4ac431a 1-85
+include/slamforge/slamforge.h
+  s_b39884776f0393::t_cdddaa0db06c78 2
+  s_b39884776f0393::t_93cc7da4ac431a 45
+cmake/FindONNXRuntime.cmake
+  s_b39884776f0393::t_7002b5243bad81 1-15,17-57
+  s_b39884776f0393::t_76d3a4866dcc81 16
+src/mapping/dense_mapper.cpp
+  s_b39884776f0393::t_0b106a9d305c68 151-152,400-401
+  s_b39884776f0393::t_93cc7da4ac431a 1-19,23-88,90-150,153-213,216-217,220-316,319-320,322-324,326-334,336-399,402-563,566-575,582-584,586-588,594-626,631-678
+  s_b39884776f0393::t_30514096199df7 589-593
+  s_b39884776f0393::t_08cb0824982bae 22
+  s_b39884776f0393::t_71e0d39ee23e9e 20-21,89,214-215,218-219,317-318,321,325,335,564-565,576-581,585,627-630
+tests/unit/test_dense_mapper.cpp
+  s_b39884776f0393::t_901b7865d2268e 1-59
+packaging/windows/vcpkg.json
+  s_b39884776f0393::t_10dd441cf9a2de 3
+docs/releases/v3.2.0-beta.1.md
+  s_b39884776f0393::t_cc4a71e1272405 1-35,38,47-49
+  s_b39884776f0393::t_37141e52a5d6c1 36-37,39-46
+packaging/licenses/Depth-Anything-V2.txt
+  s_b39884776f0393::t_5d53caff3e61d9 1-22
+config/default.yaml
+  s_b39884776f0393::t_79fd93c0533e44 44-56
+src/core/config.cpp
+  s_b39884776f0393::t_9833d365270126 140-143
+  s_b39884776f0393::t_79fd93c0533e44 44-52,129-139,144-147
+  s_b39884776f0393::t_0b9ea5963bf98f 148-149
+tests/unit/CMakeLists.txt
+  s_b39884776f0393::t_901b7865d2268e 19
+src/core/frame.cpp
+  s_b39884776f0393::t_9833d365270126 32-33,45-46
+  s_b39884776f0393::t_79fd93c0533e44 30-31,34-37,40-41,43-44,47-50
+  s_b39884776f0393::t_fb7c4310f020c8 27-29,42
+  s_b39884776f0393::t_08cb0824982bae 9-10
+  s_b39884776f0393::t_9a96c58d4f1361 26
+config/tum_mono_sequence01_rectified.yaml
+  s_b39884776f0393::t_1d3a022118bfba 1-67
+apps/desktop/map_view.cpp
+  s_b39884776f0393::t_fb7c4310f020c8 6,17,91,263-265,267-272,276-290,294-298,301-302
+  s_b39884776f0393::t_9833d365270126 153,291-293
+  s_b39884776f0393::t_d36433ff72fe85 22,54,87,135,146-152,154-155,273-274,321
+  s_b39884776f0393::t_83ed0ac928847c 266
+pybind/pyproject.toml
+  s_b39884776f0393::t_10dd441cf9a2de 7
+  s_b39884776f0393::t_cdddaa0db06c78 8
+src/loop_closing/loop_closing.cpp
+  s_b39884776f0393::t_edec68e2ab04ca 239
+  s_b39884776f0393::t_209e1ff6d042f4 402-405
+src/tracking/initializer.cpp
+  s_b39884776f0393::t_65559791544a9a 45
+  s_b39884776f0393::t_21a60a666f4f7c 35-41,44,48
+src/loop_closing/detector.cpp
+  s_b39884776f0393::t_b1abe304c64e60 144
+cmake/SLAMForgeConfig.cmake.in
+  s_b39884776f0393::t_7002b5243bad81 41-44
+packaging/linux/org.slamforge.SLAMForge.appdata.xml
+  s_b39884776f0393::t_37141e52a5d6c1 27
+  s_b39884776f0393::t_4a29e9a6fad6c3 5,17-20,28-31
+packaging/linux/org.slamforge.SLAMForge.desktop
+  s_b39884776f0393::t_099b70c1451f23 5
+apps/slamforge_cli.cpp
+  s_b39884776f0393::t_cdddaa0db06c78 1125
+  s_b39884776f0393::t_08cb0824982bae 51-70,625,823,927-956,985-988,1017-1018,1035-1038,1150-1152,1316-1317
+  s_b39884776f0393::t_41245bf70f8981 18
+  s_b39884776f0393::t_9833d365270126 626-628
+  s_b39884776f0393::t_3cde1b412ca45e 882
+apps/desktop/main_window.cpp
+  s_b39884776f0393::t_9833d365270126 353,474-475,484-485
+  s_b39884776f0393::t_d36433ff72fe85 101,113,338-345,350,357,378-379,381-382,393-394,476-483,486-487,543-556
+  s_b39884776f0393::t_3cde1b412ca45e 455-458
+  s_b39884776f0393::t_816e14af54c7ec 557-558
+CHANGELOG.md
+  s_b39884776f0393::t_7f7da854f22484 6-21,24-28,37
+  s_b39884776f0393::t_37141e52a5d6c1 5,22-23,29-36
+pybind/slamforge_bindings.cpp
+  s_b39884776f0393::t_cdddaa0db06c78 88
+tests/unit/test_config.cpp
+  s_b39884776f0393::t_de9258d5136f3c 18-20,37
+src/core/keyframe.cpp
+  s_b39884776f0393::t_cfab3c664e2a34 117,179-185
+  s_b39884776f0393::t_166bd2260649c3 103-107,110-116
+CMakeLists.txt
+  s_b39884776f0393::t_e5eac4270df582 321-324
+  s_b39884776f0393::t_e41fa6d12deba7 302-305
+  s_b39884776f0393::t_6b8e15ff7c30f4 5-7,12,307-312,410
+  s_b39884776f0393::t_7002b5243bad81 38,43-45,66-75,306,317-320,325-333,374-378,403,431
+  s_b39884776f0393::t_cdddaa0db06c78 2
+  s_b39884776f0393::t_10dd441cf9a2de 11,19
+  s_b39884776f0393::t_01bb3501dde3e1 313-316
+README.md
+  s_b39884776f0393::t_37141e52a5d6c1 1,111-114,116-118,120-121
+  s_b39884776f0393::t_d1217550c55c42 10-12,20-21,27-29,79-86,96,100,107,131,150,177,179
+conanfile.py
+  s_b39884776f0393::t_cdddaa0db06c78 1,11
+  s_b39884776f0393::t_10dd441cf9a2de 10
+src/loop_closing/verifier.cpp
+  s_b39884776f0393::t_209e1ff6d042f4 122-130,138,202-207
+docs/architecture.md
+  s_b39884776f0393::t_cdddaa0db06c78 3
+  s_b39884776f0393::t_099b70c1451f23 7-9,75-95,195-212,241-242,259-262
+src/mapping/local_mapper.cpp
+  s_b39884776f0393::t_d48dbcbc73e4ce 272
+  s_b39884776f0393::t_2ba4b647db4980 271
+  s_b39884776f0393::t_37141e52a5d6c1 267-270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.12",
+  "base_commit_sha": "b8916e7ddb2f216edcc0b43b0f4e553f05074de8",
+  "prompts": {},
+  "humans": {
+    "h_a1ee18d6ec0670": {
+      "author": "Schrieffer <xjack875@gmail.com>"
+    }
+  },
+  "sessions": {
+    "s_b39884776f0393": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6385-672c-7943-a336-ec853d9499d6",
+        "model": "gpt-5.6-sol"
+      },
+      "human_author": "Schrieffer <xjack875@gmail.com>"
+    }
+  }
+}
