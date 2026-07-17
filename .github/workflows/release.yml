@@ -217,6 +217,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Packaged CLI smoke test failed with exit code $LASTEXITCODE"
           }
+          $version = & "$package/slamforge_cli.exe" --version
+          if ($LASTEXITCODE -ne 0 -or $version -notmatch 'OpenCV 4\.6\.0') {
+            throw "Windows package must use the validated OpenCV 4.6.0 runtime; got: $version"
+          }
+          Write-Host $version
 
       - name: Upload Windows release artifact
         uses: actions/upload-artifact@v4

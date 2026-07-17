@@ -9,17 +9,19 @@
       "name": "opencv4",
       "default-features": false,
       "features": [
-        "calib3d",
-        "dshow",
         "ffmpeg",
-        "intrinsics",
         "jpeg",
-        "msmf",
-        "png",
-        "thread"
+        "png"
       ]
     },
     "spdlog",
     "yaml-cpp"
+  ],
+  "overrides": [
+    {
+      "name": "opencv4",
+      "version": "4.6.0",
+      "port-version": 10
+    }
   ]
 }
