@@ -2,6 +2,39 @@
 
 All notable changes to SLAMForge will be documented in this file.
 
+## [3.2.0-beta.1] — 2026-07-17
+
+### Added
+
+- Added offline dense reconstruction with the Apache-2.0 Depth Anything V2 Small model and ONNX
+  Runtime, bundled in Windows and Linux desktop packages for fully local inference.
+- Added robust per-keyframe depth scale/shift calibration from sparse SLAM landmarks, adjacent-view
+  consistency filtering, deterministic voxel fusion, and colored ASCII PLY export.
+- Added a dense colored desktop viewer and two-result workflow: `map.ply` for the fused surface and
+  `sparse_map.ply` for geometric landmarks.
+- Added dense reconstruction YAML tuning, CLI `--dense-output` / `--depth-model` options, and depth
+  calibration regression coverage.
+
+### Fixed
+
+- Rejected weak extreme-scale loop candidates and changed verified PnP loop application to rigid
+  endpoint correction, preventing sparse closures from expanding route interiors by 20–30x.
+- Made equal-weight covisibility and local-BA residual ordering deterministic, preventing a
+  long-video numerical branch that previously caused tracking loss and a discontinuous pose jump.
+
+### Packaging
+
+- Pinned and checksum-verifies ONNX Runtime 1.27.1 and the 99 MB Depth Anything V2 Small ONNX model
+  in the release workflow; no Python installation or runtime download is required.
+
+### Validation
+
+- Two complete runs of the 4,757-frame rectified reference sequence produced byte-identical
+  trajectories and sparse maps: 4,556 poses, no post-initialization lost frames, 598 keyframes,
+  two rigid loop corrections, and an 886,813-point dense surface cloud.
+- The partial 954-pose ground-truth interval measured 1.554 m Sim(3)-aligned ATE RMSE. This is a
+  regression result for one calibrated sequence, not a general accuracy benchmark.
+
 ## [3.1.0-beta.2] — 2026-07-16
 
 ### Changed

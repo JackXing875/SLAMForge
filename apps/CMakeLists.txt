@@ -30,6 +30,9 @@ if(SLAMFORGE_BUILD_APPS)
     endif()
 
     set_project_warnings(slamforge_cli)
+    if(UNIX AND NOT APPLE AND SLAMFORGE_ENABLE_DENSE)
+        set_target_properties(slamforge_cli PROPERTIES INSTALL_RPATH "$ORIGIN/../lib")
+    endif()
 
     # Install the CLI application
     install(TARGETS slamforge_cli
@@ -68,6 +71,19 @@ if(SLAMFORGE_BUILD_DESKTOP)
     )
     set_project_warnings(slamforge_desktop)
     add_dependencies(slamforge_desktop slamforge_cli)
+
+    # Keep a source-tree desktop build runnable without an install step when
+    # the caller supplied the same pinned model used by release packaging.
+    if(SLAMFORGE_DEPTH_MODEL_FILE AND EXISTS "${SLAMFORGE_DEPTH_MODEL_FILE}")
+        add_custom_command(TARGET slamforge_desktop POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                "$<TARGET_FILE_DIR:slamforge_desktop>/models"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${SLAMFORGE_DEPTH_MODEL_FILE}"
+                "$<TARGET_FILE_DIR:slamforge_desktop>/models/depth_anything_v2_vits_dynamic.onnx"
+            VERBATIM
+        )
+    endif()
 
     if(WIN32)
         set_target_properties(slamforge_desktop PROPERTIES

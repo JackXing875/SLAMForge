@@ -38,6 +38,7 @@ set(SLAMFORGE_CORE_SOURCES
     tracking/tracker.cpp
 
     # Mapping
+    mapping/dense_mapper.cpp
     mapping/local_mapper.cpp
 
     # Loop Closing
@@ -76,6 +77,7 @@ set(SLAMFORGE_CORE_HEADERS
     ${PROJECT_SOURCE_DIR}/include/slamforge/tracking/initializer.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/tracking/tracker.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/mapping/local_mapper.h
+    ${PROJECT_SOURCE_DIR}/include/slamforge/mapping/dense_mapper.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/vocabulary.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/detector.h
     ${PROJECT_SOURCE_DIR}/include/slamforge/loop_closing/verifier.h
@@ -150,6 +152,11 @@ endif()
 if(SLAMFORGE_ENABLE_CERES AND TARGET Ceres::ceres)
     target_link_libraries(slamforge_core PUBLIC Ceres::ceres)
     target_compile_definitions(slamforge_core PUBLIC SLAMFORGE_HAS_CERES)
+endif()
+
+if(SLAMFORGE_ENABLE_DENSE AND TARGET ONNXRuntime::ONNXRuntime)
+    target_link_libraries(slamforge_core PUBLIC ONNXRuntime::ONNXRuntime)
+    target_compile_definitions(slamforge_core PUBLIC SLAMFORGE_HAS_ONNXRUNTIME)
 endif()
 
 if(SLAMFORGE_ENABLE_G2O)

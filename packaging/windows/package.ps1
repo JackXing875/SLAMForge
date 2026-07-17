@@ -11,6 +11,12 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Version,
 
+    [Parameter(Mandatory = $true)]
+    [string]$OnnxRuntimeRoot,
+
+    [Parameter(Mandatory = $true)]
+    [string]$DepthModelFile,
+
     [string]$Triplet = "x64-windows-release"
 )
 
@@ -26,6 +32,7 @@ $runtimeDirectory = Join-Path $VcpkgInstalledDirectory "$Triplet\bin"
 
 New-Item -ItemType Directory -Force -Path $packageRoot | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $packageRoot "config") | Out-Null
+New-Item -ItemType Directory -Force -Path (Join-Path $packageRoot "models") | Out-Null
 New-Item -ItemType Directory -Force -Path (Join-Path $packageRoot "licenses\third-party") |
     Out-Null
 
@@ -41,6 +48,25 @@ Copy-Item (Join-Path $repositoryRoot "config\*.yaml") (Join-Path $packageRoot "c
 Copy-Item (Join-Path $repositoryRoot "LICENSE") (Join-Path $packageRoot "LICENSE.txt")
 Copy-Item (Join-Path $repositoryRoot "THIRD_PARTY_NOTICES.md") $packageRoot
 Copy-Item (Join-Path $PSScriptRoot "README.txt") $packageRoot
+
+$onnxRuntimeDll = Join-Path $OnnxRuntimeRoot "lib\onnxruntime.dll"
+if (-not (Test-Path $onnxRuntimeDll)) {
+    throw "ONNX Runtime DLL was not found: $onnxRuntimeDll"
+}
+if (-not (Test-Path $DepthModelFile)) {
+    throw "Dense depth model was not found: $DepthModelFile"
+}
+Copy-Item $onnxRuntimeDll $packageRoot
+$providerDll = Join-Path $OnnxRuntimeRoot "lib\onnxruntime_providers_shared.dll"
+if (Test-Path $providerDll) {
+    Copy-Item $providerDll $packageRoot
+}
+Copy-Item $DepthModelFile `
+    (Join-Path $packageRoot "models\depth_anything_v2_vits_dynamic.onnx")
+Copy-Item (Join-Path $OnnxRuntimeRoot "LICENSE") `
+    (Join-Path $packageRoot "licenses\third-party\ONNX-Runtime.txt")
+Copy-Item (Join-Path $repositoryRoot "packaging\licenses\Depth-Anything-V2.txt") `
+    (Join-Path $packageRoot "licenses\third-party\Depth-Anything-V2.txt")
 
 if (-not (Test-Path $runtimeDirectory)) {
     throw "vcpkg runtime directory does not exist: $runtimeDirectory"

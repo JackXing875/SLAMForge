@@ -310,7 +310,12 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
         }
     }
 
-    for (const auto& [_, data] : mp_data_map) {
+    for (auto* map_point : map_points) {
+        const auto data_it = mp_data_map.find(map_point);
+        if (data_it == mp_data_map.end()) {
+            continue;
+        }
+        const auto& data = data_it->second;
         auto* prior = new ceres::AutoDiffCostFunction<PointPriorFunctor, 3, 3>(
             new PointPriorFunctor(data->original));
         problem.AddResidualBlock(prior, nullptr, data->point);

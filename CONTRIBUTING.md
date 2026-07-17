@@ -1,6 +1,7 @@
 # Contributing to SLAMForge
 
-Thanks for your interest in contributing! SLAMForge is an industrial-grade monocular SLAM system and we welcome improvements.
+Thanks for your interest in contributing! SLAMForge is a monocular visual SLAM and dense
+reconstruction system, and we welcome improvements.
 
 ## Development Setup
 

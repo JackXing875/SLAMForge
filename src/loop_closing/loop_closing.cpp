@@ -236,7 +236,7 @@ void LoopClosing::SearchBestGlobalLoop() {
     };
     std::vector<ScoredPair> scored_pairs;
 
-    // Batch-video finalization concentrates on the newest 30% of the route,
+    // Batch-video finalization concentrates on the newest 20% of the route,
     // where return-to-start loops normally appear.  Older candidates are
     // sampled at stride two; the two initialization keyframes are always
     // retained because they are especially valuable anchors.
@@ -399,7 +399,10 @@ bool LoopClosing::ApplyCorrections() {
         const geometry::Sim3 adjusted =
             candidate_coordinates * loop.verification.S_cw * current_coordinates.Inverse();
         if (!adjusted.R.allFinite() || !adjusted.t.allFinite() || !std::isfinite(adjusted.s) ||
-            adjusted.s < 0.01 || adjusted.s > 100.0) {
+            adjusted.s < 0.5 || adjusted.s > 2.0) {
+            std::cout << "[LoopClosing] Rejected unsafe compounded correction across frames "
+                      << loop.candidate->Id().id << ".." << loop.current->Id().id
+                      << " (scale=" << adjusted.s << ")\n";
             continue;
         }
 

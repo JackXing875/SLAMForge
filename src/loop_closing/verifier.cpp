@@ -119,6 +119,15 @@ VerificationResult LoopVerifier::Verify(std::shared_ptr<KeyFrame> current_kf,
         !sim3_result.S.R.allFinite() || !sim3_result.S.t.allFinite()) {
         return result;
     }
+    // Very large scale ratios are common when a handful of approximate
+    // landmark depths happen to match. They may still identify a real place,
+    // but are not safe evidence for deforming the whole map. Require a much
+    // stronger consensus before continuing to the pose-based verification.
+    constexpr int strong_scale_consensus = 15;
+    if ((sim3_result.S.s < 0.25 || sim3_result.S.s > 4.0) &&
+        sim3_result.num_inliers < strong_scale_consensus) {
+        return result;
+    }
 
     // Step 4: Estimate the current camera directly in the older candidate
     // map with 3D-to-2D PnP. Approximate nearby depths are useful for scale,
@@ -126,6 +135,7 @@ VerificationResult LoopVerifier::Verify(std::shared_ptr<KeyFrame> current_kf,
     // actual image reprojection and prevents a sparse loop from flipping the
     // complete trajectory.
     geometry::Sim3 pose_consistent_sim3 = sim3_result.S;
+    pose_consistent_sim3.s = 1.0;
     if (camera_) {
         std::vector<cv::Point3f> candidate_points;
         std::vector<cv::Point2f> current_observations;
@@ -189,8 +199,12 @@ VerificationResult LoopVerifier::Verify(std::shared_ptr<KeyFrame> current_kf,
         const Vec3 desired_center =
             -desired_current_pose.rotation().transpose() * desired_current_pose.translation();
         pose_consistent_sim3.R = correction_rotation;
-        pose_consistent_sim3.t =
-            desired_center - pose_consistent_sim3.s * correction_rotation * raw_center;
+        // PnP provides a directly observable endpoint position and rotation.
+        // Keep the applied correction rigid: distributing a noisy 3D-3D
+        // monocular scale estimate over absolute world coordinates previously
+        // expanded the middle of long routes by 20-30x even when both loop
+        // endpoints were correct.
+        pose_consistent_sim3.t = desired_center - correction_rotation * raw_center;
         result.num_reprojection_inliers = pnp_inliers.rows;
     }
 

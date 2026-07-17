@@ -1,4 +1,4 @@
-"""SLAMForge — Industrial-Grade Monocular Visual SLAM with Python Bindings.
+"""SLAMForge — Monocular Visual SLAM with Python Bindings.
 
 Quickstart
 ----------

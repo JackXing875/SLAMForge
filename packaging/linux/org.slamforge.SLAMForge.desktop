@@ -2,7 +2,7 @@
 Type=Application
 Name=SLAMForge Desktop
 GenericName=Visual SLAM Mapper
-Comment=Build a sparse 3D map and camera trajectory from monocular video
+Comment=Build a colored surface map and camera trajectory from monocular video
 Exec=slamforge_desktop
 Icon=org.slamforge.SLAMForge
 Terminal=false

@@ -1,8 +1,8 @@
 # Doxyfile 1.9.1 — SLAMForge API Documentation
 
 PROJECT_NAME           = "SLAMForge"
-PROJECT_BRIEF          = "Industrial-Grade Monocular Visual SLAM System"
-PROJECT_NUMBER         = 3.1.0-beta.2
+PROJECT_BRIEF          = "Monocular Visual SLAM and Dense Reconstruction"
+PROJECT_NUMBER         = 3.2.0-beta.1
 
 OUTPUT_DIRECTORY       = docs/html
 CREATE_SUBDIRS         = NO

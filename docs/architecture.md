@@ -1,11 +1,12 @@
 # SLAMForge Architecture
 
-> Industrial-Grade Monocular Visual SLAM System
+> Monocular Visual SLAM and Dense Reconstruction
 
 ## Overview
 
-SLAMForge is a feature-based monocular SLAM system inspired by ORB-SLAM3. It estimates
-6-DoF camera poses and builds a sparse 3D map in real-time using ORB features.
+SLAMForge is a feature-based monocular SLAM and offline dense-reconstruction system inspired by
+ORB-SLAM3. It estimates 6-DoF camera poses and geometric landmarks in real time, then uses the
+settled poses and landmarks to reconstruct a colored surface map locally.
 
 ## System Architecture
 
@@ -70,6 +71,27 @@ SLAMForge is a feature-based monocular SLAM system inspired by ORB-SLAM3. It est
                   │          │            │
                   │ ┌────────▼──────────┐ │
                   │ │ Global BA         │ │
+                  │ └───────────────────┘ │
+                  └──────────┬────────────┘
+                             │ settled poses + sparse depth anchors
+                  ┌──────────▼────────────┐
+                  │ DENSE RECONSTRUCTION  │
+                  │ (offline, after SLAM) │
+                  │                       │
+                  │ ┌───────────────────┐ │
+                  │ │ Learned Depth    │ │
+                  │ └────────┬──────────┘ │
+                  │          │            │
+                  │ ┌────────▼──────────┐ │
+                  │ │ Scale Calibration │ │
+                  │ └────────┬──────────┘ │
+                  │          │            │
+                  │ ┌────────▼──────────┐ │
+                  │ │ Multi-view Filter │ │
+                  │ └────────┬──────────┘ │
+                  │          │            │
+                  │ ┌────────▼──────────┐ │
+                  │ │ Colored Fusion   │ │
                   │ └───────────────────┘ │
                   └───────────────────────┘
 ```
@@ -170,6 +192,24 @@ LoopClosing::Run() loop
     │
     └── GlobalBundleAdjustment()  [triggered periodically]
         └── Ceres: all keyframes + all map points (separate thread, can be interrupted)
+            │
+            ▼ (after tracking and background optimization have stopped)
+DenseMapper::Reconstruct()
+    │
+    ├── SelectKeyFrames()
+    │   └── Uniformly sample valid keyframes across the completed route
+    │
+    ├── InferDepth()
+    │   └── Run the bundled Depth Anything V2 Small model through ONNX Runtime
+    │
+    ├── CalibrateDepth()
+    │   └── Robustly fit direct/inverse model depth to SLAM landmarks per keyframe
+    │
+    ├── CheckMultiViewConsistency()
+    │   └── Reject depth unsupported by adjacent calibrated views
+    │
+    └── FuseVoxels()
+        └── Accumulate position, color, and confidence into a deterministic surface cloud
 ```
 
 ## Thread Safety
@@ -198,6 +238,8 @@ for dataset-specific presets (KITTI, EuRoC, TUM).
 | Eigen3 | Linear algebra (vectors, matrices) |
 | Sophus | SE(3) Lie group operations |
 | OpenCV 4.x | Image I/O, ORB features, basic geometry |
+| ONNX Runtime | CPU inference for the bundled dense-depth model |
+| Depth Anything V2 Small | Per-keyframe relative-depth prediction |
 | Ceres Solver | Local & global bundle adjustment |
 | g2o | Pose graph optimization |
 | FBOW / DBoW2 | Visual bag-of-words for loop detection |
@@ -214,3 +256,7 @@ for dataset-specific presets (KITTI, EuRoC, TUM).
 | Local BA (20 KFs) | < 300ms |
 | Loop detection | < 50ms per query |
 | Pose graph optimization | < 500ms |
+
+Dense reconstruction is deliberately outside the real-time tracking path. Its run time depends on
+the selected keyframe count, CPU, and output resolution; the desktop UI reports it as a separate
+post-processing stage.

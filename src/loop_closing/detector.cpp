@@ -141,7 +141,7 @@ std::shared_ptr<KeyFrame> LoopDetector::Detect(std::shared_ptr<KeyFrame> current
 std::shared_ptr<KeyFrame> LoopDetector::DetectWithFallback(std::shared_ptr<KeyFrame> current_kf,
                                                            const Map& map) {
     // Full descriptor fallback is intentionally evaluated every other
-    // keyframe.  It remains independent of an external vocabulary without
+    // keyframe. It remains independent of an external vocabulary without
     // monopolizing the loop-closing worker on long videos.
     if (database_size_ < config_.max_recent_kfs + 2 || database_size_ % 2 != 0) {
         return nullptr;

@@ -55,6 +55,12 @@ public:
     /// @brief Grayscale image.
     const cv::Mat& Image() const { return image_; }
 
+    /// @brief Memory-bounded BGR preview retained for dense reconstruction.
+    ///
+    /// Color inputs are resized to at most 320 pixels on their longest side.
+    /// Grayscale-only callers leave this matrix empty.
+    const cv::Mat& ColorImage() const { return color_image_; }
+
     // ── Pose ───────────────────────────────────────────────────────────────
 
     /// @brief Camera pose (world from camera, Tcw).
@@ -127,6 +133,7 @@ private:
     FrameId id_;
     double timestamp_;
     cv::Mat image_;
+    cv::Mat color_image_;
     SE3 Tcw_{SE3::Identity()};
     Camera camera_;
 

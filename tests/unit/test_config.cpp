@@ -15,6 +15,9 @@ TEST(ConfigTest, DefaultConfig) {
     EXPECT_EQ(cfg.orb.num_features, 1200);
     EXPECT_EQ(cfg.tracking.min_features_for_tracking, 50);
     EXPECT_EQ(cfg.mapping.sliding_window_size, 20);
+    EXPECT_EQ(cfg.dense_mapping.max_keyframes, 96);
+    EXPECT_EQ(cfg.dense_mapping.output_width, 320);
+    EXPECT_GT(cfg.dense_mapping.consistency_tolerance, 0.0);
     EXPECT_FALSE(cfg.loop_closing.enabled);
     EXPECT_EQ(cfg.output_format, "tum");
 }
@@ -31,6 +34,7 @@ TEST(ConfigTest, LoadFromYAML) {
         EXPECT_TRUE(cfg_opt->enable_viewer);
         EXPECT_TRUE(cfg_opt->enable_logging);
         EXPECT_EQ(cfg_opt->log_level, 2);
+        EXPECT_EQ(cfg_opt->dense_mapping.max_output_points, 750000);
     }
 }
 

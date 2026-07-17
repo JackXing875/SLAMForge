@@ -32,28 +32,20 @@ void MonocularInitializer::ComputeModels(const std::vector<cv::Point2f>& pts1,
                                          const std::vector<cv::Point2f>& pts2, cv::Mat& H,
                                          cv::Mat& F, std::vector<uchar>& inliers_h,
                                          std::vector<uchar>& inliers_f) const {
-    // Run H and F computation in parallel threads
-    cv::Mat H_thread, F_thread;
-    std::vector<uchar> inliers_h_thread, inliers_f_thread;
-
-    auto compute_H = [&]() {
+    // Keep the two robust estimators on separate RNG streams. OpenCV's RNG is
+    // thread-local, so this is deterministic while avoiding an accidental
+    // dependency of the fundamental-matrix samples on how many samples the
+    // homography estimator consumed first.
+    cv::Mat H_thread;
+    std::vector<uchar> inliers_h_thread;
+    std::thread h_thread([&]() {
         H_thread = cv::findHomography(pts1, pts2, cv::RANSAC, opts_.max_reproj_error,
                                       inliers_h_thread, opts_.num_ransac_iterations);
-    };
-
-    auto compute_F = [&]() {
-        F_thread = cv::findFundamentalMat(pts1, pts2, cv::FM_RANSAC, opts_.max_reproj_error, 0.99,
-                                          inliers_f_thread);
-    };
-
-    std::thread h_thread(compute_H);
-    compute_F();  // Run F in current thread
+    });
+    F = cv::findFundamentalMat(pts1, pts2, cv::FM_RANSAC, opts_.max_reproj_error, 0.99, inliers_f);
     h_thread.join();
-
     H = H_thread;
-    F = F_thread;
-    inliers_h = inliers_h_thread;
-    inliers_f = inliers_f_thread;
+    inliers_h = std::move(inliers_h_thread);
 }
 
 bool MonocularInitializer::SelectModel(const cv::Mat& H, const cv::Mat& F,

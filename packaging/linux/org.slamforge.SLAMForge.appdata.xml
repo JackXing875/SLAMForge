@@ -2,7 +2,7 @@
 <component type="desktop-application">
   <id>org.slamforge.SLAMForge</id>
   <name>SLAMForge Desktop</name>
-  <summary>Build a sparse 3D map and camera trajectory from monocular video</summary>
+  <summary>Build a dense colored 3D surface and camera trajectory from monocular video</summary>
   <metadata_license>CC0-1.0</metadata_license>
   <project_license>GPL-3.0-only</project_license>
   <developer id="io.github.jackxing875">
@@ -14,15 +14,21 @@
       visual SLAM on video without using a command line.
     </p>
     <p>
-      It exports a camera trajectory and sparse PLY map, then displays both in
-      an interactive result viewer. Accurate camera calibration is required,
-      and monocular reconstruction has an unknown absolute scale.
+      It combines geometric camera tracking with locally executed learned depth,
+      exports a dense colored PLY surface and camera trajectory, then displays
+      both in an interactive result viewer. Accurate camera calibration is
+      required, and monocular reconstruction has an unknown absolute scale.
     </p>
   </description>
   <launchable type="desktop-id">org.slamforge.SLAMForge.desktop</launchable>
   <url type="homepage">https://github.com/JackXing875/SLAMForge</url>
   <url type="bugtracker">https://github.com/JackXing875/SLAMForge/issues</url>
   <releases>
+    <release version="3.2.0-beta.1" date="2026-07-17">
+      <description>
+        <p>First dense surface reconstruction beta with offline neural depth fusion.</p>
+      </description>
+    </release>
     <release version="3.1.0-beta.2" date="2026-07-16">
       <description>
         <p>Tracking, optimization, recovery, and loop-closing reliability update.</p>

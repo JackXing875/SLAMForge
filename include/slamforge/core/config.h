@@ -58,6 +58,24 @@ struct MappingConfig {
     double max_reprojection_error = 4.0;  ///< Max reprojection for map points
 };
 
+// ── Dense reconstruction configuration ─────────────────────────────────────
+
+/// @brief Offline learned-depth fusion parameters.
+///
+/// Dense reconstruction is requested explicitly by an application with a
+/// model path and output path. These values control quality/performance while
+/// keeping regular sparse SLAM runs free of inference overhead.
+struct DenseMappingConfig {
+    int max_keyframes = 96;               ///< Maximum keyframes sent to depth inference
+    int output_width = 320;               ///< Width of calibrated depth maps
+    int pixel_stride = 2;                 ///< Pixel sampling interval for fusion
+    int min_sparse_samples = 20;          ///< Minimum sparse anchors per keyframe
+    double max_calibration_error = 0.35;  ///< Median relative sparse-depth residual
+    double consistency_tolerance = 0.22;  ///< Cross-view relative depth tolerance
+    double voxel_size_ratio = 0.012;      ///< Voxel size relative to median scene depth
+    int max_output_points = 750000;       ///< Deterministic PLY size guard
+};
+
 // ── Loop closing configuration ───────────────────────────────────────────────
 
 /// @brief Loop closing thread parameters.
@@ -81,6 +99,7 @@ struct SystemConfig {
     OrbConfig orb;
     TrackingConfig tracking;
     MappingConfig mapping;
+    DenseMappingConfig dense_mapping;
     LoopClosingConfig loop_closing;
 
     /// Input / output.

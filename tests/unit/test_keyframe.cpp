@@ -83,6 +83,25 @@ TEST_F(KeyFrameTest, BestCovisibilityKeyFrames) {
     EXPECT_EQ(best[1], &kf3);
 }
 
+TEST_F(KeyFrameTest, EqualCovisibilityWeightsUseStableFrameOrder) {
+    KeyFrame root(*frame_);
+    KeyFrame later(image_, 1.0, *extractor_, camera_);
+    KeyFrame latest(image_, 2.0, *extractor_, camera_);
+
+    // Add in reverse ID order so pointer allocation/order cannot accidentally
+    // satisfy the expected result.
+    root.AddConnection(&latest, 50);
+    root.AddConnection(&later, 50);
+
+    const auto best = root.GetBestCovisibilityKeyFrames(2);
+    ASSERT_EQ(best.size(), 2u);
+    EXPECT_LT(best[0]->Id().id, best[1]->Id().id);
+
+    const auto thresholded = root.GetCovisiblesByWeight(50);
+    ASSERT_EQ(thresholded.size(), 2u);
+    EXPECT_LT(thresholded[0]->Id().id, thresholded[1]->Id().id);
+}
+
 TEST_F(KeyFrameTest, CovisiblesByWeight) {
     KeyFrame kf1(*frame_);
     KeyFrame kf2(image_, 1.0, *extractor_, camera_);
@@ -96,7 +115,9 @@ TEST_F(KeyFrameTest, CovisiblesByWeight) {
     EXPECT_EQ(c1[0], &kf2);
 
     auto c2 = kf1.GetCovisiblesByWeight(5);
-    EXPECT_EQ(c2.size(), 2u);
+    ASSERT_EQ(c2.size(), 2u);
+    EXPECT_EQ(c2[0], &kf2);  // Preserve covisibility strength ordering.
+    EXPECT_EQ(c2[1], &kf3);
 }
 
 TEST_F(KeyFrameTest, EraseConnection) {

@@ -47,6 +47,19 @@ TEST_F(FrameTest, Construction) {
     EXPECT_EQ(frame.Descriptors().cols, 32);
 }
 
+TEST_F(FrameTest, RetainsBoundedColorForDenseKeyframes) {
+    cv::Mat color;
+    cv::cvtColor(image_, color, cv::COLOR_GRAY2BGR);
+    color.at<cv::Vec3b>(120, 120) = cv::Vec3b(12, 34, 220);
+
+    Frame frame(color, 0.0, orb_, camera_);
+    ASSERT_FALSE(frame.ColorImage().empty());
+    EXPECT_EQ(frame.ColorImage().channels(), 3);
+    EXPECT_EQ(std::max(frame.ColorImage().cols, frame.ColorImage().rows), 320);
+    EXPECT_EQ(frame.Image().size(), color.size());
+    EXPECT_EQ(frame.Image().channels(), 1);
+}
+
 TEST_F(FrameTest, UniqueIds) {
     Frame f1(image_, 0.0, orb_, camera_);
     Frame f2(image_, 0.1, orb_, camera_);

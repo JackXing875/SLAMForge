@@ -1,4 +1,4 @@
-SLAMForge Desktop 3.1.0-beta.2
+SLAMForge Desktop 3.2.0-beta.1
 ================================
 
 QUICK START
@@ -8,17 +8,19 @@ QUICK START
 3. Drop or select a monocular video.
 4. Select a SLAMForge YAML file calibrated for that camera and video resolution.
 5. Choose a writable results directory and click "Start mapping".
-6. Inspect the sparse map and trajectory in the 3D Result tab.
+6. Inspect the dense colored surface map and trajectory in the 3D Result tab.
 
 The results directory contains:
 
 - trajectory.txt  Camera trajectory (format selected by the YAML file)
-- map.ply         Sparse point cloud for CloudCompare, MeshLab, and similar tools
+- map.ply         Fused dense colored surface cloud for CloudCompare, MeshLab, and similar tools
+- sparse_map.ply  Geometric SLAM landmarks used to anchor the dense reconstruction
 - run.log         Processing and diagnostic log
 
 IMPORTANT LIMITATIONS
 
 - Monocular SLAM has no absolute metric scale. The displayed map uses relative scale.
+- Dense reconstruction is an offline second stage and takes additional processing time.
 - Accurate camera intrinsics are required. Do not use a dataset preset for an unrelated camera.
 - Low texture, motion blur, pure rotation, repeated patterns, and insufficient parallax may cause
   initialization or tracking failure.

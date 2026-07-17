@@ -98,7 +98,7 @@ void MainWindow::BuildUi() {
 
     auto* introduction = new QLabel(
         tr("Drop a video anywhere in this window, choose a calibrated camera configuration, "
-           "and start the local SLAM analysis. The result view displays the sparse map and "
+           "and start the local SLAM analysis. The result view displays a fused dense surface and "
            "camera trajectory without uploading your video."),
         central);
     introduction->setWordWrap(true);
@@ -110,7 +110,7 @@ void MainWindow::BuildUi() {
         QMessageBox::about(
             this, tr("About SLAMForge Desktop"),
             tr("<h3>SLAMForge Desktop %1</h3>"
-               "<p>Monocular sparse visual SLAM for local video processing.</p>"
+               "<p>Monocular visual SLAM with offline dense surface reconstruction.</p>"
                "<p><b>Important:</b> results use relative scale and require accurate camera "
                "calibration.</p>"
                "<p>Licensed under GPL-3.0-only.<br>"
@@ -335,17 +335,26 @@ void MainWindow::StartAnalysis() {
             tr("slamforge_cli was not found next to the desktop application or on PATH."));
         return;
     }
+    const QString depth_model = FindDepthModel();
+    if (depth_model.isEmpty()) {
+        QMessageBox::critical(
+            this, tr("Dense model not found"),
+            tr("The bundled Depth Anything V2 model was not found. Reinstall the complete "
+               "SLAMForge Desktop package."));
+        return;
+    }
 
     result_directory_ = NativePath(output_directory);
     trajectory_path_ = QDir(output_directory).filePath(QStringLiteral("trajectory.txt"));
     map_path_ = QDir(output_directory).filePath(QStringLiteral("map.ply"));
+    sparse_map_path_ = QDir(output_directory).filePath(QStringLiteral("sparse_map.ply"));
     const QString log_path = QDir(output_directory).filePath(QStringLiteral("run.log"));
     if (QFileInfo::exists(trajectory_path_) || QFileInfo::exists(map_path_) ||
-        QFileInfo::exists(log_path)) {
+        QFileInfo::exists(sparse_map_path_) || QFileInfo::exists(log_path)) {
         const auto answer = QMessageBox::question(
             this, tr("Replace existing results"),
             tr("This folder already contains SLAMForge result files. trajectory.txt, map.ply, "
-               "and run.log will be replaced. Continue?"),
+               "sparse_map.ply, and run.log will be replaced. Continue?"),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
         if (answer != QMessageBox::Yes) {
             return;
@@ -366,7 +375,11 @@ void MainWindow::StartAnalysis() {
                                    QStringLiteral("--output"),
                                    trajectory_path_,
                                    QStringLiteral("--map-output"),
+                                   sparse_map_path_,
+                                   QStringLiteral("--dense-output"),
                                    map_path_,
+                                   QStringLiteral("--depth-model"),
+                                   depth_model,
                                    QStringLiteral("--verbose")};
 
     log_edit_->clear();
@@ -377,7 +390,8 @@ void MainWindow::StartAnalysis() {
     AppendProcessOutput(tr("Video:  %1").arg(input_path));
     AppendProcessOutput(tr("Config: %1").arg(config_path));
     AppendProcessOutput(tr("Trajectory: %1").arg(NativePath(trajectory_path_)));
-    AppendProcessOutput(tr("Map:        %1").arg(NativePath(map_path_)));
+    AppendProcessOutput(tr("Dense map:  %1").arg(NativePath(map_path_)));
+    AppendProcessOutput(tr("Sparse map: %1").arg(NativePath(sparse_map_path_)));
 
     cancelling_ = false;
     progress_bar_->setRange(0, 0);
@@ -438,6 +452,10 @@ void MainWindow::AppendProcessOutput(const QString& text) {
 }
 
 void MainWindow::UpdateProgressFromOutput(const QString& text) {
+    if (text.contains(QStringLiteral("Finalizing map and checking loop closures"))) {
+        progress_bar_->setRange(0, 0);
+        status_label_->setText(tr("Finalizing map and checking loop closures"));
+    }
     static const QRegularExpression frame_pattern(QStringLiteral(R"(Frame\s+(\d+)/(\d+))"));
     auto matches = frame_pattern.globalMatch(text);
     while (matches.hasNext()) {
@@ -451,6 +469,20 @@ void MainWindow::UpdateProgressFromOutput(const QString& text) {
         } else {
             progress_bar_->setRange(0, 0);
             status_label_->setText(tr("Mapping frame %1").arg(current));
+        }
+    }
+    static const QRegularExpression dense_pattern(
+        QStringLiteral(R"(Dense keyframe\s+(\d+)/(\d+))"));
+    auto dense_matches = dense_pattern.globalMatch(text);
+    while (dense_matches.hasNext()) {
+        const auto match = dense_matches.next();
+        const int current = match.captured(1).toInt();
+        const int total = match.captured(2).toInt();
+        if (total > 0) {
+            progress_bar_->setRange(0, total);
+            progress_bar_->setValue(std::clamp(current, 0, total));
+            status_label_->setText(
+                tr("Reconstructing dense surface %1 of %2").arg(current).arg(total));
         }
     }
 }
@@ -506,6 +538,22 @@ QString MainWindow::FindCliExecutable() const {
         return QFileInfo(adjacent).absoluteFilePath();
     }
     return QStandardPaths::findExecutable(QString::fromLatin1(executable_name));
+}
+
+QString MainWindow::FindDepthModel() const {
+    const QStringList candidates = {
+        QDir(QCoreApplication::applicationDirPath())
+            .filePath(QStringLiteral("models/depth_anything_v2_vits_dynamic.onnx")),
+        QDir(QCoreApplication::applicationDirPath())
+            .filePath(QStringLiteral("../share/slamforge/models/"
+                                     "depth_anything_v2_vits_dynamic.onnx")),
+        QDir::current().filePath(QStringLiteral("models/depth_anything_v2_vits_dynamic.onnx"))};
+    for (const QString& candidate : candidates) {
+        if (QFileInfo(candidate).isFile()) {
+            return QFileInfo(candidate).absoluteFilePath();
+        }
+    }
+    return {};
 }
 
 QString MainWindow::FindConfigDirectory() const {

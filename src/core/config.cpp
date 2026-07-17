@@ -41,6 +41,15 @@ SystemConfig SystemConfig::Default() {
     cfg.mapping.min_observations = 3;
     cfg.mapping.max_reprojection_error = 4.0;
 
+    cfg.dense_mapping.max_keyframes = 96;
+    cfg.dense_mapping.output_width = 320;
+    cfg.dense_mapping.pixel_stride = 2;
+    cfg.dense_mapping.min_sparse_samples = 20;
+    cfg.dense_mapping.max_calibration_error = 0.35;
+    cfg.dense_mapping.consistency_tolerance = 0.22;
+    cfg.dense_mapping.voxel_size_ratio = 0.012;
+    cfg.dense_mapping.max_output_points = 750000;
+
     cfg.loop_closing.enabled = false;
     cfg.loop_closing.min_similarity_score = 0.3;
     cfg.loop_closing.fallback_min_match_ratio = 0.03;
@@ -115,6 +124,27 @@ std::optional<SystemConfig> SystemConfig::LoadFromYAML(const std::string& path) 
                 map["min_observations"].as<int>(cfg.mapping.min_observations);
             cfg.mapping.max_reprojection_error =
                 map["max_reprojection_error"].as<double>(cfg.mapping.max_reprojection_error);
+        }
+
+        // ── Dense reconstruction ─────────────────────────────────────────
+        if (root["dense_mapping"]) {
+            auto dense = root["dense_mapping"];
+            cfg.dense_mapping.max_keyframes =
+                dense["max_keyframes"].as<int>(cfg.dense_mapping.max_keyframes);
+            cfg.dense_mapping.output_width =
+                dense["output_width"].as<int>(cfg.dense_mapping.output_width);
+            cfg.dense_mapping.pixel_stride =
+                dense["pixel_stride"].as<int>(cfg.dense_mapping.pixel_stride);
+            cfg.dense_mapping.min_sparse_samples =
+                dense["min_sparse_samples"].as<int>(cfg.dense_mapping.min_sparse_samples);
+            cfg.dense_mapping.max_calibration_error =
+                dense["max_calibration_error"].as<double>(cfg.dense_mapping.max_calibration_error);
+            cfg.dense_mapping.consistency_tolerance =
+                dense["consistency_tolerance"].as<double>(cfg.dense_mapping.consistency_tolerance);
+            cfg.dense_mapping.voxel_size_ratio =
+                dense["voxel_size_ratio"].as<double>(cfg.dense_mapping.voxel_size_ratio);
+            cfg.dense_mapping.max_output_points =
+                dense["max_output_points"].as<int>(cfg.dense_mapping.max_output_points);
         }
 
         // ── Loop Closing ──────────────────────────────────────────────────

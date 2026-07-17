@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QFontMetrics>
+#include <QImage>
 #include <QMouseEvent>
 #include <QPaintEvent>
 #include <QPainter>
@@ -11,14 +12,14 @@
 #include <QTextStream>
 #include <QWheelEvent>
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <limits>
+#include <vector>
 
 namespace slamforge::desktop {
 namespace {
 
-constexpr qsizetype kMaximumDisplayedPoints = 150000;
+constexpr qsizetype kMaximumDisplayedPoints = 250000;
 constexpr qsizetype kMaximumDisplayedPoses = 50000;
 
 bool ParseVector(const QStringList& fields, qsizetype x_index, qsizetype y_index, qsizetype z_index,
@@ -50,6 +51,7 @@ MapView::MapView(QWidget* parent) : QWidget(parent) {
 
 bool MapView::LoadResult(const QString& map_path, const QString& trajectory_path, QString* error) {
     map_points_.clear();
+    map_colors_.clear();
     trajectory_.clear();
 
     QStringList errors;
@@ -82,10 +84,11 @@ bool MapView::LoadResult(const QString& map_path, const QString& trajectory_path
 
 void MapView::Clear() {
     map_points_.clear();
+    map_colors_.clear();
     trajectory_.clear();
     center_ = QVector3D();
     radius_ = 1.0F;
-    message_ = tr("Run an analysis to display the sparse map and camera trajectory.");
+    message_ = tr("Run an analysis to display the colored surface map and camera trajectory.");
     ResetView();
 }
 
@@ -129,6 +132,7 @@ bool MapView::LoadPly(const QString& path, QString* error) {
         std::max<qint64>(1, (vertex_count + kMaximumDisplayedPoints - 1) / kMaximumDisplayedPoints);
     map_points_.reserve(static_cast<qsizetype>(
         std::min<qint64>(vertex_count, static_cast<qint64>(kMaximumDisplayedPoints))));
+    map_colors_.reserve(map_points_.capacity());
     static const QRegularExpression whitespace(QStringLiteral(R"(\s+)"));
     for (qint64 index = 0; index < vertex_count && !stream.atEnd(); ++index) {
         const QString line = stream.readLine().trimmed();
@@ -139,6 +143,16 @@ bool MapView::LoadPly(const QString& path, QString* error) {
         QVector3D point;
         if (ParseVector(fields, 0, 1, 2, &point)) {
             map_points_.push_back(point);
+            bool red_ok = false;
+            bool green_ok = false;
+            bool blue_ok = false;
+            const int red = fields.size() > 3 ? fields[3].toInt(&red_ok) : 68;
+            const int green = fields.size() > 4 ? fields[4].toInt(&green_ok) : 160;
+            const int blue = fields.size() > 5 ? fields[5].toInt(&blue_ok) : 220;
+            map_colors_.push_back(red_ok && green_ok && blue_ok
+                                      ? QColor(std::clamp(red, 0, 255), std::clamp(green, 0, 255),
+                                               std::clamp(blue, 0, 255))
+                                      : QColor(68, 160, 220));
         }
     }
     return true;
@@ -246,26 +260,46 @@ void MapView::paintEvent(QPaintEvent* event) {
         return;
     }
 
-    constexpr qsizetype bucket_count = 8;
-    std::array<QVector<QPointF>, bucket_count> point_buckets;
-    for (const QVector3D& point : map_points_) {
+    // Render the surface through a small software z-buffer. Drawing points in
+    // file or color-bucket order lets geometry behind a wall overwrite the
+    // visible wall and makes an otherwise dense map look transparent.
+    QImage surface(size(), QImage::Format_ARGB32);
+    surface.fill(Qt::transparent);
+    const int surface_width = surface.width();
+    const int surface_height = surface.height();
+    std::vector<float> depth_buffer(
+        static_cast<std::size_t>(surface_width) * static_cast<std::size_t>(surface_height),
+        std::numeric_limits<float>::lowest());
+    for (qsizetype index = 0; index < map_points_.size(); ++index) {
+        const QColor color = index < map_colors_.size() ? map_colors_[index] : QColor(68, 160, 220);
         float depth = 0.0F;
-        const QPointF projected = Project(point, &depth);
-        const float normalized = std::clamp((depth / radius_ + 1.0F) * 0.5F, 0.0F, 1.0F);
-        const qsizetype bucket =
-            static_cast<qsizetype>(normalized * static_cast<float>(bucket_count - 1));
-        point_buckets[static_cast<std::size_t>(bucket)].push_back(projected);
-    }
-
-    painter.setRenderHint(QPainter::Antialiasing, false);
-    for (qsizetype bucket = 0; bucket < bucket_count; ++bucket) {
-        const int brightness = 105 + static_cast<int>(bucket) * 16;
-        painter.setPen(QPen(QColor(68, brightness, 220, 205), 1.4));
-        const auto& points = point_buckets[static_cast<std::size_t>(bucket)];
-        if (!points.isEmpty()) {
-            painter.drawPoints(points.constData(), static_cast<int>(points.size()));
+        const QPointF projected = Project(map_points_[index], &depth);
+        const int center_x = qRound(projected.x());
+        const int center_y = qRound(projected.y());
+        const QRgb pixel = qRgba(color.red(), color.green(), color.blue(), 238);
+        for (int offset_y = -1; offset_y <= 1; ++offset_y) {
+            const int y = center_y + offset_y;
+            if (y < 0 || y >= surface_height) {
+                continue;
+            }
+            auto* row = reinterpret_cast<QRgb*>(surface.scanLine(y));
+            for (int offset_x = -1; offset_x <= 1; ++offset_x) {
+                const int x = center_x + offset_x;
+                if (x < 0 || x >= surface_width) {
+                    continue;
+                }
+                const std::size_t buffer_index =
+                    static_cast<std::size_t>(y) * static_cast<std::size_t>(surface_width) +
+                    static_cast<std::size_t>(x);
+                if (depth > depth_buffer[buffer_index]) {
+                    depth_buffer[buffer_index] = depth;
+                    row[x] = pixel;
+                }
+            }
         }
     }
+    painter.setRenderHint(QPainter::Antialiasing, false);
+    painter.drawImage(QPoint(0, 0), surface);
 
     if (!trajectory_.isEmpty()) {
         painter.setRenderHint(QPainter::Antialiasing, true);
@@ -284,7 +318,7 @@ void MapView::paintEvent(QPaintEvent* event) {
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.setPen(QColor(220, 228, 239));
     painter.drawText(QRect(16, 12, width() - 32, 24), Qt::AlignLeft | Qt::AlignVCenter,
-                     tr("%1 map points  •  %2 camera poses  •  relative scale")
+                     tr("%1 surface points  •  %2 camera poses  •  relative scale")
                          .arg(map_points_.size())
                          .arg(trajectory_.size()));
     painter.setPen(QColor(132, 145, 163));

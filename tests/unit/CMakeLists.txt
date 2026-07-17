@@ -16,6 +16,7 @@ set(UNIT_TEST_SOURCES
     test_keyframe.cpp
     test_ba.cpp
     test_local_mapper.cpp
+    test_dense_mapper.cpp
     test_loop_closing.cpp
 )
 

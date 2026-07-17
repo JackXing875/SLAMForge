@@ -1,4 +1,4 @@
-"""Conan recipe for SLAMForge — Industrial-Grade Monocular Visual SLAM."""
+"""Conan recipe for SLAMForge visual SLAM and dense reconstruction."""
 
 from conan import ConanFile
 from conan.tools.cmake import CMake, CMakeToolchain, cmake_layout
@@ -7,8 +7,8 @@ from conan.tools.files import copy
 
 class SLAMForgeConan(ConanFile):
     name = "slamforge"
-    version = "3.1.0"
-    description = "Industrial-grade monocular visual SLAM system"
+    version = "3.2.0"
+    description = "Monocular visual SLAM and dense reconstruction system"
     license = "GPL-3.0-only"
     url = "https://github.com/JackXing875/SLAMForge"
     topics = ("slam", "visual-odometry", "computer-vision", "robotics")

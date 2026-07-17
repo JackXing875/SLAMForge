@@ -100,11 +100,20 @@ std::vector<KeyFrame*> KeyFrame::GetBestCovisibilityKeyFrames(int N) const {
 std::vector<KeyFrame*> KeyFrame::GetCovisiblesByWeight(int min_weight) const {
     std::lock_guard<std::mutex> lock(global_mutex_);
 
-    std::vector<KeyFrame*> result;
-    for (const auto& [kf, weight] : connected_keyframes_) {
-        if (weight >= min_weight) {
-            result.push_back(kf);
+    std::vector<std::pair<KeyFrame*, int>> sorted;
+    sorted.reserve(connected_keyframes_.size());
+    for (const auto& connection : connected_keyframes_) {
+        if (connection.second >= min_weight) {
+            sorted.push_back(connection);
         }
+    }
+    std::sort(sorted.begin(), sorted.end(), CompareByWeight);
+
+    std::vector<KeyFrame*> result;
+    result.reserve(sorted.size());
+    for (const auto& [keyframe, weight] : sorted) {
+        static_cast<void>(weight);
+        result.push_back(keyframe);
     }
     return result;
 }
@@ -167,7 +176,13 @@ std::vector<std::shared_ptr<MapPoint>> KeyFrame::GetMapPointMatches(Map& map) co
 
 bool KeyFrame::CompareByWeight(const std::pair<KeyFrame*, int>& a,
                                const std::pair<KeyFrame*, int>& b) {
-    return a.second > b.second;  // Descending
+    if (a.second != b.second) {
+        return a.second > b.second;  // Descending weight
+    }
+    // Pointer ordering changes with ASLR and used to select a different local
+    // BA window when covisibility weights tied. Frame IDs are stable across
+    // identical runs and therefore provide the required deterministic tie.
+    return a.first->Id().id < b.first->Id().id;
 }
 
 }  // namespace slamforge

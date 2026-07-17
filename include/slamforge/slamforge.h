@@ -1,5 +1,5 @@
 // =============================================================================
-// SLAMForge — Industrial-Grade Monocular Visual SLAM System
+// SLAMForge — Monocular Visual SLAM and Dense Reconstruction
 // =============================================================================
 
 #pragma once
@@ -42,6 +42,7 @@
 #include "slamforge/tracking/tracker.h"
 
 // ── Mapping ──────────────────────────────────────────────────────────────────
+#include "slamforge/mapping/dense_mapper.h"
 #include "slamforge/mapping/local_mapper.h"
 
 // ── Loop Closing ─────────────────────────────────────────────────────────────

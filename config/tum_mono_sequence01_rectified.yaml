@@ -1,0 +1,67 @@
+# SLAMForge configuration for the RECTIFIED TUM Mono-VO sequence_01 video.
+#
+# Do not use this with the raw 1280x1024 fisheye sequence. The raw source uses
+# TUM's FOV camera model (omega=0.933271), which SLAMForge does not currently
+# implement. Rectify it to this 640x480 pinhole projection first.
+
+camera:
+  width: 640
+  height: 480
+  fx: 256.0
+  fy: 254.4
+  cx: 319.5
+  cy: 239.5
+  k1: 0.0
+  k2: 0.0
+  p1: 0.0
+  p2: 0.0
+  k3: 0.0
+
+orb:
+  num_features: 1200
+  scale_factor: 1.2
+  num_levels: 8
+  ini_threshold: 20
+  min_threshold: 7
+  patch_size: 31
+
+tracking:
+  min_features_for_tracking: 50
+  max_frames_between_kf: 40
+  min_frames_between_kf: 5
+  max_reprojection_error: 4.0
+  min_parallax_deg: 1.0
+
+mapping:
+  sliding_window_size: 20
+  min_observations: 3
+  max_reprojection_error: 4.0
+
+dense_mapping:
+  max_keyframes: 120
+  output_width: 320
+  pixel_stride: 2
+  min_sparse_samples: 18
+  max_calibration_error: 0.38
+  consistency_tolerance: 0.24
+  voxel_size_ratio: 0.012
+  max_output_points: 900000
+
+loop_closing:
+  enabled: true
+  min_similarity_score: 0.3
+  fallback_min_match_ratio: 0.02
+  min_consecutive_loops: 2
+  min_frame_separation: 1500
+  vocab_path: ""
+  pose_graph_iterations: 20
+  global_ba_iterations: 20
+  enable_global_ba: false
+
+input_video: ""
+output_trajectory: "trajectory.txt"
+output_format: "tum"
+
+enable_viewer: true
+enable_logging: true
+log_level: 2

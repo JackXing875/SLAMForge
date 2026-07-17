@@ -15,6 +15,7 @@
 #include <opencv2/videoio.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -46,6 +47,26 @@ namespace fs = std::filesystem;
 namespace {
 
 fs::path executable_directory;
+
+fs::path ResolveDepthModel(const std::string& requested_path) {
+    if (!requested_path.empty()) {
+        return fs::path(requested_path);
+    }
+    const std::array<fs::path, 4> candidates = {
+        executable_directory / "models" / "depth_anything_v2_vits_dynamic.onnx",
+        executable_directory / ".." / "share" / "slamforge" / "models" /
+            "depth_anything_v2_vits_dynamic.onnx",
+        fs::current_path() / "models" / "depth_anything_v2_vits_dynamic.onnx",
+        fs::current_path() / "depth_anything_v2_vits_dynamic.onnx"};
+    std::error_code error;
+    for (const fs::path& candidate : candidates) {
+        if (fs::is_regular_file(candidate, error) && !error) {
+            return fs::weakly_canonical(candidate, error);
+        }
+        error.clear();
+    }
+    return {};
+}
 
 /// Resolve the binary directory even when the command was found through PATH.
 /// The installed Python evaluation tools are located relative to this path.
@@ -601,8 +622,10 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
                    const std::string& output_path, bool verbose, double fps,
                    const std::string& output_format_override = "",
                    const std::string& timestamp_path = "", const std::string& map_output_path = "",
-                   const std::string& gt_path = "", const std::string& gt_format = "tum",
-                   int* out_keyframes = nullptr, int* out_mappoints = nullptr) {
+                   const std::string& dense_output_path = "",
+                   const std::string& depth_model_path = "", const std::string& gt_path = "",
+                   const std::string& gt_format = "tum", int* out_keyframes = nullptr,
+                   int* out_mappoints = nullptr) {
     // ── Load configuration ──────────────────────────────────────────────────
     auto cfg_opt = slamforge::SystemConfig::LoadFromYAML(config_path);
     if (!cfg_opt) {
@@ -797,10 +820,7 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
             }
         }
 
-        cv::Mat gray;
-        cv::cvtColor(image, gray, cv::COLOR_BGR2GRAY);
-
-        auto pose_opt = tracker.Track(gray, timestamp);
+        auto pose_opt = tracker.Track(image, timestamp);
 
         const int keyframe_count = tracker.NumKeyFrames();
         if (keyframe_count > synchronized_keyframe_count) {
@@ -859,6 +879,7 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     std::fprintf(stderr, "\n");
 
     // ── Stop background workers ────────────────────────────────────────────
+    std::fprintf(stderr, "Finalizing map and checking loop closures...\n");
     stop_background_workers();
     if (verbose)
         std::cout << "Background mapping/loop-closing threads stopped\n";
@@ -903,6 +924,36 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
         }
     }
 
+    slamforge::mapping::DenseReconstructionResult dense_result;
+    if (!dense_output_path.empty()) {
+        const fs::path model = ResolveDepthModel(depth_model_path);
+        if (model.empty()) {
+            std::cerr << "Error: dense reconstruction was requested, but the Depth Anything V2 "
+                         "model was not found. Pass --depth-model or reinstall the desktop "
+                         "package.\n";
+            return EXIT_FAILURE;
+        }
+        if (verbose) {
+            std::cout << "Dense reconstruction model: " << model.string() << "\n";
+        }
+        slamforge::mapping::DenseMapper dense_mapper(camera, cfg.dense_mapping);
+        dense_result = dense_mapper.Reconstruct(
+            tracker.GetMap(), model, dense_output_path, [](int current, int total) {
+                std::fprintf(stderr, "\rDense keyframe %d/%d", current, total);
+                std::fflush(stderr);
+            });
+        std::fprintf(stderr, "\n");
+        if (!dense_result) {
+            std::cerr << "Error: " << dense_result.error << "\n";
+            return EXIT_FAILURE;
+        }
+        if (verbose) {
+            std::cout << "Dense map: " << dense_output_path << " (" << dense_result.point_count
+                      << " fused surface points from " << dense_result.calibrated_keyframes
+                      << " calibrated keyframes)\n";
+        }
+    }
+
     // ── Collect final stats ─────────────────────────────────────────────────
     const int final_kfs = tracker.NumKeyFrames();
     const int final_mps = static_cast<int>(tracker.GetMap().MapPointCount());
@@ -930,6 +981,10 @@ static int RunSlam(const std::string& config_path, const std::string& input_path
     std::cout << "  Output:     " << output_path << "\n";
     if (!map_output_path.empty()) {
         std::cout << "  Map:        " << map_output_path << "\n";
+    }
+    if (!dense_output_path.empty()) {
+        std::cout << "  Dense map:  " << dense_output_path << " (" << dense_result.point_count
+                  << " points)\n";
     }
 
     // ── Optional inline ATE ─────────────────────────────────────────────────
@@ -959,6 +1014,8 @@ static int RunSubcommand(CLI::App* run_cmd) {
     static std::string input;
     static std::string output = "trajectory.txt";
     static std::string map_output;
+    static std::string dense_output;
+    static std::string depth_model;
     static std::string output_format;
     static std::string timestamps;
     static bool verbose = false;
@@ -975,6 +1032,10 @@ static int RunSubcommand(CLI::App* run_cmd) {
                      "Output trajectory (format from config unless --output-format is set)")
         ->default_val("trajectory.txt");
     run_cmd->add_option("--map-output", map_output, "Optional sparse map output in ASCII PLY");
+    run_cmd->add_option("--dense-output", dense_output,
+                        "Optional fused dense colored surface map in ASCII PLY");
+    run_cmd->add_option("--depth-model", depth_model,
+                        "Depth Anything V2 Small ONNX model (auto-detected in desktop packages)");
     run_cmd
         ->add_option("--output-format", output_format,
                      "Output trajectory format override (tum|kitti|euroc)")
@@ -1061,7 +1122,7 @@ static int BenchSubcommand(CLI::App* bench_cmd) {
 
 int main(int argc, char* argv[]) {
     executable_directory = ResolveExecutableDirectory(argc > 0 ? argv[0] : nullptr);
-    CLI::App app{"SLAMForge — Industrial-Grade Monocular Visual SLAM"};
+    CLI::App app{"SLAMForge — Monocular Visual SLAM and Dense Reconstruction"};
     app.set_version_flag("--version", slamforge::kVersionString);
     app.require_subcommand(1);
 
@@ -1086,7 +1147,9 @@ int main(int argc, char* argv[]) {
                        run->get_option("--fps")->as<double>(),
                        run->get_option("--output-format")->as<std::string>(),
                        run->get_option("--timestamps")->as<std::string>(),
-                       run->get_option("--map-output")->as<std::string>());
+                       run->get_option("--map-output")->as<std::string>(),
+                       run->get_option("--dense-output")->as<std::string>(),
+                       run->get_option("--depth-model")->as<std::string>());
     }
 
     // ── Dispatch: eval ──────────────────────────────────────────────────────
@@ -1250,7 +1313,8 @@ int main(int argc, char* argv[]) {
             int ret =
                 RunSlam(config_path, image_path.string(), out_traj.string(), /*verbose=*/false,
                         /*fps=*/30.0, /*output_format_override=*/"", /*timestamp_path=*/"",
-                        /*map_output_path=*/"", gt_path, gt_format, &run_kfs, &run_mps);
+                        /*map_output_path=*/"", /*dense_output_path=*/"",
+                        /*depth_model_path=*/"", gt_path, gt_format, &run_kfs, &run_mps);
 
             r.success = (ret == EXIT_SUCCESS);
             r.keyframes = run_kfs;

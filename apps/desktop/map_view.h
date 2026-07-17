@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QColor>
 #include <QPoint>
 #include <QString>
 #include <QVector3D>
@@ -45,6 +46,7 @@ private:
     [[nodiscard]] QPointF Project(const QVector3D& point, float* depth = nullptr) const;
 
     QVector<QVector3D> map_points_;
+    QVector<QColor> map_colors_;
     QVector<QVector3D> trajectory_;
     QVector3D center_;
     float radius_ = 1.0F;

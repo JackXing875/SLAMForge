@@ -1,19 +1,22 @@
 # =============================================================================
-# SLAMForge — Industrial-Grade Monocular Visual SLAM System
+# SLAMForge — Monocular Visual SLAM and Dense Reconstruction
 # =============================================================================
 cmake_minimum_required(VERSION 3.20)
+if(POLICY CMP0144)
+    cmake_policy(SET CMP0144 NEW)
+endif()
 
 # ── Project identity ─────────────────────────────────────────────────────────
 project(SLAMForge
-    VERSION 3.1.0
-    DESCRIPTION "Industrial-grade monocular visual SLAM system"
+    VERSION 3.2.0
+    DESCRIPTION "Monocular visual SLAM and dense reconstruction system"
     HOMEPAGE_URL "https://github.com/JackXing875/SLAMForge"
     LANGUAGES CXX
 )
 
 # CMake package compatibility uses the numeric project version, while public
 # beta builds expose the complete prerelease identifier in the CLI and GUI.
-set(SLAMFORGE_VERSION_PRERELEASE "beta.2")
+set(SLAMFORGE_VERSION_PRERELEASE "beta.1")
 set(SLAMFORGE_VERSION_STRING "${PROJECT_VERSION}-${SLAMFORGE_VERSION_PRERELEASE}")
 
 # ── C++ standard ─────────────────────────────────────────────────────────────
@@ -32,10 +35,14 @@ option(SLAMFORGE_ENABLE_G2O    "Enable g2o pose graph optimization"   ON)
 option(SLAMFORGE_ENABLE_FBOW   "Enable FBOW visual vocabulary"         ON)
 option(SLAMFORGE_ENABLE_SPDLOG "Enable spdlog structured logging"     ON)
 option(SLAMFORGE_ENABLE_YAML   "Enable YAML configuration support"    ON)
+option(SLAMFORGE_ENABLE_DENSE  "Enable ONNX Runtime dense reconstruction" ON)
 option(SLAMFORGE_ENABLE_IPO    "Enable inter-procedural optimization" OFF)
 option(SLAMFORGE_BUILD_PYBIND     "Build pybind11 Python bindings"       OFF)
 option(SLAMFORGE_BUILD_ROS2       "Build ROS2 integration"               OFF)
 option(SLAMFORGE_BUILD_BENCHMARKS "Build performance benchmarks"        OFF)
+set(ONNXRUNTIME_ROOT "" CACHE PATH "Root of an official ONNX Runtime C/C++ package")
+set(SLAMFORGE_DEPTH_MODEL_FILE "" CACHE FILEPATH
+    "Depth Anything V2 Small ONNX model installed with desktop packages")
 
 # ── Inter-procedural optimization ────────────────────────────────────────────
 include(CheckIPOSupported)
@@ -55,6 +62,16 @@ find_package(OpenCV REQUIRED COMPONENTS core imgproc features2d calib3d video vi
 
 # Required: Eigen3 (linear algebra)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
+# Optional: ONNX Runtime powers offline dense depth inference. It is kept
+# optional for lightweight library/CI builds and enabled in desktop releases.
+if(SLAMFORGE_ENABLE_DENSE)
+    find_package(ONNXRuntime QUIET)
+    if(NOT ONNXRuntime_FOUND)
+        message(WARNING "ONNX Runtime not found — dense reconstruction disabled")
+        set(SLAMFORGE_ENABLE_DENSE OFF)
+    endif()
+endif()
 
 # Optional: Sophus (SE3 Lie algebra — highly recommended)
 if(SLAMFORGE_ENABLE_SOPHUS)
@@ -282,6 +299,38 @@ install(FILES "${PROJECT_SOURCE_DIR}/THIRD_PARTY_NOTICES.md"
     DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/SLAMForge"
     COMPONENT Desktop
 )
+install(FILES "${PROJECT_SOURCE_DIR}/packaging/licenses/Depth-Anything-V2.txt"
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/SLAMForge/third-party"
+    COMPONENT Desktop
+)
+if(SLAMFORGE_ENABLE_DENSE AND ONNXRUNTIME_RUNTIME_LIBRARY)
+    if(EXISTS "${ONNXRUNTIME_ROOT}/LICENSE")
+        install(FILES "${ONNXRUNTIME_ROOT}/LICENSE"
+            DESTINATION "${CMAKE_INSTALL_DATADIR}/licenses/SLAMForge/third-party"
+            RENAME "ONNX-Runtime.txt"
+            COMPONENT Desktop)
+    endif()
+    install(DIRECTORY "${ONNXRUNTIME_INCLUDE_DIR}/"
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/onnxruntime"
+        COMPONENT Development
+    )
+    if(WIN32)
+        install(FILES "${ONNXRUNTIME_RUNTIME_LIBRARY}"
+            DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT Desktop)
+    else()
+        file(GLOB ONNXRUNTIME_RUNTIME_FILES
+            "${ONNXRUNTIME_ROOT}/lib/libonnxruntime.so*"
+        )
+        install(FILES ${ONNXRUNTIME_RUNTIME_FILES}
+            DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Desktop)
+    endif()
+endif()
+if(SLAMFORGE_DEPTH_MODEL_FILE AND EXISTS "${SLAMFORGE_DEPTH_MODEL_FILE}")
+    install(FILES "${SLAMFORGE_DEPTH_MODEL_FILE}"
+        DESTINATION "${CMAKE_INSTALL_DATADIR}/slamforge/models"
+        RENAME "depth_anything_v2_vits_dynamic.onnx"
+        COMPONENT Desktop)
+endif()
 
 install(EXPORT SLAMForgeTargets
     FILE SLAMForgeTargets.cmake
@@ -322,6 +371,11 @@ if(SLAMFORGE_ENABLE_YAML AND (TARGET yaml-cpp::yaml-cpp OR TARGET yaml-cpp))
     set(SLAMFORGE_PACKAGE_WITH_YAML ON)
 endif()
 
+set(SLAMFORGE_PACKAGE_WITH_ONNXRUNTIME OFF)
+if(SLAMFORGE_ENABLE_DENSE AND TARGET ONNXRuntime::ONNXRuntime)
+    set(SLAMFORGE_PACKAGE_WITH_ONNXRUNTIME ON)
+endif()
+
 configure_package_config_file(
     "${PROJECT_SOURCE_DIR}/cmake/SLAMForgeConfig.cmake.in"
     "${PROJECT_BINARY_DIR}/SLAMForgeConfig.cmake"
@@ -346,13 +400,14 @@ install(FILES
 install(FILES
     "${PROJECT_SOURCE_DIR}/cmake/FindSophus.cmake"
     "${PROJECT_SOURCE_DIR}/cmake/FindFBOW.cmake"
+    "${PROJECT_SOURCE_DIR}/cmake/FindONNXRuntime.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/SLAMForge/modules"
 )
 
 # ── Packaging (CPack) ────────────────────────────────────────────────────────
 set(CPACK_PACKAGE_NAME "SLAMForge")
 set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Industrial-grade monocular visual SLAM system")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Monocular visual SLAM and dense reconstruction system")
 set(CPACK_PACKAGE_HOMEPAGE_URL "${PROJECT_HOMEPAGE_URL}")
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "SLAMForge Team")
@@ -373,6 +428,7 @@ message(STATUS "  g2o (Pose Graph):   ${SLAMFORGE_ENABLE_G2O}")
 message(STATUS "  FBOW (Vocabulary):  ${SLAMFORGE_ENABLE_FBOW}")
 message(STATUS "  spdlog (Logging):   ${SLAMFORGE_ENABLE_SPDLOG}")
 message(STATUS "  yaml-cpp (Config):  ${SLAMFORGE_ENABLE_YAML}")
+message(STATUS "  Dense mapping:      ${SLAMFORGE_ENABLE_DENSE}")
 message(STATUS "  Python bindings:    ${SLAMFORGE_BUILD_PYBIND}")
 message(STATUS "  ROS2 integration:   ${SLAMFORGE_BUILD_ROS2}")
 message(STATUS "  Benchmarks:         ${SLAMFORGE_BUILD_BENCHMARKS}")

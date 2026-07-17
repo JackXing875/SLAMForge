@@ -41,6 +41,19 @@ mapping:
   min_observations: 3
   max_reprojection_error: 4.0
 
+# ── Offline dense surface reconstruction ─────────────────────────────────────
+# Used when the desktop app or CLI requests --dense-output. The bundled
+# Depth Anything V2 Small model runs locally; no image is uploaded.
+dense_mapping:
+  max_keyframes: 96
+  output_width: 320
+  pixel_stride: 2
+  min_sparse_samples: 20
+  max_calibration_error: 0.35
+  consistency_tolerance: 0.22
+  voxel_size_ratio: 0.012
+  max_output_points: 750000
+
 # ── Loop closing thread ───────────────────────────────────────────────────────
 loop_closing:
   enabled: false

@@ -6,6 +6,8 @@
 
 #include <opencv2/imgproc.hpp>
 
+#include <algorithm>
+
 #include "slamforge/features/orb_extractor.h"
 
 namespace slamforge {
@@ -21,8 +23,31 @@ Frame::Frame(const cv::Mat& image, double timestamp, features::OrbExtractor& ext
     // Ensure grayscale
     if (image.channels() == 3) {
         cv::cvtColor(image, image_, cv::COLOR_BGR2GRAY);
+        // Dense reconstruction uses a 320-pixel longest-side preview.
+        // Retaining larger keyframe colors only multiplies long-video memory
+        // consumption without adding output detail.
+        constexpr int maximum_color_dimension = 320;
+        const int longest_side = std::max(image.cols, image.rows);
+        if (longest_side > maximum_color_dimension) {
+            const double scale =
+                static_cast<double>(maximum_color_dimension) / static_cast<double>(longest_side);
+            cv::resize(image, color_image_, cv::Size(), scale, scale, cv::INTER_AREA);
+        } else {
+            color_image_ = image.clone();
+        }
     } else if (image.channels() == 4) {
         cv::cvtColor(image, image_, cv::COLOR_BGRA2GRAY);
+        cv::Mat color;
+        cv::cvtColor(image, color, cv::COLOR_BGRA2BGR);
+        constexpr int maximum_color_dimension = 320;
+        const int longest_side = std::max(color.cols, color.rows);
+        if (longest_side > maximum_color_dimension) {
+            const double scale =
+                static_cast<double>(maximum_color_dimension) / static_cast<double>(longest_side);
+            cv::resize(color, color_image_, cv::Size(), scale, scale, cv::INTER_AREA);
+        } else {
+            color_image_ = std::move(color);
+        }
     } else {
         image_ = image.clone();
     }

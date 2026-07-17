@@ -85,7 +85,7 @@ static slamforge::SE3 MatToSe3(const Eigen::Matrix4d& m) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 PYBIND11_MODULE(_slamforge, m) {
-    m.doc() = "SLAMForge — Industrial-Grade Monocular Visual SLAM";
+    m.doc() = "SLAMForge — Monocular Visual SLAM and Dense Reconstruction";
 
     // ── Version ────────────────────────────────────────────────────────────
     m.attr("__version__") = slamforge::kVersionString;

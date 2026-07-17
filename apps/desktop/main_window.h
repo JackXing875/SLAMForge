@@ -58,6 +58,7 @@ private:
     void ProcessFinished(int exit_code, QProcess::ExitStatus exit_status);
 
     [[nodiscard]] QString FindCliExecutable() const;
+    [[nodiscard]] QString FindDepthModel() const;
     [[nodiscard]] QString FindConfigDirectory() const;
     [[nodiscard]] bool IsSupportedVideo(const QString& path) const;
 
@@ -79,6 +80,7 @@ private:
     QString result_directory_;
     QString trajectory_path_;
     QString map_path_;
+    QString sparse_map_path_;
     bool cancelling_ = false;
 };
 

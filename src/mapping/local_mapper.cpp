@@ -264,6 +264,12 @@ void LocalMapper::LocalBundleAdjustment() {
         return;
 
     std::vector<MapPoint*> map_points(mp_set.begin(), mp_set.end());
+    // Ceres is mathematically insensitive to residual insertion order, but
+    // finite-precision Schur elimination is not. Newest-first IDs retain the
+    // best-conditioned active landmarks first and, unlike unordered pointer
+    // iteration, produce identical long-video results across runs.
+    std::sort(map_points.begin(), map_points.end(),
+              [](const MapPoint* lhs, const MapPoint* rhs) { return lhs->Id().id > rhs->Id().id; });
 
     // Collect fixed KFs: KFs that observe these MPs but aren't in local set
     std::unordered_set<KeyFrame*> local_set(local_kfs.begin(), local_kfs.end());
