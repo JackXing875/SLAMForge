@@ -102,6 +102,44 @@ jobs:
       - name: ccache stats
         run: ccache -s
 
+  backend-optimization:
+    name: "Backend optimization / Ceres"
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install backend dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake \
+            libopencv-dev libeigen3-dev libceres-dev \
+            libspdlog-dev libyaml-cpp-dev
+
+      - name: Configure Ceres regression build
+        run: |
+          cmake -B build-backend \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_REQUIRE_FIND_PACKAGE_Ceres=ON \
+            -DSLAMFORGE_BUILD_TESTS=ON \
+            -DSLAMFORGE_BUILD_PYTHON_TESTS=OFF \
+            -DSLAMFORGE_BUILD_APPS=OFF \
+            -DSLAMFORGE_ENABLE_CERES=ON \
+            -DSLAMFORGE_ENABLE_SOPHUS=OFF \
+            -DSLAMFORGE_ENABLE_G2O=OFF \
+            -DSLAMFORGE_ENABLE_FBOW=OFF \
+            -DSLAMFORGE_ENABLE_DENSE=OFF
+
+      - name: Build backend tests
+        run: cmake --build build-backend --target test_ba test_loop_closing --parallel 2
+
+      - name: Run backend numerical and lifecycle regressions
+        run: |
+          ctest --test-dir build-backend --output-on-failure --timeout 120 \
+            --no-tests=error -R '^(test_ba|test_loop_closing)$'
+
   coverage:
     name: "Coverage / gcc"
     runs-on: ubuntu-22.04

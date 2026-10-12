@@ -110,11 +110,18 @@ LocalBundleAdjuster::LocalBundleAdjuster(const Camera& camera, const BAOptions& 
 int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
                                   std::vector<KeyFrame*>& fixed_kfs,
                                   std::vector<MapPoint*>& map_points) {
-    if (local_kfs.empty() || map_points.empty()) {
+    if (local_kfs.empty() || map_points.empty() || opts_.max_iterations <= 0 ||
+        (opts_.use_huber && (!std::isfinite(opts_.huber_delta) || opts_.huber_delta <= 0.0))) {
         return 0;
     }
 
-    ceres::Problem problem;
+    std::unique_ptr<ceres::LossFunction> loss;
+    if (opts_.use_huber) {
+        loss = std::make_unique<ceres::HuberLoss>(opts_.huber_delta);
+    }
+    ceres::Problem::Options problem_options;
+    problem_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+    ceres::Problem problem(problem_options);
 
     // Camera intrinsics
     double fx = camera_.fx();
@@ -132,18 +139,27 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
 
     std::unordered_map<KeyFrame*, std::unique_ptr<KfData>> kf_data_map;
 
-    // Anchor the oldest local keyframe, never the newest one.  Fixing the
-    // current keyframe made every local BA bend the existing map around the
-    // noisiest pose estimate.  If no external fixed keyframe exists, anchor a
-    // second old pose as well to remove monocular scale gauge freedom.
-    std::vector<KeyFrame*> anchor_candidates = local_kfs;
-    std::sort(anchor_candidates.begin(), anchor_candidates.end(),
-              [](const KeyFrame* lhs, const KeyFrame* rhs) { return lhs->Id().id < rhs->Id().id; });
-    std::unordered_set<KeyFrame*> anchored_local_kfs;
-    anchored_local_kfs.insert(anchor_candidates.front());
-    if (fixed_kfs.empty() && anchor_candidates.size() > 1) {
-        anchored_local_kfs.insert(anchor_candidates[1]);
+    // Normalize the window before allocating parameter blocks. In particular,
+    // overlapping local/fixed lists must not replace storage already owned by
+    // the problem, and an explicitly fixed keyframe must remain fixed.
+    std::vector<KeyFrame*> all_kfs;
+    std::unordered_set<KeyFrame*> seen_kfs;
+    std::unordered_set<KeyFrame*> fixed_set;
+    for (auto* kf : fixed_kfs) {
+        if (kf && !kf->IsBad() && kf->Pose().matrix().allFinite()) {
+            fixed_set.insert(kf);
+        }
     }
+    for (const auto* window : {&local_kfs, &fixed_kfs}) {
+        for (auto* kf : *window) {
+            if (kf && !kf->IsBad() && kf->Pose().matrix().allFinite() &&
+                seen_kfs.insert(kf).second) {
+                all_kfs.push_back(kf);
+            }
+        }
+    }
+    std::sort(all_kfs.begin(), all_kfs.end(),
+              [](const KeyFrame* lhs, const KeyFrame* rhs) { return lhs->Id().id < rhs->Id().id; });
 
     auto add_kf_pose = [&](KeyFrame* kf, bool is_fixed) {
         auto data = std::make_unique<KfData>();
@@ -170,22 +186,11 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
         kf_data_map[kf] = std::move(data);
     };
 
-    // Add local KFs with stable gauge anchors.
-    for (auto* kf : local_kfs) {
-        add_kf_pose(kf, anchored_local_kfs.contains(kf));
-    }
-
-    // Add fixed KFs
-    for (auto* kf : fixed_kfs) {
-        if (kf_data_map.find(kf) == kf_data_map.end()) {
-            add_kf_pose(kf, true);
-        }
+    for (auto* kf : all_kfs) {
+        add_kf_pose(kf, fixed_set.contains(kf));
     }
 
     // ── MP blocks: point[3] ─────────────────────────────────────────────
-
-    std::vector<KeyFrame*> all_kfs = local_kfs;
-    all_kfs.insert(all_kfs.end(), fixed_kfs.begin(), fixed_kfs.end());
 
     // Count observations inside this BA window before adding point blocks.
     // A point seen by fewer than two participating keyframes provides no
@@ -212,9 +217,10 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
     };
     std::unordered_map<MapPoint*, std::unique_ptr<MpData>> mp_data_map;
     std::unordered_map<uint64_t, MapPoint*> map_point_by_id;
+    std::vector<MpData*> point_blocks;
 
     for (auto* mp : map_points) {
-        if (!mp || mp->IsBad() || observation_counts[mp->Id().id] < 2) {
+        if (!mp || mp->IsBad() || observation_counts[mp->Id().id] < 2 || mp_data_map.contains(mp)) {
             continue;
         }
         auto data = std::make_unique<MpData>();
@@ -229,15 +235,26 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
         data->mp = mp;
         problem.AddParameterBlock(data->point, 3);
         map_point_by_id.emplace(mp->Id().id, mp);
+        point_blocks.push_back(data.get());
         mp_data_map[mp] = std::move(data);
     }
 
     // ── Add residuals ────────────────────────────────────────────────────
 
-    ceres::LossFunction* loss = opts_.use_huber ? new ceres::HuberLoss(opts_.huber_delta) : nullptr;
-
     int total_residuals = 0;
     std::unordered_map<KeyFrame*, int> residuals_per_keyframe;
+    std::unordered_map<KeyFrame*, KeyFrame*> component_parent;
+    std::unordered_map<MapPoint*, KeyFrame*> first_observer;
+    for (auto* kf : all_kfs) {
+        component_parent[kf] = kf;
+    }
+    auto component_root = [&](KeyFrame* kf) {
+        while (component_parent.at(kf) != kf) {
+            component_parent[kf] = component_parent.at(component_parent.at(kf));
+            kf = component_parent.at(kf);
+        }
+        return kf;
+    };
 
     for (auto* kf : all_kfs) {
         auto kf_it = kf_data_map.find(kf);
@@ -269,17 +286,24 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
 
             double obs_x = kps[static_cast<size_t>(idx)].pt.x;
             double obs_y = kps[static_cast<size_t>(idx)].pt.y;
+            if (!std::isfinite(obs_x) || !std::isfinite(obs_y)) {
+                continue;
+            }
 
             auto* cost = new ceres::AutoDiffCostFunction<ProjectionFunctor, 2, 4, 3, 3>(
                 new ProjectionFunctor(obs_x, obs_y, fx, fy, cx, cy));
 
-            problem.AddResidualBlock(cost, loss,
+            problem.AddResidualBlock(cost, loss.get(),
                                      kf_it->second->q,       // quaternion
                                      kf_it->second->t,       // translation
                                      mp_it->second->point);  // 3D point
 
             total_residuals++;
             ++residuals_per_keyframe[kf];
+            const auto [observer, inserted] = first_observer.emplace(mp_raw, kf);
+            if (!inserted) {
+                component_parent[component_root(kf)] = component_root(observer->second);
+            }
         }
     }
 
@@ -287,9 +311,56 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
         return 0;
     }
 
+    // Select gauges from the actual residual graph, not from the caller's
+    // lists. Two fixed cameras with a nonzero baseline already constrain the
+    // world frame and monocular scale; freezing a local pose as well would
+    // prevent correcting its drift. Disconnected components need their own
+    // anchors, and fixed cameras with no usable observations cannot anchor BA.
+    std::unordered_map<KeyFrame*, std::vector<KeyFrame*>> components;
+    for (auto* kf : all_kfs) {
+        if (residuals_per_keyframe[kf] > 0) {
+            components[component_root(kf)].push_back(kf);
+        }
+    }
+    for (const auto& [_, keyframes] : components) {
+        KeyFrame* fixed_reference = nullptr;
+        bool fixed_baseline = false;
+        for (auto* kf : keyframes) {
+            if (!fixed_set.contains(kf)) {
+                continue;
+            }
+            if (!fixed_reference) {
+                fixed_reference = kf;
+            } else if ((kf->CameraCenter() - fixed_reference->CameraCenter()).squaredNorm() >
+                       1e-12) {
+                fixed_baseline = true;
+            }
+        }
+        if (fixed_baseline) {
+            continue;
+        }
+        // Retain the existing conservative two-pose gauge when external
+        // cameras do not provide a baseline, preferring the oldest local KFs.
+        int anchors_needed = fixed_reference ? 1 : 2;
+        for (auto* kf : keyframes) {
+            if (fixed_set.contains(kf)) {
+                continue;
+            }
+            const auto& data = kf_data_map.at(kf);
+            problem.SetParameterBlockConstant(data->q);
+            problem.SetParameterBlockConstant(data->t);
+            if (--anchors_needed == 0) {
+                break;
+            }
+        }
+    }
+
     // Keep any camera with no surviving residuals constant so it cannot make
     // the normal equations rank deficient.
-    for (auto* kf : local_kfs) {
+    for (auto* kf : all_kfs) {
+        if (fixed_set.contains(kf)) {
+            continue;
+        }
         if (residuals_per_keyframe[kf] != 0) {
             const auto data = kf_data_map.find(kf);
             if (data != kf_data_map.end()) {
@@ -310,12 +381,7 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
         }
     }
 
-    for (auto* map_point : map_points) {
-        const auto data_it = mp_data_map.find(map_point);
-        if (data_it == mp_data_map.end()) {
-            continue;
-        }
-        const auto& data = data_it->second;
+    for (auto* data : point_blocks) {
         auto* prior = new ceres::AutoDiffCostFunction<PointPriorFunctor, 3, 3>(
             new PointPriorFunctor(data->original));
         problem.AddResidualBlock(prior, nullptr, data->point);
@@ -362,12 +428,15 @@ int LocalBundleAdjuster::Optimize(std::vector<KeyFrame*>& local_kfs,
 
     // ── Update poses ─────────────────────────────────────────────────────
 
-    for (auto* kf : local_kfs) {
+    for (auto* kf : all_kfs) {
         auto it = kf_data_map.find(kf);
         if (it == kf_data_map.end())
             continue;
 
         const auto& data = it->second;
+        if (problem.IsParameterBlockConstant(data->q)) {
+            continue;
+        }
         Eigen::Quaterniond quat(data->q[0], data->q[1], data->q[2], data->q[3]);
         quat.normalize();
 
