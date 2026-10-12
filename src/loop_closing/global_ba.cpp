@@ -9,10 +9,13 @@
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 
+#include <algorithm>
+#include <cmath>
 #include <exception>
 #include <iostream>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "optimization/ceres_compat.h"
 #include "slamforge/core/camera.h"
@@ -23,7 +26,7 @@
 
 namespace slamforge::loop_closing {
 
-// ── Reprojection cost functor (same as local BA) ──────────────────────────────
+// ── Pinhole reprojection of undistorted observations ─────────────────────────
 
 struct GlobalBAProjectionFunctor {
     GlobalBAProjectionFunctor(double ox, double oy, double fx, double fy, double cx, double cy)
@@ -34,6 +37,11 @@ struct GlobalBAProjectionFunctor {
         T rotated[3];
         ceres::UnitQuaternionRotatePoint(q, pt, rotated);
         T pc[3] = {rotated[0] + t[0], rotated[1] + t[1], rotated[2] + t[2]};
+        // Reject LM trial steps across the camera plane rather than dividing
+        // by zero or accepting a reprojection of a point behind the camera.
+        if (pc[2] <= T(1e-6)) {
+            return false;
+        }
         T inv_z = T(1.0) / pc[2];
         T proj_x = T(fx_) * pc[0] * inv_z + T(cx_);
         T proj_y = T(fy_) * pc[1] * inv_z + T(cy_);
@@ -104,7 +112,9 @@ void GlobalBundleAdjuster::RequestStop() {
 }
 
 void GlobalBundleAdjuster::Run() {
-    if (!map_ || !camera_) {
+    if (!map_ || !camera_ || stop_requested_ || config_.max_iterations <= 0 ||
+        (config_.use_huber &&
+         (!std::isfinite(config_.huber_delta) || config_.huber_delta <= 0.0))) {
         return;
     }
 
@@ -114,10 +124,19 @@ void GlobalBundleAdjuster::Run() {
     // underneath that snapshot or overwriting its results midway through the
     // final commit.
     auto graph_lock = map_->AcquireGraphLock();
+    if (stop_requested_) {
+        return;
+    }
 
     // ── Build the Ceres problem ─────────────────────────────────────────────
 
-    ceres::Problem problem;
+    std::unique_ptr<ceres::LossFunction> loss;
+    if (config_.use_huber) {
+        loss = std::make_unique<ceres::HuberLoss>(config_.huber_delta);
+    }
+    ceres::Problem::Options problem_options;
+    problem_options.loss_function_ownership = ceres::DO_NOT_TAKE_OWNERSHIP;
+    ceres::Problem problem(problem_options);
 
     double fx = camera_->fx();
     double fy = camera_->fy();
@@ -138,7 +157,12 @@ void GlobalBundleAdjuster::Run() {
 
     // Add all keyframes to the problem
     auto all_kfs = map_->GetAllKeyFrames();
-    bool first_kf = true;
+    std::erase_if(all_kfs, [](const auto& kf) {
+        return !kf || kf->IsBad() || !kf->Pose().matrix().allFinite();
+    });
+    std::sort(all_kfs.begin(), all_kfs.end(),
+              [](const auto& lhs, const auto& rhs) { return lhs->Id().id < rhs->Id().id; });
+    all_kfs.erase(std::unique(all_kfs.begin(), all_kfs.end()), all_kfs.end());
 
     for (auto& kf : all_kfs) {
         if (!kf || kf->IsBad())
@@ -158,19 +182,42 @@ void GlobalBundleAdjuster::Run() {
         optimization::detail::AddQuaternionParameterBlock(problem, data->q);
         problem.AddParameterBlock(data->t, 3);
 
-        if (first_kf) {
-            problem.SetParameterBlockConstant(data->q);
-            problem.SetParameterBlockConstant(data->t);
-            first_kf = false;
-        }
-
         kf_data_map[kf.get()] = std::move(data);
+    }
+
+    // Only finite, front-facing measurements contribute to triangulation.
+    // Count distinct observing keyframes, not raw association entries: a
+    // one-view landmark is an unconstrained depth variable in the Schur solve.
+    struct Observation {
+        KeyFrame* kf;
+        MapPoint* mp;
+        Vec2 pixel;
+    };
+    std::vector<Observation> observations;
+    std::unordered_map<MapPoint*, int> observation_counts;
+    for (const auto& kf : all_kfs) {
+        std::unordered_set<MapPoint*> observed;
+        const auto& keypoints = kf->KeyPointsUndistorted();
+        for (int index = 0; index < kf->NumKeyPoints(); ++index) {
+            auto mp = map_->GetMapPoint(kf->MapPointIdAt(index));
+            if (!mp || mp->IsBad() || static_cast<size_t>(index) >= keypoints.size()) {
+                continue;
+            }
+            const Vec3 point_camera = kf->Pose() * mp->Position();
+            const auto& pixel = keypoints[static_cast<size_t>(index)].pt;
+            if (!point_camera.allFinite() || point_camera.z() <= 1e-6 || !std::isfinite(pixel.x) ||
+                !std::isfinite(pixel.y) || !observed.insert(mp.get()).second) {
+                continue;
+            }
+            observations.push_back({kf.get(), mp.get(), Vec2(pixel.x, pixel.y)});
+            ++observation_counts[mp.get()];
+        }
     }
 
     // Add all map points
     auto all_mps = map_->GetAllMapPoints();
     for (auto& mp : all_mps) {
-        if (!mp || mp->IsBad())
+        if (!mp || mp->IsBad() || observation_counts[mp.get()] < 2)
             continue;
 
         auto data = std::make_unique<MpData>();
@@ -184,62 +231,47 @@ void GlobalBundleAdjuster::Run() {
     }
 
     // Add reprojection residuals
-    ceres::LossFunction* loss = nullptr;
-    if (config_.use_huber) {
-        loss = new ceres::HuberLoss(config_.huber_delta);
-    }
-
     int total_residuals = 0;
+    std::unordered_set<KeyFrame*> active_keyframes;
 
-    for (auto& kf : all_kfs) {
-        if (!kf || kf->IsBad())
+    for (const auto& observation : observations) {
+        auto mp_it = mp_data_map.find(observation.mp);
+        if (mp_it == mp_data_map.end()) {
             continue;
-
-        auto kf_it = kf_data_map.find(kf.get());
-        if (kf_it == kf_data_map.end())
-            continue;
-
-        for (int idx = 0; idx < kf->NumKeyPoints(); ++idx) {
-            MapPointId mp_id = kf->MapPointIdAt(idx);
-            if (mp_id.id == 0)
-                continue;
-
-            auto mp = map_->GetMapPoint(mp_id);
-            if (!mp || mp->IsBad())
-                continue;
-
-            auto mp_it = mp_data_map.find(mp.get());
-            if (mp_it == mp_data_map.end())
-                continue;
-
-            const auto& kps = kf->KeyPoints();
-            if (idx >= static_cast<int>(kps.size()))
-                continue;
-
-            double obs_x = kps[static_cast<size_t>(idx)].pt.x;
-            double obs_y = kps[static_cast<size_t>(idx)].pt.y;
-
-            auto* cost = new ceres::AutoDiffCostFunction<GlobalBAProjectionFunctor, 2, 4, 3, 3>(
-                new GlobalBAProjectionFunctor(obs_x, obs_y, fx, fy, cx, cy));
-
-            problem.AddResidualBlock(cost, loss, kf_it->second->q, kf_it->second->t,
-                                     mp_it->second->point);
-
-            total_residuals++;
         }
+        const auto& pose = kf_data_map.at(observation.kf);
+        auto* cost = new ceres::AutoDiffCostFunction<GlobalBAProjectionFunctor, 2, 4, 3, 3>(
+            new GlobalBAProjectionFunctor(observation.pixel.x(), observation.pixel.y(), fx, fy, cx,
+                                          cy));
+        problem.AddResidualBlock(cost, loss.get(), pose->q, pose->t, mp_it->second->point);
+        active_keyframes.insert(observation.kf);
+        ++total_residuals;
     }
 
     if (total_residuals == 0) {
         return;
     }
 
+    // An empty/bad first keyframe must not steal the world-frame gauge from
+    // the cameras that actually participate in this solve.
+    bool anchored = false;
+    for (const auto& kf : all_kfs) {
+        const bool active = active_keyframes.contains(kf.get());
+        if (!active || !anchored) {
+            const auto& data = kf_data_map.at(kf.get());
+            problem.SetParameterBlockConstant(data->q);
+            problem.SetParameterBlockConstant(data->t);
+        }
+        anchored = anchored || active;
+    }
+
     // Callback to check stop flag after each iteration
     class StopCallback : public ceres::IterationCallback {
     public:
         explicit StopCallback(std::atomic<bool>& flag) : flag_(flag) {}
-        ceres::CallbackReturnType operator()(const ceres::IterationSummary& summary) override {
+        ceres::CallbackReturnType operator()(const ceres::IterationSummary&) override {
             if (flag_)
-                return ceres::SOLVER_TERMINATE_SUCCESSFULLY;
+                return ceres::SOLVER_ABORT;
             return ceres::SOLVER_CONTINUE;
         }
 
@@ -260,8 +292,27 @@ void GlobalBundleAdjuster::Run() {
     ceres::Solver::Summary summary;
     ceres::Solve(solver_opts, &problem, &summary);
 
-    iterations_ = summary.iterations.size();
+    iterations_ = static_cast<int>(summary.iterations.size());
     final_cost_ = summary.final_cost;
+
+    // Validate the complete snapshot before committing any of it. A cancelled
+    // or unusable solve must not publish a partial trajectory into the map.
+    if (stop_requested_ || !summary.IsSolutionUsable() || !std::isfinite(summary.final_cost) ||
+        (std::isfinite(summary.initial_cost) && summary.final_cost > summary.initial_cost * 1.01)) {
+        return;
+    }
+    for (const auto& [_, data] : kf_data_map) {
+        const Eigen::Map<const Vec4> quaternion(data->q);
+        const Eigen::Map<const Vec3> translation(data->t);
+        if (!quaternion.allFinite() || quaternion.norm() < 1e-8 || !translation.allFinite()) {
+            return;
+        }
+    }
+    for (const auto& [_, data] : mp_data_map) {
+        if (!Eigen::Map<const Vec3>(data->point).allFinite()) {
+            return;
+        }
+    }
 
     // Update keyframe poses
     for (auto& kf : all_kfs) {
@@ -273,6 +324,9 @@ void GlobalBundleAdjuster::Run() {
             continue;
 
         const auto& data = it->second;
+        if (problem.IsParameterBlockConstant(data->q)) {
+            continue;
+        }
         Eigen::Quaterniond quat(data->q[0], data->q[1], data->q[2], data->q[3]);
         quat.normalize();
 
